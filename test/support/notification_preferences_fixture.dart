@@ -1,0 +1,20 @@
+Map<String, dynamic> notificationPreferencesFixture({int version = 0}) => {
+  'user_id': 'test-user',
+  'version': version,
+  'push_enabled': false,
+  'new_episodes': true,
+  'quiet_hours_start': null,
+  'quiet_hours_end': null,
+  'timezone': 'Africa/Lagos',
+  'delivery_status': 'in_app_policy_enabled',
+  'options': <String, dynamic>{
+    'in_app_enabled': true,
+    'email_enabled': false,
+    'badge_enabled': true,
+    'high_priority_only': false,
+    'types': ['new_episodes', 'mentions'],
+    'summary_time': '09:15',
+    'summary_days': [1, 4],
+    'summary_include': ['mentions'],
+  },
+};

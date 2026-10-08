@@ -1,0 +1,2 @@
+// Copy to AdMob.xcconfig (kept out of source control) for production builds.
+ADMOB_IOS_APP_ID=ca-app-pub-REPLACE_WITH_PRODUCTION_APP_ID

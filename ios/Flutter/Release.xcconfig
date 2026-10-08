@@ -1,0 +1,3 @@
+#include "Generated.xcconfig"
+ADMOB_IOS_APP_ID=
+#include? "AdMob.xcconfig"

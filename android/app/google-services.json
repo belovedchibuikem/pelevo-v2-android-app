@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "34338451494",
+    "project_id": "pelevo-885af",
+    "storage_bucket": "pelevo-885af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:34338451494:android:e5320c5ba661bb11f236e7",
+        "android_client_info": {
+          "package_name": "com.Podemeraldltd.pelevo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "34338451494-mknsar5me14e2lbtg02t9qgbtjb2t6d9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.Podemeraldltd.pelevo",
+            "certificate_hash": "37f4e9e71f49d4cbc187dbef8cbe447aa00da314"
+          }
+        },
+        {
+          "client_id": "34338451494-tgjr4r1gim5cnpn2obdmqhsq2k28kkne.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.Podemeraldltd.pelevo",
+            "certificate_hash": "062ecf457cd22e4c3540f9f7363f735bf58ff02d"
+          }
+        },
+        {
+          "client_id": "34338451494-69iirpso5jj0lj72li7ucv21r9gbpddd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCc4PuxvIcG0DVlwuISZ74R1A9opmzZjjw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "34338451494-69iirpso5jj0lj72li7ucv21r9gbpddd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "34338451494-k6cau12mlgl1p4jn7bjjqsnh0nv50vd7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.Podemeraldltd.pelevo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

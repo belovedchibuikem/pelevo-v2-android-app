@@ -1,0 +1,83 @@
+Map<String, dynamic> publishedReelFixture({
+  String id = 'reel-1',
+  String creatorProfileId = 'creator-1',
+  String creatorName = 'Ada Creator',
+  String creatorHandle = 'ada_creator',
+  String caption = 'Published reel caption.',
+  String? title,
+  String? episodeTitle = 'Fresh episode',
+  int likesCount = 1,
+  int commentsCount = 1,
+  int savesCount = 0,
+  bool liked = false,
+  bool saved = false,
+  bool following = false,
+}) => {
+  'id': id,
+  'title': title,
+  'caption': caption,
+  'media_url': null,
+  'thumbnail_path': null,
+  'duration_ms': 12000,
+  'published_at': '2026-09-09T00:00:00Z',
+  'creator_profile_id': creatorProfileId,
+  'creator_name': creatorName,
+  'creator_handle': creatorHandle,
+  'show_id': 'show-1',
+  'show_title': 'Ada Daily',
+  'show_artwork_url': null,
+  'episode_id': 'ep-1',
+  'episode_title': episodeTitle,
+  'episode_duration_seconds': 3755,
+  'likes_count': likesCount,
+  'comments_count': commentsCount,
+  'saves_count': savesCount,
+  'liked': liked,
+  'saved': saved,
+  'following': following,
+};
+
+Map<String, dynamic> reelDraftFixture({
+  String id = 'draft-1',
+  String caption = 'Draft reel',
+  String? title,
+}) => {
+  'id': id,
+  'title': title,
+  'caption': caption,
+  'state': 'draft',
+  'show_id': 'show-1',
+  'episode_id': 'ep-1',
+  'duration_ms': null,
+  'updated_at': '2026-09-09T00:00:00Z',
+  'created_at': '2026-09-09T00:00:00Z',
+};
+
+Map<String, dynamic> reelMonetizationFixture({
+  bool eligible = false,
+  bool optedIn = false,
+  int followers = 12,
+  int qualifiedViews = 40,
+  int minFollowers = 100,
+  int minViews = 1000,
+}) => {
+  'creator_profile_id': 'creator-1',
+  'eligible': eligible,
+  'opted_in': optedIn,
+  'followers': followers,
+  'qualified_views': qualifiedViews,
+  'min_followers': minFollowers,
+  'min_views': minViews,
+  'evaluated_at': '2026-09-10T00:00:00Z',
+  'opted_in_at': optedIn ? '2026-09-10T00:00:00Z' : null,
+};
+
+Map<String, dynamic> reelRelatedShowFixture({
+  String id = 'show-1',
+  String title = 'Owned Show',
+}) => {
+  'id': id,
+  'title': title,
+  'author': 'Ada',
+  'artwork_url': null,
+};

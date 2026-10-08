@@ -1,0 +1,7 @@
+# Copy to android/key.properties and fill in values for Play Store release builds.
+# Never commit key.properties or the .jks/.keystore file.
+
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=pelevo
+storeFile=C:/path/to/upload-keystore.jks
