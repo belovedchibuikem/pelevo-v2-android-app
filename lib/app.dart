@@ -22,6 +22,7 @@ import 'package:pelevo/features/home/home_see_all_screens.dart';
 import 'package:pelevo/features/onboarding/entry_flow_screens.dart';
 import 'package:pelevo/features/player/playback_insight_screens.dart';
 import 'package:pelevo/features/premium/premium_system_screens.dart';
+import 'package:pelevo/features/premium/premium_trial_banner.dart';
 import 'package:pelevo/features/search/discovery_detail_screens.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 import 'package:pelevo/features/showcase/screens/catalog_screen.dart';
@@ -153,9 +154,9 @@ final GoRouter pelevoRouter = GoRouter(
       path: '/creators/:id',
       redirect: (context, state) {
         final id = state.pathParameters['id']!;
-        ProviderScope.containerOf(context)
-            .read(selectedCreatorProfileIdProvider.notifier)
-            .select(id);
+        ProviderScope.containerOf(
+          context,
+        ).read(selectedCreatorProfileIdProvider.notifier).select(id);
         return Uri(
           path: '/screen/creator-profile',
           queryParameters: {'id': id},
@@ -240,7 +241,12 @@ class _PelevoAppState extends ConsumerState<PelevoApp> {
       routerConfig: pelevoRouter,
       builder:
           (context, child) => ResponsiveBreakpoints.builder(
-            child: child ?? const SizedBox.shrink(),
+            child: Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                PremiumTrialBannerHost(router: pelevoRouter),
+              ],
+            ),
             breakpoints: const [
               Breakpoint(start: 0, end: 359, name: MOBILE),
               Breakpoint(start: 360, end: 599, name: 'LARGE_MOBILE'),

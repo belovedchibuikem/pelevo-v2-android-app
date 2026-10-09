@@ -644,8 +644,8 @@ Future<T?> showPelevoSheet<T>({
 }
 
 bool isPelevoTabRoot(BuildContext context) {
-  if (GoRouter.maybeOf(context) == null) return false;
-  final path = GoRouterState.of(context).uri.path;
+  final path = pelevoRouterPath(context);
+  if (path == null) return false;
   final config =
       ProviderScope.containerOf(
         context,
@@ -686,9 +686,24 @@ Future<void> confirmPelevoExit(BuildContext context) async {
   }
 }
 
+/// Path of the current GoRouter page.
+///
+/// A raw [MaterialPageRoute] has no [GoRouterState]. Calling
+/// [GoRouterState.of] there throws and the route paints as a blank screen.
+String? pelevoRouterPath(BuildContext context) {
+  if (GoRouter.maybeOf(context) == null) return null;
+  final route = ModalRoute.of(context);
+  if (route == null || route.settings is! Page<Object?>) return null;
+  try {
+    return GoRouterState.of(context).uri.path;
+  } catch (_) {
+    return null;
+  }
+}
+
 bool isPelevoNavigationRoot(BuildContext context) {
-  if (GoRouter.maybeOf(context) == null) return true;
-  final path = GoRouterState.of(context).uri.path;
+  final path = pelevoRouterPath(context);
+  if (path == null) return GoRouter.maybeOf(context) == null;
   if (path == '/screen/splash' ||
       path.startsWith('/screen/onboarding-') ||
       path == '/screen/auth-sign-in' ||
@@ -774,10 +789,12 @@ PreferredSizeWidget? withPelevoNavigationLeading(
       isPelevoNavigationRoot(context)) {
     return appBar;
   }
+  final path = pelevoRouterPath(context);
+  if (path == null) return appBar;
   return AppBar(
     key: appBar.key,
     leading: PelevoBackButton(
-      fallback: pelevoFallbackFor(GoRouterState.of(context).uri.path),
+      fallback: pelevoFallbackFor(path),
     ),
     automaticallyImplyLeading: false,
     title: appBar.title,
@@ -804,10 +821,7 @@ extension Snackbars on BuildContext {
       pop();
       return;
     }
-    final path =
-        GoRouter.maybeOf(this) == null
-            ? '/screen/home-feed'
-            : GoRouterState.of(this).uri.path;
+    final path = pelevoRouterPath(this) ?? '/screen/home-feed';
     go(fallback ?? pelevoFallbackFor(path));
   }
 

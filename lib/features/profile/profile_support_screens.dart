@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pelevo/core/services/app_services.dart';
+import 'package:pelevo/features/profile/legal_links.dart';
 import 'package:pelevo/features/profile/support_data.dart';
 import 'package:pelevo/features/profile/support_dialogs.dart';
 import 'package:pelevo/features/profile/preferences_data.dart';
@@ -611,7 +612,7 @@ class ProfileAboutScreen extends ConsumerWidget {
               const SizedBox(height: PelevoSpacing.lg),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Terms of Service'),
+                title: const Text('Terms and Conditions'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/legal/terms'),
               ),
@@ -1275,10 +1276,16 @@ class CmsDocumentContent extends ConsumerWidget {
               if (page.intro.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: PelevoSpacing.sm),
-                  child: SelectableText(
-                    page.intro,
-                    style: const TextStyle(color: PelevoColors.textMuted),
-                  ),
+                  child:
+                      document == CmsDocument.terms ||
+                              document == CmsDocument.privacy
+                          ? PublicLegalText(text: page.intro)
+                          : SelectableText(
+                            page.intro,
+                            style: const TextStyle(
+                              color: PelevoColors.textMuted,
+                            ),
+                          ),
                 ),
               if (page.intro.isEmpty && page.sections.isEmpty)
                 const Text('No content is available yet.'),
@@ -1296,7 +1303,11 @@ class CmsDocumentContent extends ConsumerWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: PelevoSpacing.xs),
-                        SelectableText(section.body),
+                        if (document == CmsDocument.terms ||
+                            document == CmsDocument.privacy)
+                          PublicLegalText(text: section.body)
+                        else
+                          SelectableText(section.body),
                       ],
                     ),
                   ),
@@ -1324,7 +1335,9 @@ class LegalDocumentScreen extends StatelessWidget {
         },
       ),
       title: Text(
-        document == CmsDocument.terms ? 'Terms of Service' : 'Privacy Policy',
+        document == CmsDocument.terms
+            ? 'Terms and Conditions'
+            : 'Privacy Policy',
       ),
     ),
     child: Center(

@@ -74,7 +74,8 @@ final class HomeFeedNativeAdFactory: NSObject, FLTNativeAdFactory {
     mediaFrame.layer.cornerRadius = 8
     mediaFrame.backgroundColor = feedWell
     mediaFrame.setContentHuggingPriority(.defaultLow, for: .vertical)
-    mediaFrame.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+    mediaFrame.setContentCompressionResistancePriority(.required, for: .vertical)
+    mediaFrame.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
 
     let media = GADMediaView()
     media.translatesAutoresizingMaskIntoConstraints = false

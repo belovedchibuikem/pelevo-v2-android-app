@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:pelevo/features/store/regional_prices.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum GiftPurchaseStage {
@@ -129,11 +130,15 @@ class GiftWalletService extends ChangeNotifier {
   List<GiftLedgerEntry> get ledger => List.unmodifiable(_ledger);
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
   /// Demo IAP credit is debug-only unless explicitly enabled.
   bool get isDemoMode =>
       !_isMobileStore &&
       (kDebugMode ||
-          const bool.fromEnvironment('PELEVO_ALLOW_DEMO_IAP', defaultValue: false));
+          const bool.fromEnvironment(
+            'PELEVO_ALLOW_DEMO_IAP',
+            defaultValue: false,
+          ));
 
   Future<void> initialize(
     SharedPreferences preferences, {
@@ -180,6 +185,28 @@ class GiftWalletService extends ChangeNotifier {
       _storeProducts[pack.productId]?.price ?? pack.fallbackPrice;
 
   String? storePrice(String productId) => _storeProducts[productId]?.price;
+
+  /// Store price when Play or the App Store has one, otherwise the seeded
+  /// price for the listener's country.
+  String priceFor({
+    required String productId,
+    required int coins,
+    required String countryCode,
+  }) => _storeProducts[productId]?.price ?? seededCoinPrice(coins, countryCode);
+
+  Future<void> ensureProducts(Iterable<String> productIds) async {
+    if (!_isMobileStore || !_storeAvailable) return;
+    final missing =
+        productIds
+            .where((id) => id.isNotEmpty && !_storeProducts.containsKey(id))
+            .toSet();
+    if (missing.isEmpty) return;
+    final response = await _iap.queryProductDetails(missing);
+    for (final product in response.productDetails) {
+      _storeProducts[product.id] = product;
+    }
+    if (response.productDetails.isNotEmpty) notifyListeners();
+  }
 
   Future<GiftPurchaseStage> purchase(CoinPack pack) async {
     if (_purchaseCompleter != null && !_purchaseCompleter!.isCompleted) {
@@ -276,6 +303,7 @@ class GiftWalletService extends ChangeNotifier {
 
   Future<void> _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
+      if (purchase.productID.startsWith('pelevo_plus_')) continue;
       if (purchase.status == PurchaseStatus.pending) {
         _setPurchaseStage(GiftPurchaseStage.pending);
         continue;

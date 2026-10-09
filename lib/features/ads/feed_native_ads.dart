@@ -17,7 +17,9 @@ import 'package:pelevo/features/reels/reel_ad_service.dart';
 abstract final class FeedNativeAds {
   static const homeFactoryId = 'pelevoHomeNative';
   static const searchFactoryId = 'pelevoSearchNative';
-  static const homeHeight = 190.0;
+  // Tall enough that the video MediaView stays at least 120dp after the
+  // headline, body, padding, and call-to-action.
+  static const homeHeight = 300.0;
   static const searchHeight = 76.0;
 
   static const _androidTestUnit = 'ca-app-pub-3940256099942544/2247696110';

@@ -10,6 +10,7 @@ import 'package:pelevo/features/authentication/social_auth.dart';
 import 'package:pelevo/features/onboarding/onboarding_progress.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
+import 'package:pelevo/features/profile/legal_links.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -221,7 +222,10 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         checkColor: Colors.black,
         controlAffinity: ListTileControlAffinity.leading,
         onChanged: (value) => setState(() => _accepted = value ?? false),
-        title: const Text('I agree to the Terms of Use and Privacy Policy'),
+        title: const PelevoPublicLegalNotice(
+          lead: 'I agree to the',
+          linkColor: PelevoColors.yellow,
+        ),
       ),
       PelevoButton(
         label:

@@ -98,9 +98,15 @@ final _pelevoEngineBufferingProvider = StreamProvider.autoDispose<bool>((
     return;
   }
   final handler = await ref.watch(pelevoAudioHandlerProvider.future);
-  bool waiting(PlaybackState state) =>
-      state.processingState == AudioProcessingState.loading ||
-      state.processingState == AudioProcessingState.buffering;
+  bool waiting(PlaybackState state) {
+    if (state.playing) {
+      ref.read(pelevoPlayPendingProvider.notifier).set(false);
+      return false;
+    }
+    return state.processingState == AudioProcessingState.loading ||
+        state.processingState == AudioProcessingState.buffering;
+  }
+
   yield waiting(handler.playbackState.value);
   yield* handler.playbackState.map(waiting).distinct();
 });

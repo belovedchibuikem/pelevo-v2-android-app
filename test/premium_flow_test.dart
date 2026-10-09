@@ -85,60 +85,86 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ApiAdapter _adapter({void Function(RequestOptions request)? onCheckout}) =>
-      ApiAdapter((request) {
-        if (request.path == '/me') return jsonResponse(profileFixture());
-        if (request.path == '/premium/plans') {
-          return jsonResponse([premiumPlanFixture()]);
-        }
-        if (request.path == '/premium/me') {
-          return jsonResponse(premiumAccountFixture());
-        }
-        if (request.path == '/premium/invoices') {
-          return jsonResponse([premiumInvoiceFixture()]);
-        }
-        if (request.path == '/premium/exclusive') {
-          return jsonResponse([premiumExclusiveFixture()]);
-        }
-        if (request.path == '/premium/checkout' && request.method == 'POST') {
-          onCheckout?.call(request);
-          return jsonResponse(premiumCheckoutFixture(), status: 201);
-        }
-        throw StateError('${request.method} ${request.path}');
-      });
+  ApiAdapter _adapter({
+    void Function(RequestOptions request)? onCheckout,
+    List<Map<String, dynamic>>? plans,
+  }) => ApiAdapter((request) {
+    if (request.path == '/me') return jsonResponse(profileFixture());
+    if (request.path == '/premium/plans') {
+      return jsonResponse(plans ?? [premiumPlanFixture()]);
+    }
+    if (request.path == '/premium/me') {
+      return jsonResponse(premiumAccountFixture());
+    }
+    if (request.path == '/premium/invoices') {
+      return jsonResponse([premiumInvoiceFixture()]);
+    }
+    if (request.path == '/premium/exclusive') {
+      return jsonResponse([premiumExclusiveFixture()]);
+    }
+    if (request.path == '/premium/checkout' && request.method == 'POST') {
+      onCheckout?.call(request);
+      return jsonResponse(premiumCheckoutFixture(), status: 201);
+    }
+    throw StateError('${request.method} ${request.path}');
+  });
 
   testWidgets('plans bind the server name instead of invented naira copy', (
     tester,
   ) async {
-    await mount(
-      tester,
-      location: '/screen/premium-plans',
-      adapter: _adapter(),
-    );
+    await mount(tester, location: '/screen/premium-plans', adapter: _adapter());
     expect(find.text('Pelevo Plus Monthly'), findsOneWidget);
-    expect(find.text('NGN 25.00 / month'), findsOneWidget);
-    expect(find.text('₦1,200 / month'), findsNothing);
+    expect(find.text('₦1,600 / month'), findsOneWidget);
+    expect(find.text('NGN 25.00 / month'), findsNothing);
   });
 
-  testWidgets('live pay securely posts checkout and does not claim entitlement', (
+  testWidgets(
+    'live pay securely uses the store and does not claim entitlement',
+    (tester) async {
+      var posted = false;
+      await mount(
+        tester,
+        location: '/screen/premium-payment',
+        adapter: _adapter(onCheckout: (_) => posted = true),
+      );
+      await tester.ensureVisible(find.text('Pay Securely'));
+      await tester.tap(find.text('Pay Securely'));
+      await tester.pumpAndSettle();
+      expect(posted, isFalse);
+      expect(find.text('You’re All Set!'), findsNothing);
+      expect(
+        find.text(
+          'Pelevo Plus is purchased through Google Play or the App Store.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('offer query selects the 3-month trial on the paywall', (
     tester,
   ) async {
-    var posted = false;
     await mount(
       tester,
-      location: '/screen/premium-payment',
+      location: '/screen/premium-plans?offer=plus-3-month-trial',
       adapter: _adapter(
-        onCheckout: (request) {
-          posted = true;
-          expect(request.data['provider'], 'paystack');
-          expect(request.headers['Idempotency-Key'], isNotNull);
-        },
+        plans: [
+          premiumPlanFixture(),
+          premiumPlanFixture(
+            id: 'plan-trial',
+            slug: 'plus-3-month-trial',
+            name: '3 Months Free',
+            priceMinor: 1600000,
+            interval: 'year',
+            trialMonths: 3,
+          ),
+        ],
       ),
     );
-    await tester.ensureVisible(find.text('Pay Securely'));
-    await tester.tap(find.text('Pay Securely'));
-    await tester.pumpAndSettle();
-    expect(posted, isTrue);
-    expect(find.text('You’re All Set!'), findsNothing);
+    expect(find.text('3 Months Free'), findsOneWidget);
+    expect(find.text('3 months free'), findsOneWidget);
+    expect(find.text('Free for 3 months, then ₦16,000 / year'), findsOneWidget);
+    expect(find.text('Your 3-month free trial is selected.'), findsOneWidget);
+    expect(find.text('Claim Offer'), findsOneWidget);
   });
 }

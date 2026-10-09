@@ -148,7 +148,7 @@ class PelevoAudioHandler extends BaseAudioHandler
   }
 
   @override
-  Future<void> play() => _player.play();
+  Future<void> play() => playUntilAudible(_player);
 
   @override
   Future<void> pause() => _player.pause();
@@ -293,6 +293,21 @@ class PelevoAudioHandler extends BaseAudioHandler
     await _advanced.close();
     await _player.dispose();
   }
+}
+
+/// Returns once audio is audible. [AudioPlayer.play] can stay pending while
+/// the engine reports buffering even though playback has already started.
+Future<void> playUntilAudible(AudioPlayer player) async {
+  final playback = player.play();
+  try {
+    await Future.any<void>([
+      playback,
+      player.playingStream.firstWhere((playing) => playing).then((_) {}),
+    ]).timeout(const Duration(seconds: 20));
+  } on TimeoutException {
+    if (!player.playing) await playback;
+  }
+  if (!player.playing) await playback;
 }
 
 PelevoAudioHandler? _handler;

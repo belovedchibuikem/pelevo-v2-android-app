@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,8 +7,10 @@ import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/compliance/age_majority_gate.dart';
 import 'package:pelevo/features/gifts/gift_data.dart';
+import 'package:pelevo/features/profile/legal_links.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/gifts/gift_service.dart';
+import 'package:pelevo/features/store/regional_prices.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 final List<PelevoScreenSpec> giftScreens = List.unmodifiable([
@@ -103,16 +107,15 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
   }
 
   Future<void> _buyCoins() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => const CoinStoreScreen(returnToGift: true),
-      ),
-    );
+    await context.push<void>('/screen/gift-coin-store?return=gift');
+    if (!mounted) return;
     ref.invalidate(giftWalletProvider);
   }
 
-  Future<void> _sendGift(List<GiftTypeOption> catalog, GiftWallet wallet) async {
+  Future<void> _sendGift(
+    List<GiftTypeOption> catalog,
+    GiftWallet wallet,
+  ) async {
     if (catalog.isEmpty) return;
     final gift = catalog[_selected.clamp(0, catalog.length - 1)];
     if (wallet.balance < gift.coins) {
@@ -129,7 +132,11 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
         context: context,
         builder:
             (dialogContext) => AlertDialog(
-              icon: Icon(giftTypeIcon(gift.slug), size: 46, color: PelevoColors.purple),
+              icon: Icon(
+                giftTypeIcon(gift.slug),
+                size: 46,
+                color: PelevoColors.purple,
+              ),
               title: Text('Send ${gift.name}?'),
               content: Text(
                 '${gift.coins} coins will be deducted from your balance and sent to ${widget.creator}. Gifts cannot be exchanged or transferred.',
@@ -154,13 +161,15 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
     }
     setState(() => _sending = true);
     try {
-      final receipt = await ref.read(giftRepositoryProvider).send(
-        giftTypeId: gift.id,
-        creatorProfileId: creatorId,
-        idempotencyKey:
-            '${DateTime.now().toUtc().microsecondsSinceEpoch}-${gift.id}',
-        message: _messageController.text.trim(),
-      );
+      final receipt = await ref
+          .read(giftRepositoryProvider)
+          .send(
+            giftTypeId: gift.id,
+            creatorProfileId: creatorId,
+            idempotencyKey:
+                '${DateTime.now().toUtc().microsecondsSinceEpoch}-${gift.id}',
+            message: _messageController.text.trim(),
+          );
       if (!mounted) return;
       ref.read(selectedGiftIdProvider.notifier).select(receipt.id);
       ref.invalidate(giftWalletProvider);
@@ -200,14 +209,14 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                 ],
               ),
           data: (wallet) {
-            final catalog = catalogAsync.asData?.value ?? const <GiftTypeOption>[];
+            final catalog =
+                catalogAsync.asData?.value ?? const <GiftTypeOption>[];
             final hasCatalog = catalog.isNotEmpty;
             final gift =
                 hasCatalog
                     ? catalog[_selected.clamp(0, catalog.length - 1)]
                     : null;
-            final shortfall =
-                gift == null ? 0 : gift.coins - wallet.balance;
+            final shortfall = gift == null ? 0 : gift.coins - wallet.balance;
             final canSend = gift != null && shortfall <= 0;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -227,7 +236,9 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                   children: [
                     CircleAvatar(
                       radius: 23,
-                      backgroundColor: PelevoColors.purple.withValues(alpha: .2),
+                      backgroundColor: PelevoColors.purple.withValues(
+                        alpha: .2,
+                      ),
                       child: Text(
                         widget.creator.isEmpty
                             ? '?'
@@ -497,6 +508,22 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
   int _selected = 0;
   var _ageConfirmed = false;
 
+  @override
+  void initState() {
+    super.initState();
+    GiftWalletService.instance.addListener(_onStorePrices);
+  }
+
+  @override
+  void dispose() {
+    GiftWalletService.instance.removeListener(_onStorePrices);
+    super.dispose();
+  }
+
+  void _onStorePrices() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _purchase(List<GiftPack> packs) async {
     if (packs.isEmpty || !_ageConfirmed) return;
     final pack = packs[_selected.clamp(0, packs.length - 1)];
@@ -512,7 +539,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     const unavailable = 'In-app purchases are not available on this device.';
     if (store.isDemoMode || !store.storeAvailable) {
       ref.read(lastGiftPurchaseErrorProvider.notifier).select(unavailable);
-      if (widget.returnToGift) {
+      if (_returnToGift) {
         context.showPelevoMessage(unavailable);
         return;
       }
@@ -520,7 +547,11 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
       return;
     }
     final result = await store.purchase(
-      CoinPack(productId: pack.productId, coins: pack.coins, fallbackPrice: ''),
+      CoinPack(
+        productId: pack.productId,
+        coins: pack.coins,
+        fallbackPrice: seededCoinPrice(pack.coins, 'NG'),
+      ),
     );
     if (!mounted) return;
     if (result == GiftPurchaseStage.success) {
@@ -535,10 +566,15 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     }
     ref
         .read(lastGiftPurchaseErrorProvider.notifier)
-        .select(
-          store.purchaseError ?? 'A verified store receipt is required.',
-        );
+        .select(store.purchaseError ?? 'A verified store receipt is required.');
     context.go('/screen/gift-purchase-failed');
+  }
+
+  bool get _returnToGift {
+    if (widget.returnToGift) return true;
+    final settings = ModalRoute.of(context)?.settings;
+    if (settings is! Page<Object?>) return false;
+    return GoRouterState.of(context).uri.queryParameters['return'] == 'gift';
   }
 
   void _close() {
@@ -554,6 +590,19 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(giftWalletProvider);
     final packsAsync = ref.watch(giftPacksProvider);
+    final country = listenerCountryCode(
+      profileCountry: ref.watch(profileProvider).asData?.value.countryCode,
+      deviceCountry: View.of(context).platformDispatcher.locale.countryCode,
+    );
+    ref.listen(giftPacksProvider, (previous, next) {
+      final packs = next.asData?.value;
+      if (packs == null || packs.isEmpty) return;
+      unawaited(
+        GiftWalletService.instance.ensureProducts(
+          packs.map((pack) => pack.productId),
+        ),
+      );
+    });
     return PelevoPage(
       appBar: AppBar(
         leading: IconButton(
@@ -601,11 +650,12 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                       : packs[_selected.clamp(0, packs.length - 1)];
               final price =
                   selected == null
-                      ? 'Price unavailable'
-                      : GiftWalletService.instance.storePrice(
-                            selected.productId,
-                          ) ??
-                          'Price unavailable';
+                      ? 'Select a pack'
+                      : GiftWalletService.instance.priceFor(
+                        productId: selected.productId,
+                        coins: selected.coins,
+                        countryCode: country,
+                      );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -681,11 +731,11 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                         padding: const EdgeInsets.only(bottom: 9),
                         child: _CoinPackTile(
                           coins: packs[index].coins,
-                          price:
-                              GiftWalletService.instance.storePrice(
-                                packs[index].productId,
-                              ) ??
-                              'Price unavailable',
+                          price: GiftWalletService.instance.priceFor(
+                            productId: packs[index].productId,
+                            coins: packs[index].coins,
+                            countryCode: country,
+                          ),
                           selected: _selected == index,
                           onTap: () => setState(() => _selected = index),
                         ),
@@ -719,28 +769,14 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                   const Text(
                     'Payment is processed securely by Apple or Google. Coin purchases are consumable and are synchronized through your Pelevo wallet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: PelevoColors.textDim,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: PelevoColors.textDim, fontSize: 10),
+                  ),
+                  const PelevoPublicLegalNotice(
+                    lead: 'By purchasing coins you agree to the',
                   ),
                   Wrap(
                     alignment: WrapAlignment.center,
                     children: [
-                      TextButton(
-                        onPressed:
-                            () => context.showPelevoMessage(
-                              'Terms are not available yet.',
-                            ),
-                        child: const Text('Terms'),
-                      ),
-                      TextButton(
-                        onPressed:
-                            () => context.showPelevoMessage(
-                              'Privacy policy is not available yet.',
-                            ),
-                        child: const Text('Privacy'),
-                      ),
                       TextButton(
                         onPressed:
                             () => context.showPelevoMessage(
@@ -882,7 +918,9 @@ class CoinWalletScreen extends ConsumerWidget {
                           ),
                         ),
                         title: Text(entry.eventType),
-                        subtitle: Text(entry.createdAt.toUtc().toIso8601String()),
+                        subtitle: Text(
+                          entry.createdAt.toUtc().toIso8601String(),
+                        ),
                         trailing: Text(
                           '${entry.isCredit ? '+' : ''}${entry.amount}',
                           style: TextStyle(

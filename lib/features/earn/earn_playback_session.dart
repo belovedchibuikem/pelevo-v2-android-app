@@ -88,7 +88,7 @@ class EarnPlaybackSession extends ChangeNotifier {
 
   /// Audio is being fetched or buffered, so the listener should wait.
   bool get buffering =>
-      !finalizing && (busy || _transporting || _engineWaiting);
+      !finalizing && !playing && (busy || _transporting || _engineWaiting);
   String? lastError;
   Object? status;
   EarnSessionStart? serverSession;
@@ -356,7 +356,7 @@ class EarnPlaybackSession extends ChangeNotifier {
     if (handler != null && handler.earnMode) {
       await handler.play();
     } else {
-      await _localPlayer.play();
+      await playUntilAudible(_localPlayer);
     }
     playing = true;
     notifyListeners();

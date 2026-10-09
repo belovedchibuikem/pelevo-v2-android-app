@@ -9,7 +9,12 @@ import 'package:pelevo/features/device_sync/device_sync_expanded_screens.dart';
 import 'package:pelevo/features/lock_screen/lock_screen_screens.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
+import 'package:pelevo/features/premium/premium_store.dart';
+import 'package:pelevo/features/premium/premium_trial_offer.dart';
+import 'package:pelevo/features/store/regional_prices.dart';
+import 'package:pelevo/features/profile/legal_links.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/share_cards/share_card_screens.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
@@ -146,6 +151,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   bool _obscurePassword = true;
   bool _busy = false;
   bool _filledProfile = false;
+  bool _trialOfferApplied = false;
   PremiumCheckout? _checkout;
 
   final _name = TextEditingController();
@@ -237,6 +243,80 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   List<PremiumPlan> get _plansList =>
       ref.watch(premiumPlansProvider).asData?.value ?? const [];
 
+  String get _countryCode => listenerCountryCode(
+    profileCountry: ref.watch(profileProvider).asData?.value.countryCode,
+    deviceCountry: View.of(context).platformDispatcher.locale.countryCode,
+  );
+
+  String _localizedPlanPrice(PremiumPlan plan) =>
+      PremiumStore.instance.priceLabel(plan, _countryCode);
+
+  Future<void> _purchasePlus(PremiumPlan? plan) async {
+    if (_preview) {
+      context.go('/screen/premium-confirmed');
+      return;
+    }
+    if (!ref.read(authSessionProvider).authenticated) {
+      context.push('/screen/auth-sign-in');
+      return;
+    }
+    if (plan == null) {
+      context.showPelevoMessage('Select a Pelevo Plus plan first.');
+      return;
+    }
+    ref.read(selectedPremiumPlanIdProvider.notifier).select(plan.id);
+    setState(() => _busy = true);
+    try {
+      final purchase = await PremiumStore.instance.buy(plan);
+      try {
+        await ref
+            .read(premiumRepositoryProvider)
+            .confirmStorePurchase(
+              store: PremiumStore.instance.storeProvider,
+              receipt: purchase.reference,
+              planId: plan.id,
+            );
+      } on Object {
+        if (!mounted) return;
+        context.showPelevoMessage(
+          'Purchase received. Pelevo Plus will unlock as soon as the store receipt is confirmed.',
+        );
+      }
+      ref.invalidate(premiumAccountProvider);
+      if (!mounted) return;
+      context.go('/screen/premium-confirmed');
+    } on PremiumStoreException catch (error) {
+      if (!mounted) return;
+      context.showPelevoMessage(error.message);
+    } catch (error) {
+      if (!mounted) return;
+      context.showPelevoMessage(catalogFailure(error).message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  bool get _trialOfferRequested {
+    final offer = GoRouterState.of(context).uri.queryParameters['offer'];
+    return offer == PremiumTrialOffer.slug;
+  }
+
+  void _selectTrialOffer(List<PremiumPlan> plans) {
+    if (!_trialOfferRequested || _trialOfferApplied) return;
+    final index = plans.indexWhere((plan) => plan.isThreeMonthTrial);
+    if (index < 0) return;
+    _trialOfferApplied = true;
+    if (_plan == index &&
+        ref.read(selectedPremiumPlanIdProvider) == plans[index].id) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _plan = index);
+      ref.read(selectedPremiumPlanIdProvider.notifier).select(plans[index].id);
+    });
+  }
+
   PremiumPlan? get _selectedPlan {
     final selectedId = ref.watch(selectedPremiumPlanIdProvider);
     final plans = _plansList;
@@ -300,9 +380,21 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       );
     }
     final plans = async.requireValue;
+    _selectTrialOffer(plans);
+    final claimingTrial = _selectedPlan?.isThreeMonthTrial == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_trialOfferRequested && claimingTrial) ...[
+          const Text(
+            'Your 3-month free trial is selected.',
+            style: TextStyle(
+              color: PelevoColors.yellow,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: PelevoSpacing.md),
+        ],
         if (plans.isEmpty)
           const Text(
             'No active Premium plans.',
@@ -315,7 +407,15 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               style: const TextStyle(color: PelevoColors.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.sm),
-            _planCard(context, i, plans[i].name, plans[i].priceLabel, ''),
+            _planCard(
+              context,
+              i,
+              plans[i].name,
+              plans[i].isThreeMonthTrial
+                  ? 'Free for 3 months, then ${_localizedPlanPrice(plans[i])}'
+                  : _localizedPlanPrice(plans[i]),
+              plans[i].isThreeMonthTrial ? '3 months free' : '',
+            ),
             const SizedBox(height: PelevoSpacing.md),
           ],
         TextButton(
@@ -323,22 +423,29 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           child: const Text('Compare all plan features'),
         ),
         PelevoButton(
-          label: 'Start Free Trial',
+          label: claimingTrial ? 'Claim Offer' : 'Start Free Trial',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
           onPressed: () {
-            final plan = _selectedPlan;
-            if (plan != null) {
-              ref.read(selectedPremiumPlanIdProvider.notifier).select(plan.id);
+            if (_preview) {
+              final plan = _selectedPlan;
+              if (plan != null) {
+                ref
+                    .read(selectedPremiumPlanIdProvider.notifier)
+                    .select(plan.id);
+              }
+              context.go('/screen/premium-compare');
+              return;
             }
-            context.go('/screen/premium-compare');
+            _purchasePlus(_selectedPlan);
           },
         ),
         const SizedBox(height: PelevoSpacing.sm),
-        TextButton(
-          onPressed: () => context.go('/screen/auth-sign-in'),
-          child: const Text('Already a member? Sign in'),
-        ),
+        if (!ref.watch(authSessionProvider).authenticated)
+          TextButton(
+            onPressed: () => context.push('/screen/auth-sign-in'),
+            child: const Text('Already a member? Sign in'),
+          ),
       ],
     );
   }
@@ -377,7 +484,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                 child: Text(
                   feature.$2,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+                  style: const TextStyle(
+                    color: PelevoColors.textMuted,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               Expanded(
@@ -399,12 +509,56 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         label: 'Choose Your Plan',
         color: PelevoColors.yellow,
         foregroundColor: Colors.black,
-        onPressed: () => context.go('/screen/premium-account'),
+        onPressed: () {
+          if (_preview) {
+            context.go('/screen/premium-account');
+            return;
+          }
+          _purchasePlus(_selectedPlan);
+        },
       ),
     ],
   );
 
   Widget _account(BuildContext context) {
+    final signedIn = ref.watch(authSessionProvider).authenticated;
+    if (signedIn && !_preview) {
+      final plan = _selectedPlan;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            plan == null
+                ? 'Subscribe to Pelevo Plus with your store account.'
+                : plan.name,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: PelevoSpacing.sm),
+          Text(
+            plan == null
+                ? seededPlusPrice(_countryCode, yearly: false)
+                : _localizedPlanPrice(plan),
+            style: const TextStyle(
+              color: PelevoColors.yellow,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: PelevoSpacing.md),
+          const Text(
+            'Payment is completed by Google Play or the App Store. Your Pelevo account stays signed in.',
+            style: TextStyle(color: PelevoColors.textMuted),
+          ),
+          const SizedBox(height: PelevoSpacing.xl),
+          PelevoButton(
+            label: _busy ? 'Contacting the store…' : 'Subscribe',
+            color: PelevoColors.yellow,
+            foregroundColor: Colors.black,
+            onPressed: _busy ? null : () => _purchasePlus(plan),
+          ),
+        ],
+      );
+    }
     final profile = ref.watch(profileProvider).asData?.value;
     if (profile != null && !_filledProfile) {
       _filledProfile = true;
@@ -484,14 +638,27 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           contentPadding: EdgeInsets.zero,
           value: _terms,
           activeColor: PelevoColors.yellow,
-          title: const Text('I agree to the Terms of Service and Privacy Policy'),
+          title: const PelevoPublicLegalNotice(
+            lead: 'I agree to the',
+            linkColor: PelevoColors.yellow,
+          ),
           onChanged: (value) => setState(() => _terms = value ?? false),
         ),
         PelevoButton(
           label: 'Continue',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
-          onPressed: _terms ? () => context.go('/screen/premium-payment') : null,
+          onPressed:
+              _terms
+                  ? () {
+                    if (_preview ||
+                        !ref.read(authSessionProvider).authenticated) {
+                      context.go('/screen/premium-payment');
+                      return;
+                    }
+                    _purchasePlus(_selectedPlan);
+                  }
+                  : null,
         ),
       ],
     );
@@ -535,7 +702,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                   Icons.savings_outlined,
                 ][i],
                 color:
-                    i == _payment ? PelevoColors.yellow : PelevoColors.textMuted,
+                    i == _payment
+                        ? PelevoColors.yellow
+                        : PelevoColors.textMuted,
               ),
             ),
             title: Text(labels[i]),
@@ -566,36 +735,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   }
 
   Future<void> _pay(PremiumPlan? plan) async {
-    if (_preview) {
-      context.go('/screen/premium-confirmed');
-      return;
-    }
-    if (plan == null) {
-      context.showPelevoMessage('Select a Premium plan first.');
-      return;
-    }
-    if (_payment != 1 && _payment != 2) {
-      context.showPelevoMessage('Checkout supports Paystack and Flutterwave only.');
-      return;
-    }
-    await _run(() async {
-      final checkout = await ref.read(premiumRepositoryProvider).checkout(
-        planId: plan.id,
-        provider: _providers[_payment - 1],
-        idempotencyKey: 'premium-${DateTime.now().toUtc().microsecondsSinceEpoch}',
-      );
-      if (!mounted) return;
-      setState(() => _checkout = checkout);
-      if (!context.mounted) return;
-      context.showPelevoMessage(
-        checkout.checkoutUrl ?? 'Checkout is pending. Entitlement is not granted yet.',
-      );
-    });
+    await _purchasePlus(plan);
   }
 
   Widget _confirmed(BuildContext context) {
     final account = ref.watch(premiumAccountProvider).asData?.value;
-    final invoices = ref.watch(premiumInvoicesProvider).asData?.value ?? const [];
+    final invoices =
+        ref.watch(premiumInvoicesProvider).asData?.value ?? const [];
     final active = _preview || account?.entitlement?.active == true;
     final plan = _selectedPlan;
     String? receiptUrl;
@@ -618,7 +764,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         ),
         const SizedBox(height: PelevoSpacing.xs),
         Text(
-          active ? 'Welcome to Pelevo Plus' : 'Payment has not granted entitlement yet.',
+          active
+              ? 'Welcome to Pelevo Plus'
+              : 'Payment has not granted entitlement yet.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: PelevoColors.yellow),
         ),
@@ -626,7 +774,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         Text(
           active
               ? 'Your subscription is active and you now have access to all premium features.'
-              : (_checkout?.checkoutUrl ?? 'Complete provider checkout, then restore or wait for the webhook.'),
+              : (_checkout?.checkoutUrl ??
+                  'Complete provider checkout, then restore or wait for the webhook.'),
           textAlign: TextAlign.center,
           style: const TextStyle(color: PelevoColors.textMuted),
         ),
@@ -761,13 +910,16 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             title: Text(planName ?? 'Pelevo Plus'),
             subtitle: Text(
               [
-                if (me.subscription != null)
-                  me.subscription!.provider,
+                if (me.subscription != null) me.subscription!.provider,
                 if (me.subscription?.currentPeriodEnd != null)
                   me.subscription!.currentPeriodEnd,
               ].join('\n'),
             ),
-            trailing: Chip(label: Text(active ? 'Active' : (me.entitlement?.state ?? 'Inactive'))),
+            trailing: Chip(
+              label: Text(
+                active ? 'Active' : (me.entitlement?.state ?? 'Inactive'),
+              ),
+            ),
           ),
         ),
         const UtilitySectionLabel('Manage'),
@@ -829,7 +981,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         ),
         for (var i = 0; i < plans.length; i++) ...[
           const SizedBox(height: PelevoSpacing.sm),
-          _planCard(context, i, plans[i].name, plans[i].priceLabel, ''),
+          _planCard(
+            context,
+            i,
+            plans[i].name,
+            _localizedPlanPrice(plans[i]),
+            '',
+          ),
         ],
         const SizedBox(height: PelevoSpacing.lg),
         const Text(
@@ -842,31 +1000,35 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           label: 'Continue',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
-          onPressed: _busy
-              ? null
-              : () {
-                if (_preview) {
-                  context.go('/screen/premium-subscription');
-                  return;
-                }
-                final plan = _selectedPlan;
-                if (plan == null) {
-                  context.showPelevoMessage('Select a Premium plan first.');
-                  return;
-                }
-                _run(() async {
-                  final checkout = await ref.read(premiumRepositoryProvider).changePlan(
-                    planId: plan.id,
-                    provider: 'paystack',
-                    idempotencyKey:
-                        'premium-change-${DateTime.now().toUtc().microsecondsSinceEpoch}',
-                  );
-                  if (!context.mounted) return;
-                  context.showPelevoMessage(
-                    checkout.checkoutUrl ?? 'Checkout is pending. The plan is not changed yet.',
-                  );
-                });
-              },
+          onPressed:
+              _busy
+                  ? null
+                  : () {
+                    if (_preview) {
+                      context.go('/screen/premium-subscription');
+                      return;
+                    }
+                    final plan = _selectedPlan;
+                    if (plan == null) {
+                      context.showPelevoMessage('Select a Premium plan first.');
+                      return;
+                    }
+                    _run(() async {
+                      final checkout = await ref
+                          .read(premiumRepositoryProvider)
+                          .changePlan(
+                            planId: plan.id,
+                            provider: 'paystack',
+                            idempotencyKey:
+                                'premium-change-${DateTime.now().toUtc().microsecondsSinceEpoch}',
+                          );
+                      if (!context.mounted) return;
+                      context.showPelevoMessage(
+                        checkout.checkoutUrl ??
+                            'Checkout is pending. The plan is not changed yet.',
+                      );
+                    });
+                  },
         ),
       ],
     );
@@ -882,11 +1044,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       );
     }
     final invoices = async.requireValue;
-    final visible = invoices.where((item) {
-      if (_billingTab == 2) return item.state == 'refunded';
-      if (_billingTab == 1) return item.state == 'paid';
-      return true;
-    }).toList(growable: false);
+    final visible = invoices
+        .where((item) {
+          if (_billingTab == 2) return item.state == 'refunded';
+          if (_billingTab == 1) return item.state == 'paid';
+          return true;
+        })
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -910,9 +1074,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               trailing: Text(
                 '${item.currency} ${(item.totalMinor / 100).toStringAsFixed(2)}',
               ),
-              onTap: () => context.showPelevoMessage(
-                item.receiptUrl ?? 'No receipt URL is available.',
-              ),
+              onTap:
+                  () => context.showPelevoMessage(
+                    item.receiptUrl ?? 'No receipt URL is available.',
+                  ),
             ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -920,14 +1085,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
           onPressed: () {
-            final url = invoices
-                .map((item) => item.receiptUrl)
-                .whereType<String>()
-                .where((value) => value.isNotEmpty)
-                .firstOrNull;
-            context.showPelevoMessage(
-              url ?? 'No receipt URL is available.',
-            );
+            final url =
+                invoices
+                    .map((item) => item.receiptUrl)
+                    .whereType<String>()
+                    .where((value) => value.isNotEmpty)
+                    .firstOrNull;
+            context.showPelevoMessage(url ?? 'No receipt URL is available.');
           },
         ),
       ],
@@ -969,29 +1133,32 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         label: 'Restore Purchase',
         color: PelevoColors.yellow,
         foregroundColor: Colors.black,
-        onPressed: _busy
-            ? null
-            : () {
-              if (_preview) {
-                context.go('/screen/premium-subscription');
-                return;
-              }
-              final reference = _restoreReference.text.trim();
-              if (reference.isEmpty) {
-                context.showPelevoMessage('Enter the payment reference.');
-                return;
-              }
-              _run(() async {
-                await ref.read(premiumRepositoryProvider).restore(
-                  provider: _providers[_restoreProvider],
-                  reference: reference,
-                );
-                ref.invalidate(premiumAccountProvider);
-                ref.invalidate(premiumInvoicesProvider);
-                if (!context.mounted) return;
-                context.go('/screen/premium-subscription');
-              });
-            },
+        onPressed:
+            _busy
+                ? null
+                : () {
+                  if (_preview) {
+                    context.go('/screen/premium-subscription');
+                    return;
+                  }
+                  final reference = _restoreReference.text.trim();
+                  if (reference.isEmpty) {
+                    context.showPelevoMessage('Enter the payment reference.');
+                    return;
+                  }
+                  _run(() async {
+                    await ref
+                        .read(premiumRepositoryProvider)
+                        .restore(
+                          provider: _providers[_restoreProvider],
+                          reference: reference,
+                        );
+                    ref.invalidate(premiumAccountProvider);
+                    ref.invalidate(premiumInvoicesProvider);
+                    if (!context.mounted) return;
+                    context.go('/screen/premium-subscription');
+                  });
+                },
       ),
     ],
   );
@@ -1104,7 +1271,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       setState(() => _plan = value);
       final plans = _plansList;
       if (value >= 0 && value < plans.length) {
-        ref.read(selectedPremiumPlanIdProvider.notifier).select(plans[value].id);
+        ref
+            .read(selectedPremiumPlanIdProvider.notifier)
+            .select(plans[value].id);
       }
     },
     child: Container(
@@ -1147,7 +1316,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                   setState(() => _plan = next);
                   final plans = _plansList;
                   if (next >= 0 && next < plans.length) {
-                    ref.read(selectedPremiumPlanIdProvider.notifier).select(plans[next].id);
+                    ref
+                        .read(selectedPremiumPlanIdProvider.notifier)
+                        .select(plans[next].id);
                   }
                 },
               ),

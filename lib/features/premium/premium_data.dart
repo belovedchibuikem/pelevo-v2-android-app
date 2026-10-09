@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/premium/premium_trial_offer.dart';
 
 const _invalidPremium = ApiFailure(
   code: 'INVALID_RESPONSE',
@@ -68,6 +69,7 @@ class PremiumPlan {
     required this.priceMinor,
     required this.currency,
     required this.interval,
+    this.trialMonths = 0,
   });
 
   factory PremiumPlan.parse(Map<String, dynamic> data) => PremiumPlan(
@@ -77,10 +79,16 @@ class PremiumPlan {
     priceMinor: _count(data['price_minor']),
     currency: _text(data, 'currency'),
     interval: _text(data, 'interval'),
+    trialMonths: _optionalCount(data['trial_months']) ?? 0,
   );
 
   final String id, slug, name, currency, interval;
   final int priceMinor;
+  final int trialMonths;
+
+  bool get isThreeMonthTrial =>
+      trialMonths == PremiumTrialOffer.trialMonths ||
+      slug == PremiumTrialOffer.slug;
 
   String get priceLabel => formatPremiumPrice(priceMinor, currency, interval);
 }
@@ -130,7 +138,8 @@ class PremiumSubscription {
     if (DateTime.tryParse(start) == null || DateTime.tryParse(end) == null) {
       throw _invalidPremium;
     }
-    if (cancel != null && DateTime.tryParse(cancel) == null) throw _invalidPremium;
+    if (cancel != null && DateTime.tryParse(cancel) == null)
+      throw _invalidPremium;
     return PremiumSubscription(
       id: _text(data, 'id'),
       state: _text(data, 'state'),
@@ -142,7 +151,12 @@ class PremiumSubscription {
     );
   }
 
-  final String id, state, provider, currentPeriodStart, currentPeriodEnd, planId;
+  final String id,
+      state,
+      provider,
+      currentPeriodStart,
+      currentPeriodEnd,
+      planId;
   final String? cancelAt;
 }
 
@@ -153,7 +167,8 @@ class PremiumAccount {
     final entitlement = _optionalMap(data['entitlement']);
     final subscription = _optionalMap(data['subscription']);
     return PremiumAccount(
-      entitlement: entitlement == null ? null : PremiumEntitlement.parse(entitlement),
+      entitlement:
+          entitlement == null ? null : PremiumEntitlement.parse(entitlement),
       subscription:
           subscription == null ? null : PremiumSubscription.parse(subscription),
     );
@@ -178,7 +193,8 @@ class PremiumInvoice {
     final paid = _optionalText(data, 'paid_at');
     final created = _optionalText(data, 'created_at');
     if (paid != null && DateTime.tryParse(paid) == null) throw _invalidPremium;
-    if (created != null && DateTime.tryParse(created) == null) throw _invalidPremium;
+    if (created != null && DateTime.tryParse(created) == null)
+      throw _invalidPremium;
     return PremiumInvoice(
       id: _text(data, 'id'),
       totalMinor: _count(data['total_minor']),
@@ -215,7 +231,8 @@ class PremiumCheckout {
       throw _invalidPremium;
     }
     final expires = _optionalText(data, 'expires_at');
-    if (expires != null && DateTime.tryParse(expires) == null) throw _invalidPremium;
+    if (expires != null && DateTime.tryParse(expires) == null)
+      throw _invalidPremium;
     return PremiumCheckout(
       id: _text(data, 'id'),
       state: _text(data, 'state'),
@@ -287,8 +304,10 @@ class PremiumRepository {
     try {
       return PremiumAccount.parse(
         requireApiData(
-          (await _dio.get<Map<String, dynamic>>('/premium/me', cancelToken: token))
-              .data,
+          (await _dio.get<Map<String, dynamic>>(
+            '/premium/me',
+            cancelToken: token,
+          )).data,
         ),
       );
     } on ApiFailure {
@@ -372,6 +391,58 @@ class PremiumRepository {
     }
   }
 
+  Future<PremiumTrialEvaluation> recordTrialSession(String sessionId) async {
+    try {
+      return PremiumTrialEvaluation.parse(
+        requireApiData(
+          (await _dio.post<Map<String, dynamic>>(
+            '/premium/offers/${PremiumTrialOffer.slug}/sessions',
+            data: {'session_id': sessionId},
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<void> markTrialShown() async {
+    try {
+      requireApiData(
+        (await _dio.post<Map<String, dynamic>>(
+          '/premium/offers/${PremiumTrialOffer.slug}/shown',
+        )).data,
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<PremiumAccount> confirmStorePurchase({
+    required String store,
+    required String receipt,
+    required String planId,
+  }) async {
+    try {
+      return PremiumAccount.parse(
+        requireApiData(
+          (await _dio.post<Map<String, dynamic>>(
+            '/premium/store-purchase',
+            data: {'store': store, 'receipt': receipt, 'plan_id': planId},
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
   Future<PremiumInvoice> restore({
     required String provider,
     required String reference,
@@ -408,25 +479,28 @@ final premiumRepositoryProvider = Provider(
   (ref) => PremiumRepository(ref.watch(dioProvider)),
 );
 
-final premiumPlansProvider = FutureProvider.autoDispose<List<PremiumPlan>>((ref) async {
+final premiumPlansProvider = FutureProvider.autoDispose<List<PremiumPlan>>((
+  ref,
+) async {
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(premiumRepositoryProvider).plans(token);
 }, retry: (count, error) => null);
 
-final premiumAccountProvider = FutureProvider.autoDispose<PremiumAccount>((ref) async {
+final premiumAccountProvider = FutureProvider.autoDispose<PremiumAccount>((
+  ref,
+) async {
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(premiumRepositoryProvider).me(token);
 }, retry: (count, error) => null);
 
-final premiumInvoicesProvider = FutureProvider.autoDispose<List<PremiumInvoice>>((
-  ref,
-) async {
-  final token = CancelToken();
-  ref.onDispose(() => token.cancel());
-  return ref.watch(premiumRepositoryProvider).invoices(token);
-}, retry: (count, error) => null);
+final premiumInvoicesProvider =
+    FutureProvider.autoDispose<List<PremiumInvoice>>((ref) async {
+      final token = CancelToken();
+      ref.onDispose(() => token.cancel());
+      return ref.watch(premiumRepositoryProvider).invoices(token);
+    }, retry: (count, error) => null);
 
 final premiumExclusiveProvider =
     FutureProvider.autoDispose<List<PremiumExclusiveEpisode>>((ref) async {

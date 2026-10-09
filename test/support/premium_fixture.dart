@@ -5,6 +5,7 @@ Map<String, dynamic> premiumPlanFixture({
   int priceMinor = 2500,
   String currency = 'NGN',
   String interval = 'month',
+  int? trialMonths,
 }) => {
   'id': id,
   'slug': slug,
@@ -12,15 +13,13 @@ Map<String, dynamic> premiumPlanFixture({
   'price_minor': priceMinor,
   'currency': currency,
   'interval': interval,
+  if (trialMonths != null) 'trial_months': trialMonths,
 };
 
 Map<String, dynamic> premiumAccountFixture({
   Map<String, dynamic>? entitlement,
   Map<String, dynamic>? subscription,
-}) => {
-  'entitlement': entitlement,
-  'subscription': subscription,
-};
+}) => {'entitlement': entitlement, 'subscription': subscription};
 
 Map<String, dynamic> premiumEntitlementFixture({
   String state = 'active',

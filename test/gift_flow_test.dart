@@ -85,6 +85,7 @@ void main() {
 
   ApiAdapter giftsAdapter() => ApiAdapter((request) {
     return jsonResponse(switch (request.path) {
+      '/me/age-majority' => {'confirmed': true},
       '/gifts/wallet' => giftWalletFixture(),
       '/gifts/packs' => giftPacksFixture(),
       '/gifts/catalog' => giftCatalogFixture(),
@@ -109,6 +110,8 @@ void main() {
     expect(find.text('1200 coins'), findsOneWidget);
     expect(find.text('₦1,900'), findsNothing);
     expect(find.text('1250'), findsNothing);
+    await tester.tap(find.textContaining('I confirm I am 18'));
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Continue'));
     await tester.pumpAndSettle();
     expect(find.text('Purchase not completed'), findsOneWidget);

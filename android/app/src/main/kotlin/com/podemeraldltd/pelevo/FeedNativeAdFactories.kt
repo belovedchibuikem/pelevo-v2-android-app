@@ -126,9 +126,13 @@ class HomeFeedNativeAdFactory(
             MediaView(context).apply {
                 setImageScaleType(ImageView.ScaleType.CENTER_CROP)
                 setBackgroundColor(feedWell)
+                minimumHeight = dp(120)
             }
         val adChoices = AdChoicesView(context)
-        val mediaFrame = FrameLayout(context)
+        val mediaFrame =
+            FrameLayout(context).apply {
+                minimumHeight = dp(120)
+            }
         mediaFrame.addView(
             media,
             FrameLayout.LayoutParams(
@@ -169,7 +173,7 @@ class HomeFeedNativeAdFactory(
             mediaFrame,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                0,
+                dp(120),
                 1f,
             ).apply {
                 topMargin = dp(8)

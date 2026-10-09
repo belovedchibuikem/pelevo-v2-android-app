@@ -224,7 +224,7 @@ void main() {
       pelevoRouter.routeInformationProvider.value.uri.path,
       '/legal/terms',
     );
-    expect(find.text('Terms of Service'), findsOneWidget);
+    expect(find.text('Terms and Conditions'), findsOneWidget);
     expect(find.text('Content supplied by the API.'), findsOneWidget);
   });
 }
