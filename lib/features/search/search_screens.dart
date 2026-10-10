@@ -419,6 +419,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
         const SizedBox(height: PelevoSpacing.xl),
         const PelevoSectionHeader(title: 'Trending Now'),
         charts.when(
+          skipLoadingOnReload: true,
           loading:
               () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: PelevoSpacing.md),

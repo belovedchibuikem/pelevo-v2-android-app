@@ -32,30 +32,32 @@ bool plusIntervalIsYearly(String interval) {
   return value.contains('year') || value.contains('annual');
 }
 
+/// Retail prices the listener pays. Apple and Google deduct their fee from
+/// these amounts; they are not added on top.
 const _coinLists = <String, Map<int, String>>{
   'NG': {
     300: '₦500',
-    500: '₦800',
-    750: '₦1,200',
-    1000: '₦1,500',
-    1200: '₦1,900',
-    1500: '₦2,200',
-    2000: '₦2,800',
-    2500: '₦3,500',
-    6500: '₦8,500',
-    15000: '₦18,500',
+    500: '₦850',
+    750: '₦1,250',
+    1000: '₦1,700',
+    1200: '₦2,040',
+    1500: '₦2,500',
+    2000: '₦3,350',
+    2500: '₦4,250',
+    6500: '₦11,050',
+    15000: '₦25,500',
   },
   'US': {
-    300: r'$0.99',
-    500: r'$1.49',
-    750: r'$1.99',
-    1000: r'$2.99',
-    1200: r'$3.49',
-    1500: r'$3.99',
-    2000: r'$4.99',
-    2500: r'$5.99',
-    6500: r'$14.99',
-    15000: r'$29.99',
+    300: r'$0.35',
+    500: r'$0.49',
+    750: r'$0.79',
+    1000: r'$0.99',
+    1200: r'$1.19',
+    1500: r'$1.49',
+    2000: r'$1.99',
+    2500: r'$2.48',
+    6500: r'$6.44',
+    15000: r'$14.85',
   },
   'GB': {
     300: '£0.79',
@@ -91,10 +93,11 @@ const _coinLists = <String, Map<int, String>>{
   },
 };
 
-/// Minor currency units per coin, used when a pack size is not listed.
+/// Per-coin retail used when a pack size is not listed.
+/// NG is whole naira. USD is cents, because [_formatMinor] divides by 100.
 const _coinUnitMinor = <String, double>{
-  'NG': 150,
-  'US': 0.25,
+  'NG': 1.7,
+  'US': 0.099,
   'GB': 0.20,
   'GH': 4,
   'KE': 36,
@@ -112,7 +115,7 @@ const _plusMonthly = <String, String>{
 };
 
 const _plusYearly = <String, String>{
-  'NG': '₦16,000',
+  'NG': '₦17,600',
   'US': r'$105.00',
   'GB': '£84.90',
   'GH': 'GH₵1,650',

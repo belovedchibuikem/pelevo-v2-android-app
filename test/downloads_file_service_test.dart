@@ -48,7 +48,7 @@ void main() {
         );
         expect(
           request.headers['User-Agent'],
-          'Pelevo/1.0.0 (Mobile; Android 14; en-US)',
+          'Pelevo/1.0.0 (Linux; Android 14; SM-S911U)',
         );
         return ResponseBody.fromBytes(
           List<int>.filled(64, 1),
@@ -64,7 +64,7 @@ void main() {
         prefs,
         api,
         media: media,
-        userAgent: 'Pelevo/1.0.0 (Mobile; Android 14; en-US)',
+        userAgent: 'Pelevo/1.0.0 (Linux; Android 14; SM-S911U)',
       );
       addTearDown(service.dispose);
 

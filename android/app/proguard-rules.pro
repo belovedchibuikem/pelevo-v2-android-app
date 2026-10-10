@@ -10,6 +10,13 @@
 -keep class com.ryanheise.audioservice.** { *; }
 -dontwarn com.ryanheise.audioservice.**
 
+# just_audio loads this by name when building ExoPlayer's HTTP data source.
+-keep class com.podemeraldltd.pelevo.PelevoExoUserAgent {
+    public static java.lang.String get();
+    public static void set(java.lang.String);
+    public static void install(android.content.Context);
+}
+
 # Firebase
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }

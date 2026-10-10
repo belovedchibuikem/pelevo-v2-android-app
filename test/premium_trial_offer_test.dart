@@ -174,7 +174,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Claim Offer'), findsOneWidget);
-      expect(find.text('3 months of Premium, free'), findsOneWidget);
+      expect(find.text('Get 3 months of Premium, free'), findsOneWidget);
+      expect(
+        find.text(
+          'Enjoy ad-free and offline podcast listening on Pelevo Plus.',
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Keep listening'));
       await tester.pump();

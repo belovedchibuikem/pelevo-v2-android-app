@@ -18,9 +18,34 @@ class SystemHomeFeed extends ConsumerStatefulWidget {
   ConsumerState<SystemHomeFeed> createState() => _SystemHomeFeedState();
 }
 
-class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed> {
+class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
+    with WidgetsBindingObserver {
   int _quickListen = 0;
   int _africanVoice = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final saved = ref.read(homeRepositoryProvider).cachedAt();
+    final age = saved == null
+        ? null
+        : DateTime.now().toUtc().difference(saved);
+    if (age != null && age <= HomeRepository.freshFor) return;
+    ref.invalidate(homeFeedProvider);
+    ref.invalidate(homeRailProvider);
+  }
 
   static const _quickListenFilters = [
     (label: '5-10 min', min: 300, max: 600),
@@ -89,15 +114,6 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed> {
               data: (value) {
                 final byKey = {for (final rail in value.rails) rail.key: rail};
                 final children = <Widget>[
-                  if (value.stale)
-                    ListTile(
-                      leading: const Icon(Icons.cloud_off_outlined),
-                      title: const Text('Showing offline content'),
-                      trailing: TextButton(
-                        onPressed: () => ref.invalidate(homeFeedProvider),
-                        child: const Text('Refresh'),
-                      ),
-                    ),
                   _MoodGrid(items: byKey['moods']?.items ?? const []),
                   if (byKey['pick_for_today'] case final pick?
                       when pick.items.isNotEmpty)

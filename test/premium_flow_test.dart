@@ -21,8 +21,10 @@ void main() {
   }) async {
     tester.view.physicalSize = const Size(430, 2200);
     tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.localeTestValue = const Locale('en', 'NG');
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearLocaleTestValue);
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000/api/v1'))
       ..httpClientAdapter = adapter;
     final router = GoRouter(
@@ -149,22 +151,38 @@ void main() {
       location: '/screen/premium-plans?offer=plus-3-month-trial',
       adapter: _adapter(
         plans: [
-          premiumPlanFixture(),
           premiumPlanFixture(
-            id: 'plan-trial',
-            slug: 'plus-3-month-trial',
-            name: '3 Months Free',
-            priceMinor: 1600000,
+            id: 'plan-monthly',
+            slug: 'plus-monthly',
+            name: 'Monthly',
+            priceMinor: 160000,
+            interval: 'month',
+            trialMonths: 3,
+          ),
+          premiumPlanFixture(
+            id: 'plan-yearly',
+            slug: 'plus-yearly',
+            name: 'Annual',
+            priceMinor: 1760000,
             interval: 'year',
             trialMonths: 3,
           ),
         ],
       ),
     );
-    expect(find.text('3 Months Free'), findsOneWidget);
+    expect(find.text('Monthly'), findsOneWidget);
+    expect(find.text('Annual'), findsOneWidget);
     expect(find.text('3 months free'), findsOneWidget);
-    expect(find.text('Free for 3 months, then ₦16,000 / year'), findsOneWidget);
+    expect(find.text('1 month free'), findsOneWidget);
+    expect(find.text('Free for 3 months, then ₦1,600 / month'), findsOneWidget);
+    expect(find.text('Free for 3 months, then ₦17,600 / year'), findsOneWidget);
     expect(find.text('Your 3-month free trial is selected.'), findsOneWidget);
+    expect(
+      find.text(
+        'Choose Monthly or Annual. Billing starts automatically when the 3 months end.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Claim Offer'), findsOneWidget);
   });
 }

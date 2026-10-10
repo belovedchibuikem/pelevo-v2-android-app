@@ -69,28 +69,28 @@ class GiftWalletService extends ChangeNotifier {
 
   static const _balanceKey = 'pelevo_coin_balance';
   static const coinPacks = [
-    CoinPack(productId: 'pelevo_coins_500', coins: 500, fallbackPrice: '₦900'),
+    CoinPack(productId: 'pelevo_coins_500', coins: 500, fallbackPrice: '₦850'),
     CoinPack(
       productId: 'pelevo_coins_1200',
       coins: 1200,
-      fallbackPrice: '₦1,900',
+      fallbackPrice: '₦2,040',
       badge: 'Popular',
     ),
     CoinPack(
       productId: 'pelevo_coins_2500',
       coins: 2500,
-      fallbackPrice: '₦3,500',
+      fallbackPrice: '₦4,250',
       badge: 'Best value',
     ),
     CoinPack(
       productId: 'pelevo_coins_6500',
       coins: 6500,
-      fallbackPrice: '₦8,500',
+      fallbackPrice: '₦11,050',
     ),
     CoinPack(
       productId: 'pelevo_coins_15000',
       coins: 15000,
-      fallbackPrice: '₦18,500',
+      fallbackPrice: '₦25,500',
     ),
   ];
 

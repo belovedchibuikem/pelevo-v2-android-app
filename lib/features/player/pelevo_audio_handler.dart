@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:pelevo/core/network/pelevo_playback_agent.dart';
 import 'package:pelevo/core/network/pelevo_user_agent.dart';
 
 /// Next-up episode the native player can continue without a Dart round-trip.
@@ -33,7 +34,8 @@ class PelevoQueuedAudio {
 class PelevoAudioHandler extends BaseAudioHandler
     with SeekHandler, QueueHandler {
   PelevoAudioHandler({String? userAgent})
-    : _player = AudioPlayer(
+    : _userAgent = userAgent ?? PelevoUserAgent.current,
+      _player = AudioPlayer(
         userAgent: userAgent ?? PelevoUserAgent.current,
         useProxyForRequestHeaders: false,
       ) {
@@ -52,6 +54,7 @@ class PelevoAudioHandler extends BaseAudioHandler
   /// Fires when native playback moves to the next cached queue item.
   Stream<(String, String)> get queueAdvancedStream => _advanced.stream;
 
+  final String _userAgent;
   final AudioPlayer _player;
   bool earnMode = false;
   final _ended = StreamController<void>.broadcast();
@@ -97,6 +100,10 @@ class PelevoAudioHandler extends BaseAudioHandler
   }) async {
     earnMode = earn;
     await ensureSession();
+    final stamped = _requestHeaders(audioUri, headers);
+    await PelevoPlaybackAgent.install(
+      stamped?[PelevoUserAgent.headerName] ?? _userAgent,
+    );
     final current = PelevoQueuedAudio(
       episodeId: episodeId,
       title: title,
@@ -105,7 +112,7 @@ class PelevoAudioHandler extends BaseAudioHandler
       artworkUrl: artworkUrl,
       durationSeconds: durationSeconds,
       audioUri: audioUri,
-      headers: headers,
+      headers: stamped,
     );
     _playlist
       ..clear()
@@ -114,7 +121,7 @@ class PelevoAudioHandler extends BaseAudioHandler
     _applyMediaItem(current);
     _concat = ConcatenatingAudioSource(
       useLazyPreparation: true,
-      children: [AudioSource.uri(audioUri, headers: headers)],
+      children: [AudioSource.uri(audioUri, headers: stamped)],
     );
     await _player.setAudioSource(
       _concat!,
@@ -139,7 +146,10 @@ class PelevoAudioHandler extends BaseAudioHandler
       }
       try {
         await concat.add(
-          AudioSource.uri(track.audioUri, headers: track.headers),
+          AudioSource.uri(
+            track.audioUri,
+            headers: _requestHeaders(track.audioUri, track.headers),
+          ),
         );
         _playlist.add(track);
         known.add(track.episodeId);
@@ -201,6 +211,17 @@ class PelevoAudioHandler extends BaseAudioHandler
   Stream<double> get speedStream => _player.speedStream;
   Stream<PlayerState> get playerStateStream => _player.playerStateStream;
   AudioSource? get audioSource => _player.audioSource;
+
+  /// Remote streams always carry the IAB User-Agent. just_audio forwards that
+  /// header into ExoPlayer's DefaultHttpDataSource.Factory.setUserAgent.
+  Map<String, String>? _requestHeaders(Uri uri, Map<String, String>? headers) {
+    return PelevoUserAgent.mediaRequestHeaders(
+      userAgent: _userAgent,
+      uri: uri,
+      headers: headers,
+      isWeb: kIsWeb,
+    );
+  }
 
   Future<void> seekWithinEarn(Duration position) => _player.seek(position);
 
@@ -314,6 +335,7 @@ PelevoAudioHandler? _handler;
 
 Future<PelevoAudioHandler> initPelevoAudioHandler() async {
   if (_handler != null) return _handler!;
+  await PelevoPlaybackAgent.install(PelevoUserAgent.current);
   try {
     _handler = await AudioService.init(
       builder: () => PelevoAudioHandler(userAgent: PelevoUserAgent.current),

@@ -524,7 +524,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _purchase(List<GiftPack> packs) async {
+  Future<void> _purchase(List<GiftPack> packs, String countryCode) async {
     if (packs.isEmpty || !_ageConfirmed) return;
     final pack = packs[_selected.clamp(0, packs.length - 1)];
     try {
@@ -550,7 +550,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
       CoinPack(
         productId: pack.productId,
         coins: pack.coins,
-        fallbackPrice: seededCoinPrice(pack.coins, 'NG'),
+        fallbackPrice: seededCoinPrice(pack.coins, countryCode),
       ),
     );
     if (!mounted) return;
@@ -763,7 +763,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                     onPressed:
                         selected == null || !_ageConfirmed
                             ? null
-                            : () => _purchase(packs),
+                            : () => _purchase(packs, country),
                   ),
                   const SizedBox(height: 12),
                   const Text(

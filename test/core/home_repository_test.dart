@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/core/network/api_contract.dart';
@@ -21,6 +23,39 @@ void main() {
       HomeRepository(dio, cache, null).fetch(),
       throwsA(isA<ApiFailure>()),
     );
+  });
+
+  test('home cache expires after a day and stays unmarked before that', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
+    addTearDown(() => dio.close(force: true));
+    final cache = MemoryHomeFeedCache();
+    final repository = HomeRepository(dio, cache, 'account-a');
+    const payload = {
+      'schema_version': 2,
+      'rails': <Map<String, dynamic>>[],
+    };
+
+    Future<void> save(Duration age) {
+      return cache.put(
+        'home_feed_v4:account-a',
+        jsonEncode({
+          'saved_at': DateTime.now()
+              .toUtc()
+              .subtract(age)
+              .toIso8601String(),
+          'data': payload,
+        }),
+      );
+    }
+
+    await save(const Duration(hours: 30));
+    expect(repository.cached(), isNull);
+
+    await save(const Duration(hours: 2));
+    expect(repository.cached()?.stale, isFalse);
+
+    await save(const Duration(minutes: 5));
+    expect(repository.cached()?.stale, isFalse);
   });
 
   test('cache is rendered before network without offline banner by default', () async {
@@ -67,7 +102,7 @@ void main() {
     expect(values.last.stale, isFalse);
   });
 
-  test('connection failure marks cached feed offline', () async {
+  test('connection failure keeps the saved feed without an offline state', () async {
     final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
     addTearDown(() => dio.close(force: true));
     dio.httpClientAdapter = ApiAdapter(
@@ -83,7 +118,7 @@ void main() {
     );
     final values = await repository.watch().toList();
     expect(values.first.stale, isFalse);
-    expect(values.last.stale, isTrue);
+    expect(values.last.stale, isFalse);
   });
 
   test(

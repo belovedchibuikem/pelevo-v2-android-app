@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:pelevo/core/network/api_contract.dart';
+import 'package:pelevo/core/network/pelevo_playback_agent.dart';
+import 'package:pelevo/core/network/pelevo_user_agent.dart';
 import 'package:pelevo/features/earn/earn_catalog_data.dart';
 import 'package:pelevo/features/earn/earn_integrity.dart';
 import 'package:pelevo/features/player/pelevo_audio_handler.dart';
@@ -29,7 +32,10 @@ class EarnPlaybackSession extends ChangeNotifier {
     Duration(seconds: 2),
   ];
 
-  final AudioPlayer _localPlayer = AudioPlayer();
+  final AudioPlayer _localPlayer = AudioPlayer(
+    userAgent: PelevoUserAgent.current,
+    useProxyForRequestHeaders: false,
+  );
   final _EarnLifecycle _lifecycle = _EarnLifecycle();
   final Map<String, Duration> _progress = {};
   final Map<String, int> _mediaDurationSeconds = {};
@@ -291,7 +297,15 @@ class EarnPlaybackSession extends ChangeNotifier {
           );
         } else {
           await _configureLocalSession();
-          await _localPlayer.setUrl(url);
+          final headers = PelevoUserAgent.mediaRequestHeaders(
+            userAgent: PelevoUserAgent.current,
+            uri: Uri.parse(url),
+            isWeb: kIsWeb,
+          );
+          await PelevoPlaybackAgent.install(
+            headers?[PelevoUserAgent.headerName] ?? PelevoUserAgent.current,
+          );
+          await _localPlayer.setUrl(url, headers: headers);
           if (startAt > Duration.zero) {
             _applyingResume = true;
             await _localPlayer.seek(startAt);

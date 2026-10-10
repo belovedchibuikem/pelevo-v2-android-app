@@ -251,6 +251,21 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   String _localizedPlanPrice(PremiumPlan plan) =>
       PremiumStore.instance.priceLabel(plan, _countryCode);
 
+  bool _offersTrial(PremiumPlan plan) =>
+      plan.isThreeMonthTrial || _trialOfferRequested;
+
+  String _planPriceLine(PremiumPlan plan) {
+    final price = _localizedPlanPrice(plan);
+    if (!_offersTrial(plan)) return price;
+    return 'Free for 3 months, then $price';
+  }
+
+  String _planBadge(PremiumPlan plan) {
+    if (plusIntervalIsYearly(plan.interval)) return '1 month free';
+    if (_offersTrial(plan)) return '3 months free';
+    return '';
+  }
+
   Future<void> _purchasePlus(PremiumPlan? plan) async {
     if (_preview) {
       context.go('/screen/premium-confirmed');
@@ -303,7 +318,12 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
 
   void _selectTrialOffer(List<PremiumPlan> plans) {
     if (!_trialOfferRequested || _trialOfferApplied) return;
-    final index = plans.indexWhere((plan) => plan.isThreeMonthTrial);
+    var index = plans.indexWhere(
+      (plan) => plan.isThreeMonthTrial && plusIntervalIsYearly(plan.interval),
+    );
+    if (index < 0) {
+      index = plans.indexWhere((plan) => plan.isThreeMonthTrial);
+    }
     if (index < 0) return;
     _trialOfferApplied = true;
     if (_plan == index &&
@@ -393,6 +413,11 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: PelevoSpacing.xs),
+          const Text(
+            'Choose Monthly or Annual. Billing starts automatically when the 3 months end.',
+            style: TextStyle(color: PelevoColors.textMuted),
+          ),
           const SizedBox(height: PelevoSpacing.md),
         ],
         if (plans.isEmpty)
@@ -411,10 +436,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               context,
               i,
               plans[i].name,
-              plans[i].isThreeMonthTrial
-                  ? 'Free for 3 months, then ${_localizedPlanPrice(plans[i])}'
-                  : _localizedPlanPrice(plans[i]),
-              plans[i].isThreeMonthTrial ? '3 months free' : '',
+              _planPriceLine(plans[i]),
+              _planBadge(plans[i]),
             ),
             const SizedBox(height: PelevoSpacing.md),
           ],

@@ -317,21 +317,35 @@ class HomeRepository {
   final Dio _dio;
   final HomeFeedCache _cache;
   final String? _userId;
+
+  /// How long a saved feed can stand in while a refresh is on the way.
+  static const freshFor = Duration(minutes: 15);
+
+  /// Discarded. A week-old feed was being shown as the live home screen.
+  static const keepFor = Duration(hours: 24);
+
   String get _cacheKey => 'home_feed_v4:$_userId';
 
+  DateTime? cachedAt() => _readCache()?.savedAt;
+
   HomeFeed? cached() {
+    final record = _readCache();
+    if (record == null) return null;
+    final age = DateTime.now().toUtc().difference(record.savedAt);
+    if (age > keepFor) return null;
+    return HomeFeed.fromJson(record.data);
+  }
+
+  ({DateTime savedAt, Map<String, dynamic> data})? _readCache() {
     if (_userId == null) return null;
     final raw = _cache.get(_cacheKey);
     if (raw is! String) return null;
     try {
       final record = jsonDecode(raw) as Map<String, dynamic>;
-      final saved = DateTime.parse(record['saved_at'] as String);
-      if (DateTime.now().toUtc().difference(saved) > const Duration(days: 7)) {
-        return null;
-      }
-      // Fresh cache is shown without the offline banner; watch() marks stale
-      // only after a failed connectivity probe (connection error / timeout).
-      return HomeFeed.fromJson(record['data'] as Map<String, dynamic>);
+      final saved = DateTime.parse(record['saved_at'] as String).toUtc();
+      final data = record['data'];
+      if (data is! Map<String, dynamic>) return null;
+      return (savedAt: saved, data: data);
     } on Object {
       return null;
     }
@@ -347,6 +361,7 @@ class HomeRepository {
     final response = await _dio.get<Map<String, dynamic>>(
       '/home/feed',
       cancelToken: cancelToken,
+      options: Options(receiveTimeout: const Duration(seconds: 45)),
     );
     final data = requireApiData(response.data);
     final feed = HomeFeed.fromJson(data);
@@ -379,19 +394,8 @@ class HomeRepository {
           error.type == DioExceptionType.cancel) {
         rethrow;
       }
-      if (_looksOffline(error)) {
-        yield previous.asStale();
-        return;
-      }
       yield previous;
     }
-  }
-
-  bool _looksOffline(DioException error) {
-    return error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.unknown &&
-            error.error?.toString().toLowerCase().contains('socket') == true;
   }
 
   Future<HomeDiscoverPage> discover({CancelToken? cancelToken}) async {

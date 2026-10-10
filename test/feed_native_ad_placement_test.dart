@@ -2,6 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/features/ads/feed_native_ads.dart';
 
 void main() {
+  test('search native ad reserves a compact row before it loads', () {
+    expect(FeedNativeAds.searchHeight, inInclusiveRange(72, 80));
+    expect(FeedNativeAds.searchFactoryId, isNot(FeedNativeAds.homeFactoryId));
+  });
+
   test('search native ad is the third row when the list is long enough', () {
     expect(searchNativeAdSlotIndex(0), -1);
     expect(searchNativeAdSlotIndex(1), 1);

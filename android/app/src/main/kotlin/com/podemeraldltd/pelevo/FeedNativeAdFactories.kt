@@ -5,7 +5,9 @@ import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.text.TextUtils
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -28,12 +30,30 @@ private val feedWell = 0xFF1E1E1E.toInt()
 private fun Context.feedDp(value: Int): Int =
     (value * resources.displayMetrics.density).toInt()
 
+private const val searchAdTag = "Ads"
+private const val searchAdHeightDp = 76
+
 private fun roundedOutline(radiusPx: Float) =
     object : ViewOutlineProvider() {
         override fun getOutline(view: View, outline: Outline) {
-            outline.setRoundRect(0, 0, view.width, view.height, radiusPx)
+            val width = view.width
+            val height = view.height
+            if (width <= 0 || height <= 0) {
+                outline.setEmpty()
+                return
+            }
+            outline.setRoundRect(0, 0, width, height, radiusPx)
         }
     }
+
+private fun destroyNativeAd(nativeAd: NativeAd?) {
+    if (nativeAd == null) return
+    try {
+        nativeAd.destroy()
+    } catch (error: RuntimeException) {
+        Log.w(searchAdTag, "AdMob nativeAd.destroy failed", error)
+    }
+}
 
 class HomeFeedNativeAdFactory(
     private val context: Context,
@@ -211,20 +231,36 @@ class SearchNativeAdFactory(
         nativeAd: NativeAd,
         customOptions: MutableMap<String, Any>?,
     ): NativeAdView {
+        return try {
+            buildSearchAd(nativeAd)
+        } catch (error: RuntimeException) {
+            Log.e(searchAdTag, "AdMob search native ad view failed", error)
+            NativeAdView(context).apply {
+                minimumHeight = context.feedDp(searchAdHeightDp)
+                safeSetNativeAd(this, nativeAd)
+            }
+        }
+    }
+
+    private fun buildSearchAd(nativeAd: NativeAd): NativeAdView {
         val density = context.resources.displayMetrics.density
         fun dp(value: Int) = context.feedDp(value)
+        val rowHeight = dp(searchAdHeightDp)
 
         val adView =
             NativeAdView(context).apply {
                 setBackgroundColor(Color.TRANSPARENT)
                 contentDescription = "Sponsored advertisement"
+                minimumHeight = rowHeight
             }
         val row =
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
+                minimumHeight = rowHeight
             }
 
+        val iconDrawable = nativeAd.icon?.drawable
         val icon =
             ImageView(context).apply {
                 scaleType = ImageView.ScaleType.CENTER_CROP
@@ -233,44 +269,37 @@ class SearchNativeAdFactory(
                         cornerRadius = dp(8).toFloat()
                         setColor(feedWell)
                     }
-                clipToOutline = true
-                outlineProvider = roundedOutline(8f * density)
-                nativeAd.icon?.drawable?.let(::setImageDrawable)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    clipToOutline = true
+                    outlineProvider = roundedOutline(8f * density)
+                }
+                if (iconDrawable != null) setImageDrawable(iconDrawable)
             }
-        val adChoices = AdChoicesView(context)
-        val iconFrame = FrameLayout(context)
-        iconFrame.addView(icon, FrameLayout.LayoutParams(dp(56), dp(56)))
-        iconFrame.addView(
-            adChoices,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP or Gravity.END,
-            ),
-        )
 
+        val headlineText = nativeAd.headline?.takeIf { it.isNotBlank() } ?: "Sponsored"
         val headline =
             TextView(context).apply {
-                text = nativeAd.headline
+                text = headlineText
                 setTextColor(Color.WHITE)
                 textSize = 14f
                 setTypeface(typeface, Typeface.BOLD)
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
             }
+        val advertiserText = nativeAd.advertiser?.takeIf { it.isNotBlank() }
         val advertiser =
             TextView(context).apply {
-                text = nativeAd.advertiser.orEmpty()
+                text = advertiserText.orEmpty()
                 setTextColor(feedMuted)
                 textSize = 12f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
                 maxWidth = dp(180)
-                visibility = if (nativeAd.advertiser.isNullOrBlank()) View.GONE else View.VISIBLE
+                visibility = if (advertiserText == null) View.GONE else View.VISIBLE
             }
         val badge =
             TextView(context).apply {
-                text = if (nativeAd.advertiser.isNullOrBlank()) "Ad" else "· Ad"
+                text = if (advertiserText == null) "Ad" else "· Ad"
                 setTextColor(feedMuted)
                 textSize = 12f
                 maxLines = 1
@@ -292,7 +321,7 @@ class SearchNativeAdFactory(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                     ).apply {
-                        marginStart = if (nativeAd.advertiser.isNullOrBlank()) 0 else dp(4)
+                        marginStart = if (advertiserText == null) 0 else dp(4)
                     },
                 )
             }
@@ -303,9 +332,10 @@ class SearchNativeAdFactory(
                 addView(subtitle)
             }
 
+        val callToActionText = nativeAd.callToAction?.takeIf { it.isNotBlank() }
         val callToAction =
             TextView(context).apply {
-                text = nativeAd.callToAction ?: "Open"
+                text = callToActionText ?: "Open"
                 setTextColor(Color.BLACK)
                 textSize = 12f
                 setTypeface(typeface, Typeface.BOLD)
@@ -319,9 +349,10 @@ class SearchNativeAdFactory(
                 ellipsize = TextUtils.TruncateAt.END
                 maxWidth = dp(96)
                 setPadding(dp(12), dp(6), dp(12), dp(6))
+                visibility = if (callToActionText == null) View.INVISIBLE else View.VISIBLE
             }
 
-        row.addView(iconFrame, LinearLayout.LayoutParams(dp(56), dp(56)))
+        row.addView(icon, LinearLayout.LayoutParams(dp(56), dp(56)))
         row.addView(
             textColumn,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -340,19 +371,36 @@ class SearchNativeAdFactory(
             row,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
+                rowHeight,
                 Gravity.CENTER_VERTICAL,
             ),
         )
 
-        adView.iconView = icon
+        val adChoices = AdChoicesView(context)
+        adView.addView(
+            adChoices,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END,
+            ),
+        )
+
         adView.headlineView = headline
-        adView.advertiserView = advertiser
-        adView.callToActionView = callToAction
         adView.adChoicesView = adChoices
-        adView.setNativeAd(nativeAd)
-        advertiser.visibility = if (nativeAd.advertiser.isNullOrBlank()) View.GONE else View.VISIBLE
-        badge.text = if (nativeAd.advertiser.isNullOrBlank()) "Ad" else "· Ad"
+        if (iconDrawable != null) adView.iconView = icon
+        if (advertiserText != null) adView.advertiserView = advertiser
+        if (callToActionText != null) adView.callToActionView = callToAction
+        safeSetNativeAd(adView, nativeAd)
         return adView
+    }
+}
+
+private fun safeSetNativeAd(adView: NativeAdView, nativeAd: NativeAd) {
+    try {
+        adView.setNativeAd(nativeAd)
+    } catch (error: RuntimeException) {
+        Log.e(searchAdTag, "AdMob setNativeAd failed", error)
+        destroyNativeAd(nativeAd)
     }
 }

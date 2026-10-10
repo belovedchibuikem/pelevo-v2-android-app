@@ -18,8 +18,10 @@ void main() {
   }) async {
     tester.view.physicalSize = const Size(430, 1600);
     tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.localeTestValue = const Locale('en', 'US');
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearLocaleTestValue);
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000/api/v1'))
       ..httpClientAdapter = adapter;
     final router = GoRouter(
@@ -108,6 +110,9 @@ void main() {
     expect(find.text('100'), findsOneWidget);
     expect(find.text('Choose a coin pack'), findsOneWidget);
     expect(find.text('1200 coins'), findsOneWidget);
+    expect(find.text(r'$0.49'), findsOneWidget);
+    expect(find.text(r'$1.19'), findsOneWidget);
+    expect(find.text('₦850'), findsNothing);
     expect(find.text('₦1,900'), findsNothing);
     expect(find.text('1250'), findsNothing);
     await tester.tap(find.textContaining('I confirm I am 18'));

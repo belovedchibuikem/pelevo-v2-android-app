@@ -1,9 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+// Search uses hybrid composition. AdWidget's surface view crashes on Android 10.
+// ignore: implementation_imports
+import 'package:google_mobile_ads/src/ad_instance_manager.dart';
 import 'package:pelevo/core/catalog_preview.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
@@ -20,6 +26,7 @@ abstract final class FeedNativeAds {
   // Tall enough that the video MediaView stays at least 120dp after the
   // headline, body, padding, and call-to-action.
   static const homeHeight = 300.0;
+  // Reserved before the ad loads. Kept inside the 72–80dp search row.
   static const searchHeight = 76.0;
 
   static const _androidTestUnit = 'ca-app-pub-3940256099942544/2247696110';
@@ -193,19 +200,29 @@ class _PlatformNativeAdState extends State<_PlatformNativeAd> {
   NativeAd? _ad;
   bool _loaded = false;
   bool _failed = false;
-  bool _released = false;
+  bool _closed = false;
+  bool _slotReady = false;
+
+  bool get _hybridSearchAd =>
+      widget.factoryId == FeedNativeAds.searchFactoryId &&
+      defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _closed) return;
+      setState(() => _slotReady = true);
+    });
     unawaited(_load());
   }
 
   Future<void> _load() async {
     final ready = await ReelAds.initialize();
-    if (!mounted) return;
+    if (!mounted || _closed) return;
     if (!ready) {
-      setState(() => _failed = true);
+      _failed = true;
+      if (mounted) setState(() {});
       return;
     }
 
@@ -215,45 +232,62 @@ class _PlatformNativeAdState extends State<_PlatformNativeAd> {
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
-          if (!mounted) {
-            _release(ad);
+          if (_closed || !mounted) {
+            _close();
             return;
           }
           setState(() => _loaded = true);
         },
         onAdFailedToLoad: (ad, _) {
-          _release(ad);
-          if (mounted) setState(() => _failed = true);
+          _failed = true;
+          _close();
+          if (mounted) setState(() {});
         },
       ),
     );
+    if (_closed || !mounted) {
+      unawaited(_disposeQuietly(ad));
+      return;
+    }
     _ad = ad;
     try {
       await ad.load();
     } catch (_) {
-      _release(ad);
-      if (mounted) setState(() => _failed = true);
+      _failed = true;
+      _close();
+      if (mounted) setState(() {});
     }
   }
 
-  void _release(Ad ad) {
-    if (_released) return;
-    _released = true;
-    if (identical(_ad, ad)) _ad = null;
-    unawaited(ad.dispose());
+  void _close() {
+    if (_closed) return;
+    _closed = true;
+    _loaded = false;
+    final ad = _ad;
+    _ad = null;
+    if (ad != null) unawaited(_disposeQuietly(ad));
+  }
+
+  Future<void> _disposeQuietly(Ad ad) async {
+    try {
+      await ad.dispose();
+    } catch (error) {
+      debugPrint('AdMob nativeAd.dispose failed: $error');
+    }
   }
 
   @override
   void dispose() {
-    unawaited(_ad?.dispose());
+    _close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_failed) return const SizedBox.shrink();
+    if (_failed || _closed) return const SizedBox.shrink();
     final ad = _ad;
     final radius = BorderRadius.circular(widget.borderRadius);
+    final showAd = _slotReady && _loaded && ad != null;
     return Padding(
       padding: widget.margin,
       child: Semantics(
@@ -266,13 +300,79 @@ class _PlatformNativeAdState extends State<_PlatformNativeAd> {
               color: widget.placeholderColor,
               borderRadius: radius,
             ),
-            child:
-                _loaded && ad != null
-                    ? ClipRRect(borderRadius: radius, child: AdWidget(ad: ad))
-                    : const SizedBox.expand(),
+            child: showAd ? _hostedAd(ad, radius) : const SizedBox.expand(),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _hostedAd(NativeAd ad, BorderRadius radius) {
+    final view =
+        _hybridSearchAd
+            ? _HybridAndroidNativeAd(key: ObjectKey(ad), ad: ad)
+            : AdWidget(key: ObjectKey(ad), ad: ad);
+    if (widget.borderRadius <= 0) return view;
+    return ClipRRect(borderRadius: radius, child: view);
+  }
+}
+
+class _HybridAndroidNativeAd extends StatefulWidget {
+  const _HybridAndroidNativeAd({super.key, required this.ad});
+
+  final NativeAd ad;
+
+  @override
+  State<_HybridAndroidNativeAd> createState() => _HybridAndroidNativeAdState();
+}
+
+class _HybridAndroidNativeAdState extends State<_HybridAndroidNativeAd> {
+  bool _unavailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final adId = instanceManager.adIdFor(widget.ad);
+    if (adId == null || instanceManager.isWidgetAdIdMounted(adId)) {
+      _unavailable = true;
+      return;
+    }
+    instanceManager.mountWidgetAdId(adId);
+  }
+
+  @override
+  void dispose() {
+    final adId = instanceManager.adIdFor(widget.ad);
+    if (adId != null) instanceManager.unmountWidgetAdId(adId);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_unavailable) return const SizedBox.expand();
+    final adId = instanceManager.adIdFor(widget.ad);
+    if (adId == null) return const SizedBox.expand();
+    final viewType = '${instanceManager.channel.name}/ad_widget';
+    return PlatformViewLink(
+      viewType: viewType,
+      surfaceFactory: (context, controller) {
+        return AndroidViewSurface(
+          controller: controller as AndroidViewController,
+          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        );
+      },
+      onCreatePlatformView: (params) {
+        return PlatformViewsService.initExpensiveAndroidView(
+            id: params.id,
+            viewType: viewType,
+            layoutDirection: TextDirection.ltr,
+            creationParams: adId,
+            creationParamsCodec: const StandardMessageCodec(),
+          )
+          ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
+          ..create();
+      },
     );
   }
 }

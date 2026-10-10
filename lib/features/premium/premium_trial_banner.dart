@@ -202,75 +202,84 @@ class _TrialBanner extends StatelessWidget {
       container: true,
       namesRoute: false,
       label: 'Premium trial offer',
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(12, top + 8, 12, 0),
+      child: SizedBox(
+        width: double.infinity,
         child: Material(
-          color: const Color(0xFF241808),
-          elevation: 8,
-          shadowColor: Colors.black,
-          borderRadius: BorderRadius.circular(PelevoRadii.large),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(PelevoRadii.large),
-              border: Border.all(
-                color: PelevoColors.yellow.withValues(alpha: 0.55),
+          color: const Color(0xFFF4E3D3),
+          elevation: 6,
+          shadowColor: Colors.black54,
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(36, top + 12, 36, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Get 3 months of Premium, free',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: PelevoColors.red,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Enjoy ad-free and offline podcast listening on Pelevo Plus.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 14,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: onClaim,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: PelevoColors.red,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 10,
+                        ),
+                        shape: const StadiumBorder(),
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      child: const Text('Claim Offer'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.workspace_premium_rounded,
-                    color: PelevoColors.yellow,
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '3 months of Premium, free',
-                          style: TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Upgrade to Pelevo Plus. Listening keeps going.',
-                          style: TextStyle(
-                            color: PelevoColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: onClaim,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: PelevoColors.yellow,
-                      foregroundColor: Colors.black,
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                    child: const Text('Claim Offer'),
-                  ),
-                  Semantics(
-                    button: true,
-                    label: 'Dismiss',
-                    child: InkWell(
-                      onTap: onDismiss,
-                      customBorder: const CircleBorder(),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(Icons.close_rounded),
+              Positioned(
+                top: top,
+                right: 2,
+                child: Semantics(
+                  button: true,
+                  label: 'Dismiss',
+                  child: InkWell(
+                    onTap: onDismiss,
+                    customBorder: const CircleBorder(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF1A1A1A),
+                        size: 22,
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
