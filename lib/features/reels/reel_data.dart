@@ -186,8 +186,7 @@ class PublishedReel {
   final bool saved;
   final bool following;
 
-  String get viewsLabel =>
-      '$viewsCount ${viewsCount == 1 ? 'view' : 'views'}';
+  String get viewsLabel => '$viewsCount ${viewsCount == 1 ? 'view' : 'views'}';
 
   String get captionText => caption?.trim() ?? '';
 
@@ -489,7 +488,7 @@ class ReelRepository {
   const ReelRepository(this._dio);
   final Dio _dio;
 
-  Future<List<PublishedReel>> feed(ReelsFeedKind kind) async {
+  Future<List<PublishedReel>> feed(ReelsFeedKind kind, {int? limit}) async {
     final path = switch (kind) {
       ReelsFeedKind.forYou => '/reels/for-you',
       ReelsFeedKind.following => '/reels/following',
@@ -497,7 +496,10 @@ class ReelRepository {
     };
     try {
       return _maps(
-        (await _dio.get<Map<String, dynamic>>(path)).data,
+        (await _dio.get<Map<String, dynamic>>(
+          path,
+          queryParameters: {if (limit != null) 'limit': limit},
+        )).data,
       ).map(PublishedReel.fromApi).toList(growable: false);
     } on ApiFailure {
       rethrow;

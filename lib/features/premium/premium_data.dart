@@ -178,6 +178,11 @@ class PremiumAccount {
   final PremiumSubscription? subscription;
 }
 
+/// Active Pelevo Plus for a listener or a creator.
+/// Plus removes ads on the home feed and on search.
+bool pelevoPlusRemovesAds(PremiumAccount? account) =>
+    account?.entitlement?.active == true;
+
 class PremiumInvoice {
   const PremiumInvoice({
     required this.id,

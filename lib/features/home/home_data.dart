@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/reels/reel_data.dart';
 
 class HomeItem {
   const HomeItem({
@@ -90,36 +91,35 @@ class HomeItem {
   final String? icon;
   final String? color;
 
-  HomeItem copyWith({
-    int? positionSeconds,
-    bool clearPosition = false,
-  }) => HomeItem(
-    id: id,
-    type: type,
-    title: title,
-    showId: showId,
-    showTitle: showTitle,
-    artworkUrl: artworkUrl,
-    durationSeconds: durationSeconds,
-    durationLabel: durationLabel,
-    positionSeconds: clearPosition ? null : (positionSeconds ?? this.positionSeconds),
-    slug: slug,
-    subtitle: subtitle,
-    description: description,
-    rank: rank,
-    itemCount: itemCount,
-    viewerCount: viewerCount,
-    countryCode: countryCode,
-    matchPercent: matchPercent,
-    reason: reason,
-    playCount: playCount,
-    playCountLabel: playCountLabel,
-    publishedLabel: publishedLabel,
-    badge: badge,
-    badgeColor: badgeColor,
-    icon: icon,
-    color: color,
-  );
+  HomeItem copyWith({int? positionSeconds, bool clearPosition = false}) =>
+      HomeItem(
+        id: id,
+        type: type,
+        title: title,
+        showId: showId,
+        showTitle: showTitle,
+        artworkUrl: artworkUrl,
+        durationSeconds: durationSeconds,
+        durationLabel: durationLabel,
+        positionSeconds:
+            clearPosition ? null : (positionSeconds ?? this.positionSeconds),
+        slug: slug,
+        subtitle: subtitle,
+        description: description,
+        rank: rank,
+        itemCount: itemCount,
+        viewerCount: viewerCount,
+        countryCode: countryCode,
+        matchPercent: matchPercent,
+        reason: reason,
+        playCount: playCount,
+        playCountLabel: playCountLabel,
+        publishedLabel: publishedLabel,
+        badge: badge,
+        badgeColor: badgeColor,
+        icon: icon,
+        color: color,
+      );
 }
 
 class HomeInspiration {
@@ -156,7 +156,9 @@ class HomeRail {
     seeAllUrl: json['see_all_url'] as String?,
     inspiration:
         json['inspiration'] is Map<String, dynamic>
-            ? HomeInspiration.fromJson(json['inspiration'] as Map<String, dynamic>)
+            ? HomeInspiration.fromJson(
+              json['inspiration'] as Map<String, dynamic>,
+            )
             : null,
     items: (json['items'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
@@ -290,12 +292,8 @@ class HomeRailRequest {
       other.countryCode == countryCode;
 
   @override
-  int get hashCode => Object.hash(
-    key,
-    minDurationSeconds,
-    maxDurationSeconds,
-    countryCode,
-  );
+  int get hashCode =>
+      Object.hash(key, minDurationSeconds, maxDurationSeconds, countryCode);
 }
 
 List<HomeItem> _homeItems(Object? raw) {
@@ -544,10 +542,7 @@ class ContinueListeningMemoryNotifier extends Notifier<List<HomeItem>> {
   List<HomeItem> build() => const [];
 
   void upsert(HomeItem item) {
-    state = [
-      item,
-      ...state.where((existing) => existing.id != item.id),
-    ];
+    state = [item, ...state.where((existing) => existing.id != item.id)];
   }
 
   void remove(String episodeId) {
@@ -563,10 +558,7 @@ final continueListeningMemoryProvider =
       ContinueListeningMemoryNotifier.new,
     );
 
-HomeRail? mergeContinueListeningRail(
-  HomeRail? rail,
-  List<HomeItem> memory,
-) {
+HomeRail? mergeContinueListeningRail(HomeRail? rail, List<HomeItem> memory) {
   if (memory.isEmpty) return rail;
   final existing = rail?.items ?? const <HomeItem>[];
   final seen = {for (final item in memory) item.id};
@@ -583,6 +575,57 @@ HomeRail? mergeContinueListeningRail(
     items: merged,
   );
 }
+
+/// Newest published shorts for the Home row.
+///
+/// The home-feed rail ranks by lifetime views, so the first shorts to get
+/// plays stay on screen. For You is drawn from the newest published pool;
+/// ordering that page by publish time puts new uploads at the front.
+List<PublishedReel> latestHomeShorts(
+  List<PublishedReel> reels, {
+  int limit = 12,
+}) {
+  final sorted = [...reels]..sort((a, b) {
+    final left = DateTime.tryParse(a.publishedAt ?? '');
+    final right = DateTime.tryParse(b.publishedAt ?? '');
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    final byTime = right.compareTo(left);
+    if (byTime != 0) return byTime;
+    return b.id.compareTo(a.id);
+  });
+  if (sorted.length <= limit) return sorted;
+  return sorted.sublist(0, limit);
+}
+
+HomeItem homeItemFromReel(PublishedReel reel) {
+  final title =
+      reel.titleText.isNotEmpty
+          ? reel.titleText
+          : (reel.captionText.isNotEmpty ? reel.captionText : 'Short');
+  final artwork =
+      _sanitizeArtworkUrl(reel.imageUrl) ??
+      _sanitizeArtworkUrl(reel.showArtworkUrl);
+  return HomeItem(
+    id: reel.id,
+    type: 'reel',
+    title: title,
+    subtitle: reel.creatorName,
+    artworkUrl: artwork,
+    showId: reel.showId,
+    showTitle: reel.showTitle,
+  );
+}
+
+final homeLatestShortsProvider =
+    FutureProvider.autoDispose<List<PublishedReel>>((ref) async {
+      ref.watch(authSessionProvider.select((session) => session.userId));
+      final reels = await ref
+          .watch(reelRepositoryProvider)
+          .feed(ReelsFeedKind.forYou, limit: 50);
+      return latestHomeShorts(reels);
+    }, retry: (count, error) => null);
 
 final homeFeedProvider = StreamProvider.autoDispose<HomeFeed>((ref) {
   final cancel = CancelToken();

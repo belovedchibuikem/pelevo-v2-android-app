@@ -2,12 +2,13 @@ package com.podemeraldltd.pelevo
 
 import android.content.Context
 import android.graphics.Color
+import android.os.Build
 import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.text.TextUtils
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -231,6 +232,14 @@ class SearchNativeAdFactory(
         nativeAd: NativeAd,
         customOptions: MutableMap<String, Any>?,
     ): NativeAdView {
+        // Android 10 and older must not bind a search native ad. AdLoader has
+        // already been refused from Dart; this is the native entry if one arrives.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Log.w(searchAdTag, "AdMob search ad skipped below Android 11")
+            return NativeAdView(context).apply {
+                minimumHeight = context.feedDp(searchAdHeightDp)
+            }
+        }
         return try {
             buildSearchAd(nativeAd)
         } catch (error: RuntimeException) {
@@ -243,93 +252,115 @@ class SearchNativeAdFactory(
     }
 
     private fun buildSearchAd(nativeAd: NativeAd): NativeAdView {
-        val density = context.resources.displayMetrics.density
         fun dp(value: Int) = context.feedDp(value)
-        val rowHeight = dp(searchAdHeightDp)
-
+        // Inset every registered asset. Exact child sizes that exceed the
+        // platform-view height, or a wrap-content AdChoices icon on the edge,
+        // sit outside NativeAdView and fail the AdMob validator.
         val adView =
             NativeAdView(context).apply {
                 setBackgroundColor(Color.TRANSPARENT)
                 contentDescription = "Sponsored advertisement"
-                minimumHeight = rowHeight
+                clipChildren = true
+                clipToPadding = true
+                minimumHeight = dp(searchAdHeightDp)
+                setPadding(dp(4), dp(6), dp(4), dp(6))
             }
         val row =
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                minimumHeight = rowHeight
+                clipChildren = true
+                setPadding(0, 0, dp(20), 0)
             }
 
         val iconDrawable = nativeAd.icon?.drawable
+        val iconSize = dp(40)
         val icon =
             ImageView(context).apply {
                 scaleType = ImageView.ScaleType.CENTER_CROP
+                adjustViewBounds = false
                 background =
                     GradientDrawable().apply {
                         cornerRadius = dp(8).toFloat()
                         setColor(feedWell)
                     }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    clipToOutline = true
-                    outlineProvider = roundedOutline(8f * density)
-                }
                 if (iconDrawable != null) setImageDrawable(iconDrawable)
             }
 
-        val headlineText = nativeAd.headline?.takeIf { it.isNotBlank() } ?: "Sponsored"
         val headline =
             TextView(context).apply {
-                text = headlineText
+                text = nativeAd.headline?.takeIf { it.isNotBlank() } ?: "Sponsored"
                 setTextColor(Color.WHITE)
-                textSize = 14f
+                setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f)
                 setTypeface(typeface, Typeface.BOLD)
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                gravity = Gravity.CENTER_VERTICAL
             }
         val advertiserText = nativeAd.advertiser?.takeIf { it.isNotBlank() }
         val advertiser =
             TextView(context).apply {
                 text = advertiserText.orEmpty()
                 setTextColor(feedMuted)
-                textSize = 12f
+                setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f)
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                maxWidth = dp(180)
+                includeFontPadding = false
+                gravity = Gravity.CENTER_VERTICAL
                 visibility = if (advertiserText == null) View.GONE else View.VISIBLE
             }
         val badge =
             TextView(context).apply {
-                text = if (advertiserText == null) "Ad" else "· Ad"
+                text = "Ad"
                 setTextColor(feedMuted)
-                textSize = 12f
+                setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f)
                 maxLines = 1
+                includeFontPadding = false
+                gravity = Gravity.CENTER_VERTICAL
             }
         val subtitle =
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(
-                    advertiser,
-                    LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
-                addView(
-                    badge,
-                    LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                    ).apply {
-                        marginStart = if (advertiserText == null) 0 else dp(4)
-                    },
-                )
+                clipChildren = true
             }
+        if (advertiserText != null) {
+            subtitle.addView(
+                advertiser,
+                LinearLayout.LayoutParams(0, dp(16), 1f).apply {
+                    marginEnd = dp(4)
+                },
+            )
+        }
+        subtitle.addView(
+            badge,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(16),
+            ),
+        )
         val textColumn =
             LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(headline)
-                addView(subtitle)
+                gravity = Gravity.CENTER_VERTICAL
+                clipChildren = true
+                addView(
+                    headline,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(18),
+                    ),
+                )
+                addView(
+                    subtitle,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(16),
+                    ).apply {
+                        topMargin = dp(2)
+                    },
+                )
             }
 
         val callToActionText = nativeAd.callToAction?.takeIf { it.isNotBlank() }
@@ -337,9 +368,10 @@ class SearchNativeAdFactory(
             TextView(context).apply {
                 text = callToActionText ?: "Open"
                 setTextColor(Color.BLACK)
-                textSize = 12f
+                setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f)
                 setTypeface(typeface, Typeface.BOLD)
                 gravity = Gravity.CENTER
+                includeFontPadding = false
                 background =
                     GradientDrawable().apply {
                         setColor(feedGreen)
@@ -347,43 +379,38 @@ class SearchNativeAdFactory(
                     }
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                maxWidth = dp(96)
-                setPadding(dp(12), dp(6), dp(12), dp(6))
-                visibility = if (callToActionText == null) View.INVISIBLE else View.VISIBLE
+                visibility = if (callToActionText == null) View.GONE else View.VISIBLE
             }
 
-        row.addView(icon, LinearLayout.LayoutParams(dp(56), dp(56)))
+        row.addView(icon, LinearLayout.LayoutParams(iconSize, iconSize))
         row.addView(
             textColumn,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginStart = dp(12)
-                marginEnd = dp(12)
+                marginStart = dp(10)
+                marginEnd = dp(8)
             },
         )
-        row.addView(
-            callToAction,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                dp(32),
-            ),
-        )
+        row.addView(callToAction, LinearLayout.LayoutParams(dp(76), dp(28)))
         adView.addView(
             row,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                rowHeight,
-                Gravity.CENTER_VERTICAL,
+                FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
 
         val adChoices = AdChoicesView(context)
+        val adChoicesSize = dp(20)
         adView.addView(
             adChoices,
             FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
+                adChoicesSize,
+                adChoicesSize,
                 Gravity.TOP or Gravity.END,
-            ),
+            ).apply {
+                topMargin = dp(2)
+                marginEnd = dp(2)
+            },
         )
 
         adView.headlineView = headline
@@ -392,8 +419,28 @@ class SearchNativeAdFactory(
         if (advertiserText != null) adView.advertiserView = advertiser
         if (callToActionText != null) adView.callToActionView = callToAction
         safeSetNativeAd(adView, nativeAd)
+        lockExact(icon, iconSize, iconSize)
+        lockExact(headline, LinearLayout.LayoutParams.MATCH_PARENT, dp(18))
+        if (advertiserText != null) {
+            val params = advertiser.layoutParams
+            if (params is LinearLayout.LayoutParams) {
+                params.width = 0
+                params.height = dp(16)
+                params.weight = 1f
+                advertiser.layoutParams = params
+            }
+        }
+        lockExact(callToAction, dp(76), dp(28))
+        lockExact(adChoices, adChoicesSize, adChoicesSize)
         return adView
     }
+}
+
+private fun lockExact(view: View, width: Int, height: Int) {
+    val params = view.layoutParams ?: return
+    params.width = width
+    params.height = height
+    view.layoutParams = params
 }
 
 private fun safeSetNativeAd(adView: NativeAdView, nativeAd: NativeAd) {

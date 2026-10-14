@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/features/ads/feed_native_ads.dart';
 
@@ -74,6 +75,49 @@ void main() {
         premiumActive: false,
       ),
       isFalse,
+    );
+  });
+
+  test('search native ads are omitted on Android 10 and older', () {
+    expect(
+      searchNativeAdAllowed(
+        platform: TargetPlatform.android,
+        androidSdk: 29,
+        androidSdkResolved: true,
+      ),
+      isFalse,
+    );
+    expect(
+      searchNativeAdAllowed(
+        platform: TargetPlatform.android,
+        androidSdk: 21,
+        androidSdkResolved: true,
+      ),
+      isFalse,
+    );
+    expect(
+      searchNativeAdAllowed(
+        platform: TargetPlatform.android,
+        androidSdk: null,
+        androidSdkResolved: false,
+      ),
+      isFalse,
+    );
+    expect(
+      searchNativeAdAllowed(
+        platform: TargetPlatform.android,
+        androidSdk: 30,
+        androidSdkResolved: true,
+      ),
+      isTrue,
+    );
+    expect(
+      searchNativeAdAllowed(
+        platform: TargetPlatform.iOS,
+        androidSdk: null,
+        androidSdkResolved: false,
+      ),
+      isTrue,
     );
   });
 }

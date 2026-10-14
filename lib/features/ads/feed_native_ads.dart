@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-// Search uses hybrid composition. AdWidget's surface view crashes on Android 10.
+// Search on Android 11+ uses hybrid composition.
 // ignore: implementation_imports
 import 'package:google_mobile_ads/src/ad_instance_manager.dart';
 import 'package:pelevo/core/catalog_preview.dart';
@@ -28,6 +29,12 @@ abstract final class FeedNativeAds {
   static const homeHeight = 300.0;
   // Reserved before the ad loads. Kept inside the 72–80dp search row.
   static const searchHeight = 76.0;
+
+  /// Android 11. Search must not call AdMob on Android 10 (API 29) or older.
+  static const searchMinAndroidSdk = 30;
+
+  /// Last SDK read. Search loading stays off until this is known.
+  static int? androidSdkInt;
 
   static const _androidTestUnit = 'ca-app-pub-3940256099942544/2247696110';
   static const _iosTestUnit = 'ca-app-pub-3940256099942544/3986624511';
@@ -51,6 +58,29 @@ abstract final class FeedNativeAds {
     return _platformUnit(android, ios);
   }
 
+  /// Android SDK, or null when this is not Android or the read fails.
+  static Future<int?> readAndroidSdk() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      return (await DeviceInfoPlugin().androidInfo).version.sdkInt;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// False on Android 10 and older. Call this before any search ad request.
+  static Future<bool> searchRequestAllowed() async {
+    if (kIsWeb || !supported) return false;
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    final sdk = androidSdkInt ?? await readAndroidSdk();
+    androidSdkInt = sdk;
+    return searchNativeAdAllowed(
+      platform: TargetPlatform.android,
+      androidSdk: sdk,
+      androidSdkResolved: true,
+    );
+  }
+
   static String? _platformUnit(String android, String ios) {
     if (defaultTargetPlatform == TargetPlatform.android) {
       if (kReleaseMode) return android.isEmpty ? null : android;
@@ -64,8 +94,29 @@ abstract final class FeedNativeAds {
   }
 }
 
-/// True only for a confirmed Free-tier listener on a platform that can load
-/// this placement. Premium subscribers, preview fixtures, and unresolved
+/// Cached Android SDK. Search ads stay off until this resolves, and stay off
+/// on Android 10 and older.
+final androidSdkIntProvider = FutureProvider<int?>((ref) async {
+  final sdk = await FeedNativeAds.readAndroidSdk();
+  FeedNativeAds.androidSdkInt = sdk;
+  return sdk;
+});
+
+/// Search ads are omitted on Android 10 (API 29) and older. Other platforms
+/// that can show a native ad are unchanged. An unresolved Android SDK stays
+/// hidden so the platform view is never created.
+bool searchNativeAdAllowed({
+  required TargetPlatform platform,
+  required int? androidSdk,
+  required bool androidSdkResolved,
+}) {
+  if (platform != TargetPlatform.android) return true;
+  if (!androidSdkResolved || androidSdk == null) return false;
+  return androidSdk >= FeedNativeAds.searchMinAndroidSdk;
+}
+
+/// True only for a confirmed free listener or creator on a platform that can
+/// load this placement. Pelevo Plus, preview fixtures, and unresolved
 /// entitlement never reserve space.
 bool feedNativeAdVisible({
   required bool catalogPreview,
@@ -152,12 +203,21 @@ class _FreeTierNativeAd extends ConsumerWidget {
     }
 
     final account = ref.watch(premiumAccountProvider);
+    final androidSdk = ref.watch(androidSdkIntProvider);
+    if (placement == _NativePlacement.search &&
+        !searchNativeAdAllowed(
+          platform: defaultTargetPlatform,
+          androidSdk: androidSdk.asData?.value,
+          androidSdkResolved: androidSdk.hasValue,
+        )) {
+      return const SizedBox.shrink();
+    }
     final visible = feedNativeAdVisible(
       catalogPreview: preview,
       platformSupported: FeedNativeAds.supported,
       hasAdUnit: true,
       entitlementReady: account.hasValue,
-      premiumActive: account.asData?.value.entitlement?.active == true,
+      premiumActive: pelevoPlusRemovesAds(account.asData?.value),
     );
     if (!visible) return const SizedBox.shrink();
 
@@ -218,6 +278,15 @@ class _PlatformNativeAdState extends State<_PlatformNativeAd> {
   }
 
   Future<void> _load() async {
+    if (widget.factoryId == FeedNativeAds.searchFactoryId) {
+      final allowed = await FeedNativeAds.searchRequestAllowed();
+      if (!allowed || !mounted || _closed) {
+        _ad = null;
+        _failed = true;
+        if (mounted && !_closed) setState(() {});
+        return;
+      }
+    }
     final ready = await ReelAds.initialize();
     if (!mounted || _closed) return;
     if (!ready) {

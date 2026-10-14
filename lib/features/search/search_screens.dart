@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -120,8 +121,28 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   bool _followBusy = false;
   bool _filtersOpen = false;
   final Map<String, bool> _followOverrides = {};
+  SearchPage? _previewPage;
+  String _previewQuery = '';
 
   bool get _preview => ref.read(catalogPreviewProvider);
+
+  /// Android 10 and older never mount a search ad, so no ad object is retained.
+  bool get _searchNativeAdsEnabled {
+    final sdk = ref.watch(androidSdkIntProvider);
+    return searchNativeAdAllowed(
+      platform: defaultTargetPlatform,
+      androidSdk: sdk.asData?.value,
+      androidSdkResolved: sdk.hasValue,
+    );
+  }
+
+  List<Widget> _withSearchAd(List<Widget> tiles, String slotKey) {
+    if (!_searchNativeAdsEnabled) return tiles;
+    return insertAtSearchAdSlot(
+      tiles,
+      SearchFeedNativeAd(key: ValueKey(slotKey)),
+    );
+  }
 
   @override
   void initState() {
@@ -149,11 +170,13 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
     final ui = ref.watch(searchUiProvider);
     if (ui.listening) return _SearchView.voice;
     if (_filtersOpen) return _SearchView.filters;
-    if (ui.submittedQuery.trim().length >= _minQueryLength) {
+    final typed = _query.text.trim();
+    final submitted = ui.submittedQuery.trim();
+    if (submitted.length >= _minQueryLength && typed == submitted) {
       if (ui.chip == 3) return _SearchView.people;
       return _SearchView.results;
     }
-    if (_query.text.trim().isNotEmpty) return _SearchView.typing;
+    if (typed.isNotEmpty) return _SearchView.typing;
     if (_focused) return _SearchView.recent;
     return _SearchView.landing;
   }
@@ -167,17 +190,30 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
       if (voice.length < _minQueryLength) return null;
       return SearchRequest(voice);
     }
+    if (shown == _SearchView.people) return null;
     if (shown == _SearchView.results ||
-        shown == _SearchView.people ||
         shown == _SearchView.playlists ||
         shown == _SearchView.empty ||
         shown == _SearchView.filters) {
       if (submitted.length < _minQueryLength) return null;
-      return SearchRequest(submitted);
+      final type = switch (shown) {
+        _SearchView.playlists => 'playlist',
+        _ => switch (ui.chip) {
+          1 => 'show',
+          2 => 'episode',
+          _ => null,
+        },
+      };
+      return SearchRequest(submitted, type: type);
     }
     if (shown == _SearchView.typing &&
         _debounced.trim().length >= _minQueryLength) {
-      return SearchRequest(_debounced.trim(), preview: true);
+      return SearchRequest(
+        _debounced.trim(),
+        preview: true,
+        type: 'show',
+        limit: 8,
+      );
     }
     return null;
   }
@@ -187,12 +223,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 280), () {
       if (!mounted) return;
-      final trimmed = value.trim();
-      setState(() => _debounced = trimmed);
-      if (_preview) return;
-      if (trimmed.length >= _minQueryLength) {
-        ref.read(searchUiProvider.notifier).submit(trimmed);
-      }
+      setState(() => _debounced = value.trim());
     });
     if (_preview && widget.view == _SearchView.landing) {
       context.go('/screen/search-typing');
@@ -202,8 +233,10 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   void _submit([String? value]) {
     final query = (value ?? _query.text).trim();
     if (query.length < _minQueryLength) return;
+    _debounce?.cancel();
     _query.text = query;
     _query.selection = TextSelection.collapsed(offset: query.length);
+    setState(() => _debounced = query);
     ref.read(searchUiProvider.notifier).submit(query);
     if (_preview) {
       context.go('/screen/search-results');
@@ -244,6 +277,16 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
 
   bool _isFollowing(SearchShow show) =>
       _followOverrides[show.id] ?? show.following;
+
+  SearchPage? _usablePreview(String typed) {
+    final held = _previewPage;
+    if (held == null || held.shows.isEmpty) return null;
+    final previous = _previewQuery.trim().toLowerCase();
+    final next = typed.trim().toLowerCase();
+    if (previous.isEmpty || next.isEmpty) return null;
+    if (next.startsWith(previous) || previous.startsWith(next)) return held;
+    return null;
+  }
 
   Future<void> _clearRecent() async {
     try {
@@ -319,6 +362,8 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                             setState(() {
                               _query.clear();
                               _debounced = '';
+                              _previewPage = null;
+                              _previewQuery = '';
                             });
                             ref
                                 .read(searchUiProvider.notifier)
@@ -440,27 +485,26 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                 ),
               );
             }
-            return Column(
-              children: insertAtSearchAdSlot([
-                for (final item in value.podcasts)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: _SearchArtwork(
-                      label: item.title,
-                      color: PelevoColors.red,
-                      artworkUrl: item.artworkUrl,
-                    ),
-                    title: Text(item.title),
-                    subtitle: Text(
-                      item.subtitle ?? item.showTitle ?? 'Podcast',
-                    ),
-                    trailing: const Icon(Icons.play_circle_fill_rounded),
-                    onTap: () {
-                      openCatalogHomeItem(context, item);
-                      context.push('/screen/podcast-details');
-                    },
+            final trending = [
+              for (final item in value.podcasts)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: _SearchArtwork(
+                    label: item.title,
+                    color: PelevoColors.red,
+                    artworkUrl: item.artworkUrl,
                   ),
-              ], const SearchFeedNativeAd(key: ValueKey('trending-native-ad'))),
+                  title: Text(item.title),
+                  subtitle: Text(item.subtitle ?? item.showTitle ?? 'Podcast'),
+                  trailing: const Icon(Icons.play_circle_fill_rounded),
+                  onTap: () {
+                    openCatalogHomeItem(context, item);
+                    context.push('/screen/podcast-details');
+                  },
+                ),
+            ];
+            return Column(
+              children: _withSearchAd(trending, 'trending-native-ad'),
             );
           },
         ),
@@ -492,13 +536,31 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
         else
           page.when(
             skipLoadingOnReload: true,
-            loading:
-                () => const Padding(
+            loading: () {
+              final held = _usablePreview(typed);
+              if (held == null || held.shows.isEmpty) {
+                return const Padding(
                   padding: EdgeInsets.symmetric(vertical: PelevoSpacing.md),
                   child: Center(child: CircularProgressIndicator()),
-                ),
+                );
+              }
+              return Column(
+                children: [
+                  const LinearProgressIndicator(minHeight: 2),
+                  for (final show in held.shows) _showTile(context, show),
+                ],
+              );
+            },
             error: (error, _) {
               if (searchFailure(error).code == 'CANCELLED') {
+                final held = _usablePreview(typed);
+                if (held != null && held.shows.isNotEmpty) {
+                  return Column(
+                    children: [
+                      for (final show in held.shows) _showTile(context, show),
+                    ],
+                  );
+                }
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: PelevoSpacing.md),
                   child: Center(child: CircularProgressIndicator()),
@@ -512,6 +574,8 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               });
             },
             data: (value) {
+              _previewPage = value;
+              _previewQuery = _debounced.trim();
               if (value.shows.isEmpty) {
                 return const Text(
                   'No matching podcasts yet.',
@@ -698,9 +762,6 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                     onTap: () => _openSearchPlaylist(context, playlist),
                   ),
               ];
-              final ad = const SearchFeedNativeAd(
-                key: ValueKey('search-results-native-ad'),
-              );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -714,7 +775,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                       ),
                     )
                   else
-                    ...insertAtSearchAdSlot(podcastTiles, ad),
+                    ..._withSearchAd(podcastTiles, 'search-results-native-ad'),
                   const SizedBox(height: PelevoSpacing.lg),
                   const PelevoSectionHeader(title: 'Episodes'),
                   if (episodeTiles.isEmpty)
@@ -725,7 +786,10 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                   else
                     ...(podcastTiles.isNotEmpty
                         ? episodeTiles
-                        : insertAtSearchAdSlot(episodeTiles, ad)),
+                        : _withSearchAd(
+                          episodeTiles,
+                          'search-results-native-ad',
+                        )),
                   const SizedBox(height: PelevoSpacing.lg),
                   const PelevoSectionHeader(title: 'Playlists'),
                   if (playlistTiles.isEmpty)
@@ -735,7 +799,10 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                     )
                   else
                     ...(podcastTiles.isEmpty && episodeTiles.isEmpty
-                        ? insertAtSearchAdSlot(playlistTiles, ad)
+                        ? _withSearchAd(
+                          playlistTiles,
+                          'search-results-native-ad',
+                        )
                         : playlistTiles),
                 ],
               );

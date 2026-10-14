@@ -60,6 +60,13 @@ void main() {
     expect(preview.shows.single.title, 'Owned Show');
     expect(seen.queryParameters['preview'], 1);
 
+    final showsOnly = await repository.search(
+      const SearchRequest('Owned', type: 'show'),
+    );
+    expect(showsOnly.shows.single.title, 'Owned Show');
+    expect(seen.queryParameters['type'], 'show');
+    expect(seen.queryParameters['preview'], isNull);
+
     final empty = await repository.search(const SearchRequest('unknown topic'));
     expect(empty.isEmpty, isTrue);
 

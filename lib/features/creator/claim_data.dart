@@ -317,7 +317,11 @@ class ClaimRepository {
   Future<List<ClaimShow>> searchShows(String query) async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/search',
-      queryParameters: {'q': query.trim(), 'limit': 12},
+      queryParameters: {
+        'q': query.trim(),
+        'limit': 12,
+        'type': 'show',
+      },
     );
     final data = requireApiData(response.data);
     final shows = data['shows'];

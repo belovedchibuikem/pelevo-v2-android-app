@@ -143,32 +143,25 @@ class _PremiumScreen extends ConsumerStatefulWidget {
 class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   int _nav = 4;
   int _plan = 0;
-  int _payment = 1;
   int _billingTab = 0;
   int _exclusiveTab = 0;
-  int _restoreProvider = 0;
   bool _terms = true;
   bool _obscurePassword = true;
   bool _busy = false;
   bool _filledProfile = false;
   bool _trialOfferApplied = false;
-  PremiumCheckout? _checkout;
 
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _restoreReference = TextEditingController();
 
   bool get _preview => ref.read(catalogPreviewProvider);
-
-  static const _providers = ['paystack', 'flutterwave'];
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
     _password.dispose();
-    _restoreReference.dispose();
     super.dispose();
   }
 
@@ -232,6 +225,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     setState(() => _busy = true);
     try {
       await action();
+    } on PremiumStoreException catch (error) {
+      if (!context.mounted) return;
+      context.showPelevoMessage(error.message);
     } catch (error) {
       if (!context.mounted) return;
       context.showPelevoMessage(catalogFailure(error).message);
@@ -689,13 +685,6 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
 
   Widget _paymentMethod(BuildContext context) {
     final plan = _selectedPlan;
-    final labels = const [
-      'Card',
-      'Paystack',
-      'Flutterwave',
-      'MTN MoMo',
-      'Airtel Money',
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -707,43 +696,16 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           ],
         ),
         const SizedBox(height: PelevoSpacing.md),
-        for (var i = 0; i < 5; i++)
-          RadioListTile<int>(
-            contentPadding: EdgeInsets.zero,
-            value: i,
-            groupValue: _payment,
-            activeColor: PelevoColors.yellow,
-            secondary: SizedBox(
-              width: 36,
-              height: 36,
-              child: Icon(
-                const [
-                  Icons.credit_card_rounded,
-                  Icons.account_balance_wallet_outlined,
-                  Icons.payments_outlined,
-                  Icons.phone_android_rounded,
-                  Icons.savings_outlined,
-                ][i],
-                color:
-                    i == _payment
-                        ? PelevoColors.yellow
-                        : PelevoColors.textMuted,
-              ),
-            ),
-            title: Text(labels[i]),
-            subtitle: Text(
-              i == 1 || i == 2
-                  ? 'Pay securely with ${labels[i]}'
-                  : 'Not offered by checkout',
-            ),
-            onChanged: (value) => setState(() => _payment = value!),
-          ),
+        Text(
+          'Pelevo Plus is purchased through $_storeBillingName. Payment stays with that store account.',
+          style: const TextStyle(color: PelevoColors.textMuted),
+        ),
         const Divider(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Total', style: TextStyle(fontWeight: FontWeight.w700)),
-            Text(plan?.priceLabel ?? 'Select a plan'),
+            Text(plan == null ? 'Select a plan' : _localizedPlanPrice(plan)),
           ],
         ),
         const SizedBox(height: PelevoSpacing.xl),
@@ -765,7 +727,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     final account = ref.watch(premiumAccountProvider).asData?.value;
     final invoices =
         ref.watch(premiumInvoicesProvider).asData?.value ?? const [];
-    final active = _preview || account?.entitlement?.active == true;
+    final active = _preview || pelevoPlusRemovesAds(account);
     final plan = _selectedPlan;
     String? receiptUrl;
     for (final item in invoices) {
@@ -797,8 +759,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         Text(
           active
               ? 'Your subscription is active and you now have access to all premium features.'
-              : (_checkout?.checkoutUrl ??
-                  'Complete provider checkout, then restore or wait for the webhook.'),
+              : 'The $_storeName purchase is saved. Pelevo Plus unlocks when that receipt is confirmed.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: PelevoColors.textMuted),
         ),
@@ -810,7 +771,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             child: Column(
               children: [
                 _SummaryRow('Plan', plan?.name ?? 'Not selected'),
-                _SummaryRow('Amount', plan?.priceLabel ?? '—'),
+                _SummaryRow(
+                  'Amount',
+                  plan == null ? '—' : _localizedPlanPrice(plan),
+                ),
                 _SummaryRow(
                   'Next Billing Date',
                   account?.subscription?.currentPeriodEnd ?? 'Not reported',
@@ -933,7 +897,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             title: Text(planName ?? 'Pelevo Plus'),
             subtitle: Text(
               [
-                if (me.subscription != null) me.subscription!.provider,
+                if (me.subscription != null)
+                  _subscriptionProviderLabel(me.subscription!.provider),
                 if (me.subscription?.currentPeriodEnd != null)
                   me.subscription!.currentPeriodEnd,
               ].join('\n'),
@@ -1013,10 +978,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           ),
         ],
         const SizedBox(height: PelevoSpacing.lg),
-        const Text(
-          'Plan changes start a provider checkout and do not grant entitlement.',
+        Text(
+          'Plan changes are completed in $_storeBillingName. Pelevo Plus updates after the store confirms the new plan.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: const TextStyle(color: PelevoColors.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -1036,21 +1001,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                       context.showPelevoMessage('Select a Premium plan first.');
                       return;
                     }
-                    _run(() async {
-                      final checkout = await ref
-                          .read(premiumRepositoryProvider)
-                          .changePlan(
-                            planId: plan.id,
-                            provider: 'paystack',
-                            idempotencyKey:
-                                'premium-change-${DateTime.now().toUtc().microsecondsSinceEpoch}',
-                          );
-                      if (!context.mounted) return;
-                      context.showPelevoMessage(
-                        checkout.checkoutUrl ??
-                            'Checkout is pending. The plan is not changed yet.',
-                      );
-                    });
+                    _purchasePlus(plan);
                   },
         ),
       ],
@@ -1121,6 +1072,20 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     );
   }
 
+  String get _storeName =>
+      PremiumStore.instance.storeProvider == 'apple' ? 'App Store' : 'Google Play';
+
+  String get _storeBillingName =>
+      PremiumStore.instance.storeProvider == 'apple'
+          ? 'the App Store'
+          : 'Google Play';
+
+  String _subscriptionProviderLabel(String provider) => switch (provider) {
+    'google' => 'Google Play',
+    'apple' => 'App Store',
+    _ => provider,
+  };
+
   Widget _restore(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -1133,27 +1098,14 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
-        'Restore your previous Pelevo Plus subscription across all your devices.',
+      Text(
+        'Pelevo Plus is billed through $_storeBillingName. Restore looks up that subscription on this device and applies it to your Pelevo account.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      for (var i = 0; i < _providers.length; i++)
-        RadioListTile<int>(
-          contentPadding: EdgeInsets.zero,
-          value: i,
-          groupValue: _restoreProvider,
-          title: Text(_providers[i]),
-          onChanged: (value) => setState(() => _restoreProvider = value!),
-        ),
-      TextField(
-        controller: _restoreReference,
-        decoration: const InputDecoration(labelText: 'Payment reference'),
+        style: const TextStyle(color: PelevoColors.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: 'Restore Purchase',
+        label: _busy ? 'Checking the store…' : 'Restore Purchase',
         color: PelevoColors.yellow,
         foregroundColor: Colors.black,
         onPressed:
@@ -1164,27 +1116,46 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                     context.go('/screen/premium-subscription');
                     return;
                   }
-                  final reference = _restoreReference.text.trim();
-                  if (reference.isEmpty) {
-                    context.showPelevoMessage('Enter the payment reference.');
-                    return;
-                  }
-                  _run(() async {
-                    await ref
-                        .read(premiumRepositoryProvider)
-                        .restore(
-                          provider: _providers[_restoreProvider],
-                          reference: reference,
-                        );
-                    ref.invalidate(premiumAccountProvider);
-                    ref.invalidate(premiumInvoicesProvider);
-                    if (!context.mounted) return;
-                    context.go('/screen/premium-subscription');
-                  });
+                  _run(_restoreFromStore);
                 },
       ),
     ],
   );
+
+  Future<void> _restoreFromStore() async {
+    final purchases = await PremiumStore.instance.restore();
+    if (!mounted) return;
+    if (purchases.isEmpty) {
+      context.showPelevoMessage(
+        'No Pelevo Plus subscription was found for this $_storeName account.',
+      );
+      return;
+    }
+    final plans = await ref.read(premiumPlansProvider.future);
+    var confirmed = 0;
+    for (final purchase in purchases) {
+      final plan = planForPlusProduct(plans, purchase.productId);
+      if (plan == null) continue;
+      await ref
+          .read(premiumRepositoryProvider)
+          .confirmStorePurchase(
+            store: PremiumStore.instance.storeProvider,
+            receipt: purchase.reference,
+            planId: plan.id,
+          );
+      confirmed++;
+    }
+    ref.invalidate(premiumAccountProvider);
+    ref.invalidate(premiumInvoicesProvider);
+    if (!mounted) return;
+    if (confirmed == 0) {
+      context.showPelevoMessage(
+        'The store purchase could not be matched to a Pelevo Plus plan.',
+      );
+      return;
+    }
+    context.go('/screen/premium-subscription');
+  }
 
   Widget _exclusive(BuildContext context) {
     final async = ref.watch(premiumExclusiveProvider);

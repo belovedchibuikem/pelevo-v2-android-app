@@ -197,9 +197,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     return item is PublishedReel ? item.id : null;
   }
 
-  bool get _proListening =>
-      ref.read(premiumAccountProvider).asData?.value.entitlement?.active ==
-      true;
+  bool get _proListening => pelevoPlusRemovesAds(
+    ref.read(premiumAccountProvider).asData?.value,
+  );
 
   List<Object> _feedItems(ReelsFeedKind tab, List<PublishedReel> reels) {
     if (_proListening) return reels;

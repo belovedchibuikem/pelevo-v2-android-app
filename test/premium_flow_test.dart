@@ -111,6 +111,24 @@ void main() {
     throw StateError('${request.method} ${request.path}');
   });
 
+  testWidgets('restore uses the store and does not list unused gateways', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-restore',
+      adapter: _adapter(),
+    );
+    expect(find.text('paystack'), findsNothing);
+    expect(find.text('flutterwave'), findsNothing);
+    expect(find.text('Payment reference'), findsNothing);
+    expect(
+      find.textContaining('Pelevo Plus is billed through Google Play.'),
+      findsOneWidget,
+    );
+    expect(find.text('Restore Purchase'), findsWidgets);
+  });
+
   testWidgets('plans bind the server name instead of invented naira copy', (
     tester,
   ) async {

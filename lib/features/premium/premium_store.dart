@@ -30,6 +30,10 @@ class PremiumStore {
   final Map<String, List<ProductDetails>> _catalog = {};
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   Completer<PremiumPurchaseResult>? _pending;
+  Completer<List<PremiumPurchaseResult>>? _restorePending;
+  final List<PremiumPurchaseResult> _restoreBuffer = [];
+  Timer? _restoreSettle;
+  DateTime? _restoreStarted;
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
@@ -153,7 +157,96 @@ class PremiumStore {
     return _pending!.future;
   }
 
-  Future<void> restore() => _iap.restorePurchases();
+  /// Restores Pelevo Plus from Google Play or the App Store, the same billing
+  /// path used to subscribe. Returns each restored Plus receipt.
+  Future<List<PremiumPurchaseResult>> restore() async {
+    if (!_isMobileStore) {
+      throw PremiumStoreException(
+        'Pelevo Plus is restored through Google Play or the App Store.',
+      );
+    }
+    if (_restorePending != null && !_restorePending!.isCompleted) {
+      throw PremiumStoreException('A Plus restore is already in progress.');
+    }
+    await prepare(const []);
+    if (!await _iap.isAvailable()) {
+      throw PremiumStoreException(
+        'The store is unavailable. Sign in to Google Play or the App Store and try again.',
+      );
+    }
+    _restoreBuffer.clear();
+    _restoreStarted = DateTime.now();
+    final pending = Completer<List<PremiumPurchaseResult>>();
+    _restorePending = pending;
+    try {
+      await _iap.restorePurchases();
+    } catch (_) {
+      _failRestore(
+        'The store could not restore purchases. Please try again.',
+      );
+      return pending.future;
+    }
+    _scheduleRestoreSettle();
+    return pending.future;
+  }
+
+  void _scheduleRestoreSettle() {
+    _restoreSettle?.cancel();
+    final started = _restoreStarted ?? DateTime.now();
+    final remaining =
+        const Duration(seconds: 12) - DateTime.now().difference(started);
+    if (remaining <= Duration.zero) {
+      _finishRestore();
+      return;
+    }
+    const quiet = Duration(milliseconds: 1200);
+    _restoreSettle = Timer(
+      quiet < remaining ? quiet : remaining,
+      _finishRestore,
+    );
+  }
+
+  void _finishRestore() {
+    _restoreSettle?.cancel();
+    _restoreSettle = null;
+    final pending = _restorePending;
+    _restorePending = null;
+    _restoreStarted = null;
+    final results = List<PremiumPurchaseResult>.unmodifiable(_restoreBuffer);
+    _restoreBuffer.clear();
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(results);
+    }
+  }
+
+  void _failRestore(String message) {
+    _restoreSettle?.cancel();
+    _restoreSettle = null;
+    final pending = _restorePending;
+    _restorePending = null;
+    _restoreStarted = null;
+    _restoreBuffer.clear();
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(PremiumStoreException(message));
+    }
+  }
+
+  void _collectRestored(PurchaseDetails purchase, String reference) {
+    if (_restorePending == null || reference.isEmpty) return;
+    final already = _restoreBuffer.any(
+      (item) =>
+          item.productId == purchase.productID && item.reference == reference,
+    );
+    if (!already) {
+      _restoreBuffer.add(
+        PremiumPurchaseResult(
+          productId: purchase.productID,
+          reference: reference,
+        ),
+      );
+    }
+    _scheduleRestoreSettle();
+  }
 
   void _onPurchases(List<PurchaseDetails> purchases) {
     for (final purchase in purchases) {
@@ -180,6 +273,7 @@ class PremiumStore {
       if (purchase.pendingCompletePurchase) {
         unawaited(_iap.completePurchase(purchase));
       }
+      _collectRestored(purchase, reference);
       final pending = _pending;
       _pending = null;
       if (pending != null && !pending.isCompleted && reference.isNotEmpty) {
@@ -200,6 +294,28 @@ class PremiumStore {
       pending.completeError(PremiumStoreException(message));
     }
   }
+}
+
+/// Matches a restored Play / App Store product to the Plus plan that uses
+/// that billing period. A priced plan is preferred over the introductory trial
+/// when both share the same store product.
+PremiumPlan? planForPlusProduct(Iterable<PremiumPlan> plans, String productId) {
+  final yearly = switch (productId) {
+    PremiumStore.yearlyProductId => true,
+    PremiumStore.monthlyProductId => false,
+    _ => null,
+  };
+  if (yearly == null) return null;
+  PremiumPlan? trial;
+  for (final plan in plans) {
+    if (plusIntervalIsYearly(plan.interval) != yearly) continue;
+    if (plan.isThreeMonthTrial) {
+      trial ??= plan;
+      continue;
+    }
+    return plan;
+  }
+  return trial;
 }
 
 class PremiumStoreException implements Exception {

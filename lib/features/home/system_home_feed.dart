@@ -38,10 +38,9 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
+    ref.invalidate(homeLatestShortsProvider);
     final saved = ref.read(homeRepositoryProvider).cachedAt();
-    final age = saved == null
-        ? null
-        : DateTime.now().toUtc().difference(saved);
+    final age = saved == null ? null : DateTime.now().toUtc().difference(saved);
     if (age != null && age <= HomeRepository.freshFor) return;
     ref.invalidate(homeFeedProvider);
     ref.invalidate(homeRailProvider);
@@ -92,7 +91,9 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
         onRefresh: () async {
           ref.invalidate(homeFeedProvider);
           ref.invalidate(homeRailProvider);
+          ref.invalidate(homeLatestShortsProvider);
           await ref.read(homeFeedProvider.future);
+          await ref.read(homeLatestShortsProvider.future);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -170,12 +171,10 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
                   if (byKey['explore_by_topic'] case final rail?
                       when rail.items.isNotEmpty)
                     _ExploreByTopicSection(rail: rail),
-                  if (byKey['trending_shorts'] case final rail?
-                      when rail.items.isNotEmpty)
-                    _ShortsSection(rail: rail),
-                  if (byKey['shorts_for_you'] case final rail?
-                      when rail.items.isNotEmpty)
-                    _ShortsSection(rail: rail),
+                  _LatestShortsSection(
+                    fallback:
+                        byKey['shorts_for_you'] ?? byKey['trending_shorts'],
+                  ),
                   if (byKey['browse_categories'] case final rail?)
                     _BrowseCategoriesSection(rail: rail),
                   const SizedBox(height: PelevoSpacing.xl),
@@ -1600,6 +1599,39 @@ class _ExploreByTopicSection extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _LatestShortsSection extends ConsumerWidget {
+  const _LatestShortsSection({required this.fallback});
+
+  final HomeRail? fallback;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latest = ref.watch(homeLatestShortsProvider);
+    return latest.when(
+      data: (shorts) {
+        if (shorts.isEmpty) return _fallbackRail();
+        return _ShortsSection(
+          rail: HomeRail(
+            id: 'home.latest_shorts',
+            key: 'latest_shorts',
+            type: 'shorts',
+            title: 'Latest Shorts',
+            items: [for (final reel in shorts) homeItemFromReel(reel)],
+          ),
+        );
+      },
+      loading: _fallbackRail,
+      error: (_, _) => _fallbackRail(),
+    );
+  }
+
+  Widget _fallbackRail() {
+    final rail = fallback;
+    if (rail == null || rail.items.isEmpty) return const SizedBox.shrink();
+    return _ShortsSection(rail: rail);
   }
 }
 

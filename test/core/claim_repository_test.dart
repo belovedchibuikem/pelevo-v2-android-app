@@ -43,6 +43,7 @@ void main() {
     final shows = await repository.searchShows('Owned');
     expect(shows.single.title, 'Owned Show');
     expect(seen.queryParameters['q'], 'Owned');
+    expect(seen.queryParameters['type'], 'show');
 
     final email = await repository.startClaim(
       showId: 'show-1',

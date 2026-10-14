@@ -281,21 +281,30 @@ class SearchRequest {
     this.query, {
     this.preview = false,
     this.category,
+    this.type,
+    this.limit = 20,
   });
 
   final String query;
   final bool preview;
   final String? category;
 
+  /// `show`, `episode`, `playlist`, or `person` when the server should search
+  /// one collection. Null searches the full catalog.
+  final String? type;
+  final int limit;
+
   @override
   bool operator ==(Object other) =>
       other is SearchRequest &&
       other.query == query &&
       other.preview == preview &&
-      other.category == category;
+      other.category == category &&
+      other.type == type &&
+      other.limit == limit;
 
   @override
-  int get hashCode => Object.hash(query, preview, category);
+  int get hashCode => Object.hash(query, preview, category, type, limit);
 }
 
 class SearchUiState {
@@ -377,8 +386,10 @@ class SearchRepository {
         '/search',
         queryParameters: {
           'q': request.query.trim(),
-          'limit': 20,
+          'limit': request.limit,
           if (request.preview) 'preview': 1,
+          if (request.type != null && request.type!.trim().isNotEmpty)
+            'type': request.type!.trim(),
           if (request.category != null && request.category!.trim().isNotEmpty)
             'category': request.category!.trim(),
         },
@@ -516,8 +527,12 @@ final searchRecentProvider = FutureProvider.autoDispose<List<RecentSearch>>((
 final searchPageProvider = FutureProvider.autoDispose
     .family<SearchPage, SearchRequest>((ref, request) async {
       ref.watch(authSessionProvider.select((session) => session.userId));
+      final token = CancelToken();
+      ref.onDispose(token.cancel);
       try {
-        return await ref.watch(searchRepositoryProvider).search(request);
+        return await ref
+            .watch(searchRepositoryProvider)
+            .search(request, cancelToken: token);
       } on DioException catch (error) {
         if (error.type == DioExceptionType.cancel ||
             CancelToken.isCancel(error)) {
