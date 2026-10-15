@@ -208,10 +208,11 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
     }
     if (shown == _SearchView.typing &&
         _debounced.trim().length >= _minQueryLength) {
+      final chip = ref.read(searchUiProvider).chip;
       return SearchRequest(
         _debounced.trim(),
         preview: true,
-        type: 'show',
+        type: chip == 2 ? 'episode' : 'show',
         limit: 8,
       );
     }
@@ -221,7 +222,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   void _onQueryChanged(String value) {
     setState(() {});
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 280), () {
+    _debounce = Timer(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       setState(() => _debounced = value.trim());
     });
@@ -280,7 +281,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
 
   SearchPage? _usablePreview(String typed) {
     final held = _previewPage;
-    if (held == null || held.shows.isEmpty) return null;
+    if (held == null || (held.shows.isEmpty && held.episodes.isEmpty)) {
+      return null;
+    }
     final previous = _previewQuery.trim().toLowerCase();
     final next = typed.trim().toLowerCase();
     if (previous.isEmpty || next.isEmpty) return null;
@@ -517,11 +520,15 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
 
   Widget _suggestions(BuildContext context, AsyncValue<SearchPage>? page) {
     final typed = _query.text.trim();
+    final episodesOnly = ref.watch(searchUiProvider).chip == 2;
     final ready = typed.length >= _minQueryLength;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Podcasts', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          episodesOnly ? 'Episodes' : 'Podcasts',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: PelevoSpacing.sm),
         if (!ready)
           const Text(
@@ -538,7 +545,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             skipLoadingOnReload: true,
             loading: () {
               final held = _usablePreview(typed);
-              if (held == null || held.shows.isEmpty) {
+              final heldItems =
+                  episodesOnly ? held?.episodes ?? const [] : held?.shows ?? const [];
+              if (held == null || heldItems.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: PelevoSpacing.md),
                   child: Center(child: CircularProgressIndicator()),
@@ -547,7 +556,15 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               return Column(
                 children: [
                   const LinearProgressIndicator(minHeight: 2),
-                  for (final show in held.shows) _showTile(context, show),
+                  if (episodesOnly)
+                    for (final episode in held.episodes)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(episode.title),
+                        subtitle: Text(episode.subtitle),
+                      )
+                  else
+                    for (final show in held.shows) _showTile(context, show),
                 ],
               );
             },
@@ -576,6 +593,37 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             data: (value) {
               _previewPage = value;
               _previewQuery = _debounced.trim();
+              final episodesOnly = ref.watch(searchUiProvider).chip == 2;
+              if (episodesOnly) {
+                if (value.episodes.isEmpty) {
+                  return const Text(
+                    'No matching episodes yet.',
+                    style: TextStyle(color: PelevoColors.textMuted),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final episode in value.episodes)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: _SearchArtwork(
+                          label: episode.title,
+                          color: PelevoColors.blue,
+                          artworkUrl: episode.artworkUrl,
+                        ),
+                        title: Text(episode.title),
+                        subtitle: Text(episode.subtitle),
+                        onTap: () {
+                          openCatalogEpisodeDetails(
+                            context,
+                            episodeId: episode.id,
+                            showId: episode.showId,
+                          );
+                        },
+                      ),
+                  ],
+                );
+              }
               if (value.shows.isEmpty) {
                 return const Text(
                   'No matching podcasts yet.',

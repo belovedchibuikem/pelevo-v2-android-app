@@ -935,6 +935,12 @@ class CatalogHarness extends StatelessWidget {
           if (request.path == '/home/recommendations') {
             return jsonResponse(aiRecommendationsFixture());
           }
+          if (request.path == '/ai/ask' && request.method == 'POST') {
+            return jsonResponse(aiAskFixture());
+          }
+          if (request.path == '/ai/lineup') {
+            return jsonResponse(aiLineupFixture());
+          }
           if (request.path == '/ai/jobs' && request.method == 'POST') {
             final data =
                 request.data is Map

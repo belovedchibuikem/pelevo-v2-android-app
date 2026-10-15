@@ -376,11 +376,21 @@ class SearchRepository {
   const SearchRepository(this._dio);
 
   final Dio _dio;
+  static final Map<String, ({DateTime at, SearchPage page})> _episodeCache = {};
 
   Future<SearchPage> search(
     SearchRequest request, {
     CancelToken? cancelToken,
   }) async {
+    final cacheKey =
+        request.type == 'episode'
+            ? '${request.query.trim().toLowerCase()}|${request.preview}|${request.limit}|${request.category ?? ''}'
+            : null;
+    final cached = cacheKey == null ? null : _episodeCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.at) < const Duration(minutes: 2)) {
+      return cached.page;
+    }
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/search',
@@ -399,7 +409,14 @@ class SearchRepository {
         ),
         cancelToken: cancelToken,
       );
-      return SearchPage.fromApi(requireApiData(response.data));
+      final page = SearchPage.fromApi(requireApiData(response.data));
+      if (cacheKey != null) {
+        _episodeCache[cacheKey] = (at: DateTime.now(), page: page);
+        if (_episodeCache.length > 40) {
+          _episodeCache.remove(_episodeCache.keys.first);
+        }
+      }
+      return page;
     } on ApiFailure {
       rethrow;
     } on DioException catch (error) {

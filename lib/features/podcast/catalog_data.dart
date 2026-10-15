@@ -582,6 +582,9 @@ String formatCatalogClock(int seconds) {
 
 class CatalogRepository {
   CatalogRepository(this._dio);
+
+  final Map<String, ({DateTime at, CatalogEpisodesPage page})> _episodeSearchCache =
+      {};
   final Dio _dio;
 
   Future<CatalogShow> show(String id, CancelToken token) async {
@@ -610,6 +613,15 @@ class CatalogRepository {
   }) async {
     try {
       final query = q?.trim();
+      final cacheKey =
+          (cursor == null || cursor.isEmpty) && query != null && query.isNotEmpty
+              ? '$showId|${query.toLowerCase()}|$limit'
+              : null;
+      final cached = cacheKey == null ? null : _episodeSearchCache[cacheKey];
+      if (cached != null &&
+          DateTime.now().difference(cached.at) < const Duration(seconds: 90)) {
+        return cached.page;
+      }
       final body =
           (await _dio.get<Map<String, dynamic>>(
             '/shows/${Uri.encodeComponent(showId)}/episodes',
@@ -636,12 +648,19 @@ class CatalogRepository {
       if (items.map((item) => item.id).toSet().length != items.length) {
         throw _invalidCatalog;
       }
-      return CatalogEpisodesPage(
+      final page = CatalogEpisodesPage(
         items: items,
         cursor: meta['has_more'] == true ? next as String : null,
         hasMore: meta['has_more'] == true,
         episodesSyncing: meta['episodes_syncing'] == true,
       );
+      if (cacheKey != null) {
+        _episodeSearchCache[cacheKey] = (at: DateTime.now(), page: page);
+        if (_episodeSearchCache.length > 30) {
+          _episodeSearchCache.remove(_episodeSearchCache.keys.first);
+        }
+      }
+      return page;
     } on ApiFailure {
       rethrow;
     } on DioException catch (error) {

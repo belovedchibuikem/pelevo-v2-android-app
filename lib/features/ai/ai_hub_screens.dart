@@ -21,6 +21,7 @@ enum _AiView {
   highlightsResult,
   askIntro,
   askAnswer,
+  lineup,
   settings,
 }
 
@@ -80,6 +81,12 @@ const _aiInventory = <({String id, String title, String state, _AiView view})>[
     title: 'Ask AI',
     state: 'AI answer',
     view: _AiView.askAnswer,
+  ),
+  (
+    id: 'ai-lineup',
+    title: 'Your Podcast Lineup',
+    state: 'Weekly guide',
+    view: _AiView.lineup,
   ),
   (
     id: 'ai-settings',
@@ -206,6 +213,7 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
       _AiView.highlightsResult => _highlightsResult(context),
       _AiView.askIntro => _askIntro(context),
       _AiView.askAnswer => _askAnswer(context),
+      _AiView.lineup => _lineup(context),
       _AiView.settings => _settings(context),
     },
   );
@@ -242,6 +250,23 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         ),
       ),
       const SizedBox(height: PelevoSpacing.xl),
+      Text('Discover with AI', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: PelevoSpacing.sm),
+      _toolTile(
+        Icons.chat_bubble_outline_rounded,
+        PelevoColors.blue,
+        'Ask Pelevo',
+        'Describe what you want to hear',
+        () => context.go('/screen/ai-ask'),
+      ),
+      _toolTile(
+        Icons.queue_music_rounded,
+        _gold,
+        'Your Podcast Lineup',
+        'A weekly guide that explains each pick',
+        () => context.go('/screen/ai-lineup'),
+      ),
+      const SizedBox(height: PelevoSpacing.lg),
       Text('Popular Tools', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: PelevoSpacing.sm),
       _toolTile(
@@ -468,10 +493,20 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         const SizedBox(height: PelevoSpacing.lg),
         Text('Topics Covered', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
-          'Topics are not returned as tags.',
-          style: TextStyle(color: PelevoColors.textMuted),
-        ),
+        if (jobAsync?.asData?.value.topics.isNotEmpty == true)
+          Wrap(
+            spacing: PelevoSpacing.xs,
+            runSpacing: PelevoSpacing.xs,
+            children: [
+              for (final topic in jobAsync!.requireValue.topics)
+                Chip(label: Text(topic), visualDensity: VisualDensity.compact),
+            ],
+          )
+        else
+          const Text(
+            'Topics are not returned as tags.',
+            style: TextStyle(color: PelevoColors.textMuted),
+          ),
         const SizedBox(height: PelevoSpacing.lg),
         PelevoButton(
           label: 'Ask AI about this',
@@ -609,29 +644,46 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
       PelevoButton(
         label: 'Find Highlights',
         color: PelevoColors.green,
-        onPressed: () {
-          ref.read(selectedAiJobIdProvider.notifier).select(null);
-          ref.read(aiNoticeProvider.notifier).set(
-            'Highlights are not offered as an AI job type.',
-          );
-          context.go('/screen/ai-history');
-        },
+        onPressed: _busy
+            ? null
+            : () => _startJob(
+                context,
+                type: 'highlights',
+                resultRoute: '/screen/ai-history',
+              ),
       ),
     ],
   );
 
-  Widget _highlightsResult(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _episodeHeader(context),
-      const SizedBox(height: PelevoSpacing.md),
-      Text(
-        ref.watch(aiNoticeProvider) ??
-            'Highlights are not offered as an AI job type.',
-        style: const TextStyle(color: PelevoColors.textMuted),
-      ),
-    ],
-  );
+  Widget _highlightsResult(BuildContext context) {
+    final notice = ref.watch(aiNoticeProvider);
+    final jobId = ref.watch(selectedAiJobIdProvider);
+    final jobAsync = jobId == null || jobId.isEmpty ? null : ref.watch(aiJobProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _episodeHeader(context),
+        const SizedBox(height: PelevoSpacing.md),
+        if (notice != null) Text(notice),
+        if (jobAsync == null && notice == null)
+          const Text(
+            'Find highlights from the selected episode.',
+            style: TextStyle(color: PelevoColors.textMuted),
+          )
+        else if (jobAsync != null && jobAsync.isLoading)
+          const CatalogStatusBody()
+        else if (jobAsync != null && jobAsync.hasError)
+          CatalogStatusBody(
+            error: jobAsync.error,
+            retry: () => ref.invalidate(aiJobProvider),
+          )
+        else if (jobAsync != null)
+          _jobBody(jobAsync.requireValue)
+        else
+          const SizedBox.shrink(),
+      ],
+    );
+  }
 
   Widget _askIntro(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,14 +698,14 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
       ),
       const SizedBox(height: PelevoSpacing.lg),
       Center(
-        child: Text(
-          'Ask AI',
+        child:         Text(
+          'Ask Pelevo',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
       ),
       const SizedBox(height: PelevoSpacing.sm),
       const Text(
-        'Ask anything about this episode and get a clear, grounded answer.',
+        'Describe what you want to hear. Pelevo recommends shows from your interests, listening history, and the context of your request.',
         textAlign: TextAlign.center,
         style: TextStyle(color: PelevoColors.textMuted),
       ),
@@ -665,9 +717,9 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
       const SizedBox(height: PelevoSpacing.sm),
       for (final q in const [
         'Summarize this episode',
-        'What are the key takeaways?',
-        'What habits did they recommend?',
-        'Who is this episode best for?',
+        'Something thoughtful about growth',
+        'A short show I can finish today',
+        'Niche stories I would not search for by name',
       ])
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -698,73 +750,129 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
     ],
   );
 
-  Widget _askAnswer(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Align(
-        alignment: Alignment.centerRight,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: PelevoSpacing.md),
-          padding: const EdgeInsets.all(PelevoSpacing.md),
-          decoration: BoxDecoration(
-            color: PelevoColors.greenDark,
-            borderRadius: BorderRadius.circular(PelevoRadii.large),
+  Widget _askAnswer(BuildContext context) {
+    final question = ref.watch(selectedAiQuestionProvider);
+    final async = ref.watch(aiAskProvider(question));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: PelevoSpacing.md),
+            padding: const EdgeInsets.all(PelevoSpacing.md),
+            decoration: BoxDecoration(
+              color: PelevoColors.greenDark,
+              borderRadius: BorderRadius.circular(PelevoRadii.large),
+            ),
+            child: Text(question),
           ),
-          child: Text(ref.watch(selectedAiQuestionProvider)),
         ),
+        async.when(
+          loading: () => const CatalogStatusBody(),
+          error:
+              (error, _) => CatalogStatusBody(
+                error: error,
+                retry: () => ref.invalidate(aiAskProvider(question)),
+              ),
+          data: (conversation) => _pickResults(
+            context,
+            reply: conversation.reply,
+            items: conversation.items,
+          ),
+        ),
+        const SizedBox(height: PelevoSpacing.lg),
+        PelevoButton(
+          label: 'Ask another question',
+          color: PelevoColors.green,
+          onPressed: () => context.go('/screen/ai-ask'),
+        ),
+      ],
+    );
+  }
+
+  Widget _lineup(BuildContext context) {
+    final async = ref.watch(aiLineupProvider);
+    return async.when(
+      loading: () => const CatalogStatusBody(),
+      error:
+          (error, _) => CatalogStatusBody(
+            error: error,
+            retry: () => ref.invalidate(aiLineupProvider),
+          ),
+      data: (lineup) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            lineup.weekLabel,
+            style: const TextStyle(
+              color: _gold,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: PelevoSpacing.sm),
+          Text(lineup.intro, style: const TextStyle(color: PelevoColors.textMuted)),
+          const SizedBox(height: PelevoSpacing.lg),
+          if (lineup.items.isEmpty)
+            const Text(
+              'Your lineup will appear after you listen to a few shows.',
+              style: TextStyle(color: PelevoColors.textMuted),
+            )
+          else
+            for (final item in lineup.items) _pickTile(context, item),
+        ],
       ),
+    );
+  }
+
+  Widget _pickResults(
+    BuildContext context, {
+    required String reply,
+    required List<AiPick> items,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
       Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(PelevoSpacing.md),
         decoration: BoxDecoration(
           color: PelevoColors.surface,
           borderRadius: BorderRadius.circular(PelevoRadii.large),
         ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ask AI is not offered as a job type.',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'This screen keeps your question. The API only queues summary, chapters, and transcript jobs.',
-            ),
-          ],
-        ),
+        child: Text(reply),
       ),
       const SizedBox(height: PelevoSpacing.md),
-      Row(
-        children: [
-          IconButton(
-            tooltip: 'Helpful',
-            onPressed:
-                () => context.showPelevoMessage('Thanks for the feedback'),
-            icon: const Icon(Icons.thumb_up_alt_outlined),
-          ),
-          IconButton(
-            tooltip: 'Not helpful',
-            onPressed:
-                () => context.showPelevoMessage('We’ll improve this answer'),
-            icon: const Icon(Icons.thumb_down_alt_outlined),
-          ),
-          IconButton(
-            tooltip: 'Regenerate',
-            onPressed:
-                () => context.showPelevoMessage(
-                  'Ask AI cannot regenerate a server answer.',
-                ),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      PelevoButton(
-        label: 'Ask another question',
-        color: PelevoColors.green,
-        onPressed: () => context.go('/screen/ai-ask'),
-      ),
+      if (items.isEmpty)
+        const Text(
+          'No matching shows yet. Try describing a topic or mood.',
+          style: TextStyle(color: PelevoColors.textMuted),
+        )
+      else
+        for (final item in items) _pickTile(context, item),
     ],
+  );
+
+  Widget _pickTile(BuildContext context, AiPick item) => Card(
+    color: PelevoColors.surface,
+    margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
+    child: ListTile(
+      leading: CatalogArtwork(
+        url: item.artworkUrl,
+        width: 52,
+        height: 52,
+        assetPath: 'assets/ai/rec_deep.png',
+      ),
+      title: Text(item.title),
+      subtitle: Text(item.reason ?? item.showTitle ?? ''),
+      isThreeLine: item.reason != null && item.reason!.isNotEmpty,
+      onTap: () {
+        final showId = item.showId;
+        if (showId != null && showId.isNotEmpty) {
+          openCatalogShow(context, showId);
+          context.go('/screen/podcast-details');
+        }
+      },
+    ),
   );
 
   Widget _settings(BuildContext context) => Column(
@@ -824,9 +932,8 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
                   (dialogContext) => AlertDialog(
                     title: const Text('How Pelevo AI works'),
                     content: const Text(
-                      'When AI tools are enabled, Pelevo queues summary, chapters, '
-                      'or transcript jobs. Results return as text after the job completes. '
-                      'Ask and highlights are not job types. The feature can be disabled by a server flag.',
+                      'Ask Pelevo and Your Podcast Lineup recommend shows from your listening history and what you describe. '
+                      'Summary and chapters still queue a job when that tool is enabled on the server.',
                     ),
                     actions: [
                       TextButton(
@@ -886,22 +993,40 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
   }
 
   Widget _jobBody(AiJob job, {bool takeaways = false}) {
+    if (job.state == 'failed' || job.state == 'safety_review') {
+      return Text(
+        job.outputText ?? 'This ${job.type} could not be generated.',
+        style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+      );
+    }
     if (job.queued) {
       return Text(
         'This ${job.type} job is ${job.state}.',
         style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
       );
     }
+    if (takeaways) {
+      if (job.takeaways.isEmpty) {
+        return const Text(
+          'Key takeaways are not returned as a list.',
+          style: TextStyle(color: PelevoColors.textMuted, height: 1.45),
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in job.takeaways)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text('• $item', style: const TextStyle(height: 1.45)),
+            ),
+        ],
+      );
+    }
     if (!job.completed || job.outputText == null || job.outputText!.isEmpty) {
       return Text(
         'No ${job.type} text is available yet.',
         style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
-      );
-    }
-    if (takeaways) {
-      return const Text(
-        'Key takeaways are not returned as a list.',
-        style: TextStyle(color: PelevoColors.textMuted, height: 1.45),
       );
     }
     return Text(
@@ -957,7 +1082,15 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
     try {
       final job = await ref.read(aiRepositoryProvider).createJob(
         type: type,
-        input: {'episode_id': episodeId},
+        input: {
+          'episode_id': episodeId,
+          if (type == 'summary')
+            'length': const ['short', 'medium', 'detailed'][_summaryLength],
+          if (type == 'chapters')
+            'style': const ['detailed', 'balanced', 'brief'][_chapterStyle],
+          if (type == 'highlights')
+            'focus': const ['insights', 'quotes', 'tips', 'all'][_highlightType],
+        },
       );
       ref.read(aiNoticeProvider.notifier).set(null);
       ref.read(selectedAiJobIdProvider.notifier).select(job.id);

@@ -1674,12 +1674,17 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
   }
 
   Future<void> _authorize(CatalogEpisode episode) async {
-    setState(() {
-      _busy = true;
-      _downloadProgress = 0;
-    });
+    setState(() => _busy = true);
     try {
-      await ensureWifiAllowsDownload(ref);
+      await ensureWifiAllowsDownload(
+        ref,
+        confirmCellular: () async {
+          if (!context.mounted) return false;
+          return confirmDownloadOnMobileData(context);
+        },
+      );
+      if (!mounted) return;
+      setState(() => _downloadProgress = 0);
       final url = await ref
           .read(catalogRepositoryProvider)
           .authorizeDownload(episode.id);
@@ -1698,6 +1703,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
         _alreadyDownloaded = true;
         _downloadProgress = null;
       });
+      refreshAuthorizedDownloads(ref);
       context.showPelevoMessage(
         'Saved offline (${((record.bytes ?? 0) / (1024 * 1024)).toStringAsFixed(1)} MB · $_quality).',
       );

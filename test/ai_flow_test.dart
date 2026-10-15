@@ -148,6 +148,9 @@ void main() {
         if (request.path == '/episodes/$catalogEpisodeId') {
           return jsonResponse(catalogEpisodeFixture(detailed: true));
         }
+        if (request.path == '/ai/ask' && request.method == 'POST') {
+          return jsonResponse(aiAskFixture());
+        }
         throw StateError('${request.method} ${request.path}');
       }),
     );
@@ -155,6 +158,10 @@ void main() {
     await tester.tap(find.text('Summarize this episode'));
     await tester.pumpAndSettle();
     expect(find.text('Ask another question'), findsOneWidget);
-    expect(find.text('Ask AI is not offered as a job type.'), findsOneWidget);
+    expect(
+      find.textContaining('These picks use that request and your history.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ask AI is not offered as a job type.'), findsNothing);
   });
 }

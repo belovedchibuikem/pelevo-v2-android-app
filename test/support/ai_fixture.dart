@@ -18,6 +18,39 @@ Map<String, dynamic> aiRecommendationsFixture({
   ],
 };
 
+Map<String, dynamic> aiAskFixture({
+  String reply =
+      'You asked for a show that fits your listening. These picks use that request and your history.',
+}) => {
+  'reply': reply,
+  'items': [
+    {
+      'id': catalogShowId,
+      'type': 'show',
+      'title': 'The Honest Bunch',
+      'show_id': catalogShowId,
+      'show_title': 'The Honest Bunch',
+      'reason': 'Worth listening to because it matches what you asked for.',
+    },
+  ],
+};
+
+Map<String, dynamic> aiLineupFixture() => {
+  'title': 'Your Podcast Lineup',
+  'week_label': 'Week of 13 October',
+  'intro':
+      'A personalised weekly audio guide. Each show includes why it is worth your time.',
+  'items': [
+    {
+      'id': catalogShowId,
+      'type': 'show',
+      'title': 'The Honest Bunch',
+      'show_id': catalogShowId,
+      'reason': 'Worth listening to because it sits close to your recent plays.',
+    },
+  ],
+};
+
 Map<String, dynamic> aiJobFixture({
   String id = aiJobId,
   String type = 'summary',

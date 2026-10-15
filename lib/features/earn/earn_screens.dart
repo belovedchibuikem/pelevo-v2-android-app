@@ -674,7 +674,7 @@ class _EarnAllScreenState extends ConsumerState<EarnAllScreen> {
 
   void _onSearchChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
+    _debounce = Timer(const Duration(milliseconds: 400), () {
       EarnBrowseFilter.query = value.trim();
       setState(() => _page = 1);
       unawaited(_load());

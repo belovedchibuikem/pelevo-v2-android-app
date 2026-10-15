@@ -1136,13 +1136,6 @@ class _CreatorDashboardScreenState extends ConsumerState<CreatorDashboardScreen>
           ),
           Expanded(
             child: _QuickCreatorButton(
-              icon: Icons.mic_none_rounded,
-              label: 'New Episode',
-              onTap: () => context.push('/screen/creator-new-episode'),
-            ),
-          ),
-          Expanded(
-            child: _QuickCreatorButton(
               icon: Icons.analytics_outlined,
               label: 'Analytics',
               onTap: () => context.push('/screen/creator-audience'),
@@ -1153,7 +1146,8 @@ class _CreatorDashboardScreenState extends ConsumerState<CreatorDashboardScreen>
               icon: Icons.podcasts_rounded,
               label: 'Go Live',
               color: PelevoColors.red,
-              onTap: () => context.push('/screen/creator-go-live'),
+              badge: 'Soon',
+              onTap: () => context.showPelevoMessage('Go Live is coming soon.'),
             ),
           ),
         ],
@@ -1446,11 +1440,13 @@ class _QuickCreatorButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.color = PelevoColors.green,
+    this.badge,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final Color color;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -1462,6 +1458,24 @@ class _QuickCreatorButton extends StatelessWidget {
           Icon(icon, color: color),
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(fontSize: 10)),
+          if (badge != null) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: PelevoColors.yellow,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                badge!,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     ),

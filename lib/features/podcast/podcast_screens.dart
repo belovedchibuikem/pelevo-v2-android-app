@@ -162,7 +162,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
 
   void _onEpisodeSearchChanged(String value) {
     _episodeSearchDebounce?.cancel();
-    _episodeSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+    _episodeSearchDebounce = Timer(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       ref.read(catalogEpisodeQueryProvider.notifier).setQuery(value);
     });
@@ -620,6 +620,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                     : IconButton(
                       tooltip: 'Clear',
                       onPressed: () {
+                        _episodeSearchDebounce?.cancel();
                         _episodeSearch.clear();
                         ref.read(catalogEpisodeQueryProvider.notifier).clear();
                       },
@@ -695,6 +696,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
               else
                 TextButton(
                   onPressed: () {
+                    _episodeSearchDebounce?.cancel();
                     _episodeSearch.clear();
                     ref.read(catalogEpisodeQueryProvider.notifier).clear();
                   },

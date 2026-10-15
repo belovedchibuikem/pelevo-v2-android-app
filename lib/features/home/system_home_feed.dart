@@ -267,10 +267,20 @@ class _SystemHomeRailScreenState extends ConsumerState<SystemHomeRailScreen> {
     return HomeRailRequest(widget.railKey);
   }
 
+  HomeRail? _seededFromFeed() {
+    final feed = ref.watch(homeFeedProvider).asData?.value;
+    if (feed == null) return null;
+    for (final rail in feed.rails) {
+      if (rail.key == widget.railKey && rail.items.isNotEmpty) return rail;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final request = _request;
     final state = ref.watch(homeRailProvider(request));
+    final seeded = _seededFromFeed();
     final filters =
         widget.railKey == 'quick_listen'
             ? [for (final filter in _quickListenFilters) filter.label]
@@ -280,96 +290,119 @@ class _SystemHomeRailScreenState extends ConsumerState<SystemHomeRailScreen> {
     return PelevoPage(
       scrollable: false,
       appBar: AppBar(
-        title: Text(state.asData?.value.title ?? widget.fallbackTitle),
+        title: Text(
+          state.asData?.value.title ?? seeded?.title ?? widget.fallbackTitle,
+        ),
       ),
       bottomNavigationBar: PelevoBottomNavigation(
         index: 0,
         onDestinationSelected: context.openPelevoTab,
       ),
       child: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        skipLoadingOnReload: true,
+        loading:
+            () =>
+                seeded == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : _railContent(seeded, filters, refreshing: true),
         error:
-            (_, _) => _ErrorState(
-              onRetry: () => ref.invalidate(homeRailProvider(request)),
-            ),
-        data: (rail) {
-          if (rail.items.isEmpty && filters.isEmpty) {
-            return const Center(
-              child: Text(
-                'No items are available yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
-              ),
-            );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (filters.isNotEmpty)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (var index = 0; index < filters.length; index++)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            right: PelevoSpacing.xs,
-                          ),
-                          child: _FilterChip(
-                            label: filters[index],
-                            selected: _filter == index,
-                            onSelected: () => setState(() => _filter = index),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              Expanded(
-                child:
-                    rail.items.isEmpty
-                        ? const Center(
-                          child: Text(
-                            'No items match this filter yet.',
-                            style: TextStyle(color: PelevoColors.textMuted),
-                          ),
-                        )
-                        : ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: PelevoSpacing.md,
-                          ),
-                          itemCount: rail.items.length,
-                          separatorBuilder: (_, _) => const Divider(),
-                          itemBuilder: (context, index) {
-                            final item = rail.items[index];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: _Artwork(url: item.artworkUrl, size: 58),
-                              title: Text(item.title),
-                              subtitle: Text(
-                                item.showTitle ??
-                                    item.playCountLabel ??
-                                    item.subtitle ??
-                                    '',
-                              ),
-                              trailing:
-                                  item.type == 'episode'
-                                      ? IconButton(
-                                        tooltip: 'Play ${item.title}',
-                                        onPressed:
-                                            () => _playItem(context, item, ref),
-                                        icon: const Icon(
-                                          Icons.play_circle_outline_rounded,
-                                        ),
-                                      )
-                                      : const Icon(Icons.chevron_right_rounded),
-                              onTap: () => _openItem(context, item, ref),
-                            );
-                          },
-                        ),
-              ),
-            ],
-          );
-        },
+            (_, _) =>
+                seeded != null
+                    ? _railContent(seeded, filters)
+                    : _ErrorState(
+                      onRetry: () => ref.invalidate(homeRailProvider(request)),
+                    ),
+        data: (rail) => _railContent(rail, filters),
       ),
+    );
+  }
+
+  Widget _railContent(
+    HomeRail rail,
+    List<String> filters, {
+    bool refreshing = false,
+  }) {
+    if (rail.items.isEmpty && filters.isEmpty) {
+      return const Center(
+        child: Text(
+          'No items are available yet.',
+          style: TextStyle(color: PelevoColors.textMuted),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (refreshing) const LinearProgressIndicator(minHeight: 2),
+        if (rail.subtitle != null && rail.subtitle!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: PelevoSpacing.sm),
+            child: Text(
+              rail.subtitle!,
+              style: const TextStyle(color: PelevoColors.textMuted),
+            ),
+          ),
+        if (filters.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < filters.length; index++)
+                  Padding(
+                    padding: const EdgeInsets.only(right: PelevoSpacing.xs),
+                    child: _FilterChip(
+                      label: filters[index],
+                      selected: _filter == index,
+                      onSelected: () => setState(() => _filter = index),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        Expanded(
+          child:
+              rail.items.isEmpty
+                  ? const Center(
+                    child: Text(
+                      'No items match this filter yet.',
+                      style: TextStyle(color: PelevoColors.textMuted),
+                    ),
+                  )
+                  : ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: PelevoSpacing.md,
+                    ),
+                    itemCount: rail.items.length,
+                    separatorBuilder: (_, _) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final item = rail.items[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: _Artwork(url: item.artworkUrl, size: 58),
+                        title: Text(item.title),
+                        subtitle: Text(
+                          item.showTitle ??
+                              item.playCountLabel ??
+                              item.subtitle ??
+                              '',
+                        ),
+                        trailing:
+                            item.type == 'episode'
+                                ? IconButton(
+                                  tooltip: 'Play ${item.title}',
+                                  onPressed:
+                                      () => _playItem(context, item, ref),
+                                  icon: const Icon(
+                                    Icons.play_circle_outline_rounded,
+                                  ),
+                                )
+                                : const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _openItem(context, item, ref),
+                      );
+                    },
+                  ),
+        ),
+      ],
     );
   }
 }

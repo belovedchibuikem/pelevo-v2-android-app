@@ -21,6 +21,14 @@ String? _optionalText(Map<String, dynamic> data, String key) {
   return value as String?;
 }
 
+List<String> _stringList(Object? value) {
+  if (value is! List) return const [];
+  return [
+    for (final item in value)
+      if (item is String && item.trim().isNotEmpty) item.trim(),
+  ];
+}
+
 List<Map<String, dynamic>> _maps(Object? data) {
   if (data is! List || data.any((row) => row is! Map<String, dynamic>)) {
     throw _invalidAi;
@@ -34,13 +42,19 @@ class AiJob {
     required this.type,
     required this.state,
     this.outputText,
+    this.takeaways = const [],
+    this.topics = const [],
   });
 
-    factory AiJob.parse(Map<String, dynamic> data) {
+  factory AiJob.parse(Map<String, dynamic> data) {
     final output = data['output'];
     String? text;
+    var takeaways = const <String>[];
+    var topics = const <String>[];
     if (output is Map<String, dynamic>) {
       text = _optionalText(output, 'text');
+      takeaways = _stringList(output['takeaways']);
+      topics = _stringList(output['topics']);
     } else if (output != null) {
       throw _invalidAi;
     }
@@ -49,14 +63,74 @@ class AiJob {
       type: _text(data, 'type'),
       state: _text(data, 'state'),
       outputText: text,
+      takeaways: takeaways,
+      topics: topics,
     );
   }
 
   final String id, type, state;
   final String? outputText;
+  final List<String> takeaways;
+  final List<String> topics;
 
   bool get queued => state == 'queued' || state == 'processing';
   bool get completed => state == 'completed';
+}
+
+class AiPick {
+  const AiPick({
+    required this.id,
+    required this.title,
+    required this.type,
+    this.showId,
+    this.showTitle,
+    this.artworkUrl,
+    this.reason,
+  });
+
+  factory AiPick.parse(Map<String, dynamic> data) => AiPick(
+    id: _text(data, 'id'),
+    title: _text(data, 'title'),
+    type: _optionalText(data, 'type') ?? 'show',
+    showId: _optionalText(data, 'show_id'),
+    showTitle: _optionalText(data, 'show_title'),
+    artworkUrl: _optionalText(data, 'artwork_url'),
+    reason: _optionalText(data, 'reason'),
+  );
+
+  final String id, title, type;
+  final String? showId, showTitle, artworkUrl, reason;
+}
+
+class AiConversation {
+  const AiConversation({required this.reply, required this.items});
+
+  factory AiConversation.parse(Map<String, dynamic> data) => AiConversation(
+    reply: _text(data, 'reply'),
+    items: _maps(data['items']).map(AiPick.parse).toList(growable: false),
+  );
+
+  final String reply;
+  final List<AiPick> items;
+}
+
+class AiLineup {
+  const AiLineup({
+    required this.title,
+    required this.weekLabel,
+    required this.intro,
+    required this.items,
+  });
+
+  factory AiLineup.parse(Map<String, dynamic> data) => AiLineup(
+    title: _text(data, 'title'),
+    weekLabel: _text(data, 'week_label'),
+    intro: _text(data, 'intro'),
+    items: _maps(data['items']).map(AiPick.parse).toList(growable: false),
+  );
+
+  final String title, weekLabel, intro;
+  final List<AiPick> items;
 }
 
 class AiRecommendation {
@@ -92,6 +166,10 @@ class AiRepository {
           (await _dio.post<Map<String, dynamic>>(
             '/ai/jobs',
             data: {'type': type, 'input': input},
+            options: Options(
+              receiveTimeout: const Duration(seconds: 70),
+              sendTimeout: const Duration(seconds: 20),
+            ),
           )).data,
         ),
       );
@@ -109,6 +187,43 @@ class AiRepository {
           (await _dio.get<Map<String, dynamic>>(
             '/ai/jobs/${Uri.encodeComponent(id)}',
             cancelToken: token,
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<AiConversation> ask(String message, CancelToken token) async {
+    try {
+      return AiConversation.parse(
+        requireApiData(
+          (await _dio.post<Map<String, dynamic>>(
+            '/ai/ask',
+            data: {'message': message.trim()},
+            cancelToken: token,
+            options: Options(receiveTimeout: const Duration(seconds: 40)),
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<AiLineup> lineup(CancelToken token) async {
+    try {
+      return AiLineup.parse(
+        requireApiData(
+          (await _dio.get<Map<String, dynamic>>(
+            '/ai/lineup',
+            cancelToken: token,
+            options: Options(receiveTimeout: const Duration(seconds: 40)),
           )).data,
         ),
       );
@@ -165,6 +280,19 @@ final aiNoticeProvider =
 
 final aiRepositoryProvider = Provider((ref) => AiRepository(ref.watch(dioProvider)));
 
+final aiAskProvider = FutureProvider.autoDispose
+    .family<AiConversation, String>((ref, question) async {
+      final token = CancelToken();
+      ref.onDispose(token.cancel);
+      return ref.watch(aiRepositoryProvider).ask(question, token);
+    }, retry: (count, error) => null);
+
+final aiLineupProvider = FutureProvider.autoDispose<AiLineup>((ref) async {
+  final token = CancelToken();
+  ref.onDispose(token.cancel);
+  return ref.watch(aiRepositoryProvider).lineup(token);
+}, retry: (count, error) => null);
+
 final aiRecommendationsProvider = FutureProvider.autoDispose<List<AiRecommendation>>((
   ref,
 ) async {
@@ -183,5 +311,14 @@ final aiJobProvider = FutureProvider.autoDispose<AiJob>((ref) async {
   if (id == null || id.isEmpty) throw missingAiJob;
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
-  return ref.watch(aiRepositoryProvider).job(id, token);
+  final repository = ref.watch(aiRepositoryProvider);
+  var job = await repository.job(id, token);
+  var waits = 0;
+  while (job.queued && waits < 8 && !token.isCancelled) {
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (token.isCancelled) break;
+    job = await repository.job(id, token);
+    waits++;
+  }
+  return job;
 }, retry: (count, error) => null);
