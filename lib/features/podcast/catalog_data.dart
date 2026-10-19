@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/player/play_location.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 
 const _invalidCatalog = ApiFailure(
@@ -885,6 +886,7 @@ class CatalogRepository {
     required int version,
   }) async {
     try {
+      final location = await PlayLocation.instance.fields();
       return CatalogPlayback.parse(
         requireApiData(
           (await _dio.put<Map<String, dynamic>>(
@@ -893,6 +895,7 @@ class CatalogRepository {
               'position_seconds': positionSeconds,
               'completed': completed,
               'version': version,
+              if (location.isNotEmpty) 'location': location,
             },
           )).data,
         ),

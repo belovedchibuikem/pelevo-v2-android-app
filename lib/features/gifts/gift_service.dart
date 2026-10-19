@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:pelevo/features/store/fx_rates.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,28 +70,28 @@ class GiftWalletService extends ChangeNotifier {
 
   static const _balanceKey = 'pelevo_coin_balance';
   static const coinPacks = [
-    CoinPack(productId: 'pelevo_coins_500', coins: 500, fallbackPrice: '₦850'),
+    CoinPack(productId: 'pelevo_coins_500', coins: 500, fallbackPrice: r'$0.49'),
     CoinPack(
       productId: 'pelevo_coins_1200',
       coins: 1200,
-      fallbackPrice: '₦2,040',
+      fallbackPrice: r'$1.19',
       badge: 'Popular',
     ),
     CoinPack(
       productId: 'pelevo_coins_2500',
       coins: 2500,
-      fallbackPrice: '₦4,250',
+      fallbackPrice: r'$2.48',
       badge: 'Best value',
     ),
     CoinPack(
       productId: 'pelevo_coins_6500',
       coins: 6500,
-      fallbackPrice: '₦11,050',
+      fallbackPrice: r'$6.44',
     ),
     CoinPack(
       productId: 'pelevo_coins_15000',
       coins: 15000,
-      fallbackPrice: '₦25,500',
+      fallbackPrice: r'$14.85',
     ),
   ];
 
@@ -186,13 +187,18 @@ class GiftWalletService extends ChangeNotifier {
 
   String? storePrice(String productId) => _storeProducts[productId]?.price;
 
-  /// Store price when Play or the App Store has one, otherwise the seeded
-  /// price for the listener's country.
+  /// Store listing for this country when Play or the App Store has one.
+  /// Otherwise the USD shelf converted with the current FX book.
   String priceFor({
     required String productId,
     required int coins,
     required String countryCode,
-  }) => _storeProducts[productId]?.price ?? seededCoinPrice(coins, countryCode);
+    FxRateBook? rates,
+  }) {
+    final listed = _storeProducts[productId]?.price;
+    if (listed != null && listed.isNotEmpty) return listed;
+    return coinPriceLabel(coins: coins, countryCode: countryCode, rates: rates);
+  }
 
   Future<void> ensureProducts(Iterable<String> productIds) async {
     if (!_isMobileStore || !_storeAvailable) return;

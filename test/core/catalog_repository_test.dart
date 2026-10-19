@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/player/play_location.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import '../support/api_adapter.dart';
 import '../support/catalog_fixture.dart';
@@ -27,7 +28,11 @@ void main() {
         if (request.path == '/shows/$catalogShowId/episodes') {
           return jsonResponse(
             catalogEpisodesFixture(),
-            meta: {'cursor': null, 'has_more': false, 'episodes_syncing': false},
+            meta: {
+              'cursor': null,
+              'has_more': false,
+              'episodes_syncing': false,
+            },
           );
         }
         throw StateError('${request.method} ${request.path}');
@@ -116,7 +121,9 @@ void main() {
     expect(episode.audioUrl, contains('shift-life'));
     final chapters = await repository(dio).chapters(catalogEpisodeId, token);
     expect(chapters.first.title, 'Introduction');
-    final transcript = await repository(dio).transcript(catalogEpisodeId, token);
+    final transcript = await repository(
+      dio,
+    ).transcript(catalogEpisodeId, token);
     expect(transcript, contains('quietly rewrite'));
   });
 
@@ -292,4 +299,45 @@ void main() {
     await repo.review(catalogShowId, rating: 5, body: 'Clear and useful.');
     expect(seen.path, '/shows/$catalogShowId/reviews');
   });
+
+  test(
+    'savePlayback sends the listener location when it is available',
+    () async {
+      PlayLocation.instance.debugFix = const PlayFix(
+        latitude: 6.5244,
+        longitude: 3.3792,
+        accuracyMeters: 80,
+      );
+      addTearDown(PlayLocation.instance.reset);
+      late RequestOptions seen;
+      final dio = dioWith(
+        ApiAdapter((request) {
+          seen = request;
+          return jsonResponse({
+            'user_id': 'user-1',
+            'episode_id': 'ep-1',
+            'position_seconds': 12,
+            'completed': false,
+            'version': 2,
+          });
+        }),
+      );
+      final playback = await repository(dio).savePlayback(
+        'ep-1',
+        'user-1',
+        positionSeconds: 12,
+        completed: false,
+        version: 1,
+      );
+      expect(playback.positionSeconds, 12);
+      expect(seen.method, 'PUT');
+      expect(seen.path, '/playback/ep-1');
+      expect(seen.data['location'], {
+        'latitude': 6.524,
+        'longitude': 3.379,
+        'accuracy_m': 80,
+        'source': 'device',
+      });
+    },
+  );
 }

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/config/app_config.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
+import 'package:pelevo/features/admin/admin_fx_screen.dart';
 import 'package:pelevo/features/authentication/authentication_screens.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/creator/creator_audience_screens.dart';
@@ -207,6 +208,12 @@ final List<PelevoScreenSpec> entryFlowScreens = [
     section: 'Profile & Settings',
     title: 'Settings & Account',
     builder: _buildSettingsAccount,
+  ),
+  const PelevoScreenSpec(
+    id: 'admin-fx-rates',
+    section: 'Admin',
+    title: 'Exchange rates',
+    builder: _buildAdminFx,
   ),
   const PelevoScreenSpec(
     id: 'reels',
@@ -529,6 +536,7 @@ Widget _buildPlaylists(BuildContext context) => const PlaylistsScreen();
 Widget _buildProfile(BuildContext context) => const ProfileScreen();
 Widget _buildSettingsAccount(BuildContext context) =>
     const SettingsAccountScreen();
+Widget _buildAdminFx(BuildContext context) => const AdminFxScreen();
 Widget _buildReels(BuildContext context) => const ReelsScreen();
 Widget _buildSavedReels(BuildContext context) => const SavedReelsScreen();
 Widget _buildReelsCreate(BuildContext context) => const CreateReelHubScreen();

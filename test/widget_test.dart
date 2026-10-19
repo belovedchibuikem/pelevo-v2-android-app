@@ -14,11 +14,11 @@ void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('catalog contains every supplied design state', () {
     if (const bool.fromEnvironment('PELEVO_EXPORT_INVENTORY')) {
-      stdout.writeln('PELEVO_INVENTORY:${jsonEncode([
-        for (final screen in pelevoScreens) {
-          'id': screen.id, 'section': screen.section, 'title': screen.title,
-        },
-      ])}');
+      stdout.writeln(
+        'PELEVO_INVENTORY:${jsonEncode([
+          for (final screen in pelevoScreens) {'id': screen.id, 'section': screen.section, 'title': screen.title},
+        ])}',
+      );
     }
     expect(pelevoScreens, hasLength(343));
     expect(pelevoScreens.map((screen) => screen.id).toSet(), hasLength(343));
@@ -94,7 +94,10 @@ void main() {
   testWidgets(
     'authentication validates inputs and advances after API success',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const CatalogHarness());
+      await tester.pumpAndSettle();
       pelevoRouter.go('/screen/auth-create-account');
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -106,7 +109,7 @@ void main() {
         'listener@example.com',
       );
       await tester.enterText(
-        find.widgetWithText(TextField, 'Choose a username'),
+        find.widgetWithText(TextField, 'letters, numbers, _ or - (no @)'),
         'listener',
       );
       await tester.enterText(
@@ -117,14 +120,19 @@ void main() {
         find.widgetWithText(TextField, 'Confirm your password'),
         'Correct-Horse-9!',
       );
-      await tester.ensureVisible(find.byType(CheckboxListTile));
-      await tester.tap(find.byType(CheckboxListTile));
-      await tester.pump();
-      final createButton = find.text('Create Account').last;
-      await tester.ensureVisible(createButton);
-      await tester.tap(createButton);
+      FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
-      expect(find.text('Welcome to Pelevo'), findsOneWidget);
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+      final createButton = find.widgetWithText(FilledButton, 'Create Account');
+      expect(tester.widget<FilledButton>(createButton).onPressed, isNotNull);
+      tester.widget<FilledButton>(createButton).onPressed!.call();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.text('Verify your email'), findsOneWidget);
+      expect(find.textContaining('listener@example.com'), findsWidgets);
 
       pelevoRouter.go('/screen/auth-sign-in');
       await tester.pumpAndSettle();
@@ -454,31 +462,36 @@ void main() {
     expect(find.text('Share Comparison'), findsOneWidget);
   });
 
-  testWidgets('AI Hub links tools, summary, and ask flows', (tester) async {
+  testWidgets('AI Hub keeps Ask Pelevo, lineup, and recommender', (
+    tester,
+  ) async {
     await tester.pumpWidget(const CatalogHarness());
-    pelevoRouter.go('/screen/ai-hub');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 2300));
     await tester.pumpAndSettle();
-
-    expect(find.text('Popular Tools'), findsOneWidget);
-    await tester.ensureVisible(find.text('Smart Summary'));
-    await tester.tap(find.text('Smart Summary'));
+    pelevoRouter.go('/screen/ai-hub');
     await tester.pumpAndSettle();
-    expect(find.text('Generate Summary'), findsOneWidget);
 
-    await tester.tap(find.text('Generate Summary'));
+    expect(find.text('Ask Pelevo'), findsOneWidget);
+    expect(find.text('Your Podcast Lineup'), findsOneWidget);
+    expect(find.text('AI Podcast Recommender'), findsOneWidget);
+    expect(find.text('Smart Summary'), findsNothing);
+    expect(find.text('Chapters Generator'), findsNothing);
+    expect(find.text('Highlights Finder'), findsNothing);
+    expect(find.text('Ask AI'), findsNothing);
+
+    await tester.ensureVisible(find.text('AI Podcast Recommender'));
+    await tester.tap(find.text('AI Podcast Recommender'));
     await tester.pumpAndSettle();
-    expect(find.text('Topics Covered'), findsOneWidget);
+    expect(find.text('Generate Recommendations'), findsOneWidget);
 
     pelevoRouter.go('/screen/ai-hub');
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Ask AI'));
-    await tester.tap(find.text('Ask AI'));
+    await tester.tap(find.text('Ask Pelevo'));
     await tester.pumpAndSettle();
     expect(find.text('Suggested Questions'), findsOneWidget);
 
-    await tester.tap(find.text('Summarize this episode'));
+    await tester.tap(find.text('Something thoughtful about growth'));
     await tester.pumpAndSettle();
     expect(find.text('Ask another question'), findsOneWidget);
   });
@@ -504,7 +517,7 @@ void main() {
     await tester.ensureVisible(find.text('AI Hub'));
     await tester.tap(find.text('AI Hub'));
     await tester.pumpAndSettle();
-    expect(find.text('Popular Tools'), findsOneWidget);
+    expect(find.text('Ask Pelevo'), findsOneWidget);
   });
 
   testWidgets('Notifications links settings, details, and selection', (

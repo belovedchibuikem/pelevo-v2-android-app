@@ -1,0 +1,1 @@
+bool get fxAutoFetchEnabled => true;

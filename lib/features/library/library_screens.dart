@@ -22,9 +22,9 @@ enum _LibraryView {
   home,
   playlists,
   playlistDetails,
-    saved,
-    savedReels,
-    downloads,
+  saved,
+  savedReels,
+  downloads,
   shows,
   liked,
   recent,
@@ -281,25 +281,15 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               (v) => setState(() => _homeTab = v),
             ),
             const SizedBox(width: PelevoSpacing.xs),
-            _chipTab(
-              'Followed',
-              1,
-              _homeTab,
-              (v) {
-                setState(() => _homeTab = v);
-                ref.invalidate(libraryShowsProvider);
-              },
-            ),
+            _chipTab('Followed', 1, _homeTab, (v) {
+              setState(() => _homeTab = v);
+              ref.invalidate(libraryShowsProvider);
+            }),
             const SizedBox(width: PelevoSpacing.xs),
-            _chipTab(
-              'History',
-              2,
-              _homeTab,
-              (v) {
-                setState(() => _homeTab = v);
-                ref.invalidate(libraryRecentProvider);
-              },
-            ),
+            _chipTab('History', 2, _homeTab, (v) {
+              setState(() => _homeTab = v);
+              ref.invalidate(libraryRecentProvider);
+            }),
           ],
         ),
       ),
@@ -411,7 +401,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         Icons.auto_awesome,
         const Color(0xFF8B5CF6),
         () => context.pelevoOpen('/screen/ai-hub'),
-        subtitle: 'Summaries, recommendations, Ask AI',
+        subtitle: 'Ask Pelevo, lineup, and recommendations',
       ),
       _menuRow(
         'Your Stats',
@@ -587,7 +577,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           [playlist.countLabel, playlist.visibilityLabel].join(' · '),
           style: const TextStyle(color: PelevoColors.textMuted),
         ),
-        if (playlist.description != null && playlist.description!.isNotEmpty) ...[
+        if (playlist.description != null &&
+            playlist.description!.isNotEmpty) ...[
           const SizedBox(height: PelevoSpacing.xs),
           Text(
             playlist.description!,
@@ -900,11 +891,13 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     ids.insert(newIndex, moved);
     setState(() => _busy = true);
     try {
-      await ref.read(libraryRepositoryProvider).reorderPlaylistItems(
-        playlistId: playlist.id,
-        episodeIds: ids,
-        version: playlist.version,
-      );
+      await ref
+          .read(libraryRepositoryProvider)
+          .reorderPlaylistItems(
+            playlistId: playlist.id,
+            episodeIds: ids,
+            version: playlist.version,
+          );
       ref.invalidate(libraryPlaylistProvider);
       ref.invalidate(libraryPlaylistsProvider);
     } catch (error) {
@@ -923,11 +916,13 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   ) async {
     setState(() => _busy = true);
     try {
-      await ref.read(libraryRepositoryProvider).removePlaylistItem(
-        playlistId: playlist.id,
-        episodeId: item.id,
-        version: playlist.version,
-      );
+      await ref
+          .read(libraryRepositoryProvider)
+          .removePlaylistItem(
+            playlistId: playlist.id,
+            episodeId: item.id,
+            version: playlist.version,
+          );
       ref.invalidate(libraryPlaylistProvider);
       ref.invalidate(libraryPlaylistsProvider);
       ref.invalidate(libraryOverviewProvider);
@@ -956,9 +951,15 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     if (_savedFilter == 1) {
       final downloads = ref.watch(libraryDownloadsProvider).asData?.value ?? [];
       final ids = {for (final item in downloads) item.episodeId};
-      episodes = [for (final item in episodes) if (ids.contains(item.id)) item];
+      episodes = [
+        for (final item in episodes)
+          if (ids.contains(item.id)) item,
+      ];
     } else if (_savedFilter == 2) {
-      episodes = [for (final item in episodes) if (item.completed != true) item];
+      episodes = [
+        for (final item in episodes)
+          if (item.completed != true) item,
+      ];
     }
     return _episodeBrowser(
       context,
@@ -1064,9 +1065,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         retry: () => ref.invalidate(libraryDownloadsProvider),
       );
     }
-    final downloads = _downloadSource == 1
-        ? const <LibraryDownload>[]
-        : async.requireValue;
+    final downloads =
+        _downloadSource == 1 ? const <LibraryDownload>[] : async.requireValue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1120,9 +1120,13 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               title: Text(item.title),
               subtitle: Text(
                 [
-                  item.showTitle,
-                  if (item.authorizedUntil != null) 'Authorized until offline expiry',
-                ].whereType<String>().where((part) => part.isNotEmpty).join(' · '),
+                      item.showTitle,
+                      if (item.authorizedUntil != null)
+                        'Authorized until offline expiry',
+                    ]
+                    .whereType<String>()
+                    .where((part) => part.isNotEmpty)
+                    .join(' · '),
               ),
               trailing: const Icon(
                 Icons.check_circle_rounded,
@@ -1189,9 +1193,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       children: [
         Text(
           '${shows.length} followed',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: PelevoColors.textMuted,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: PelevoColors.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.sm),
         for (final item in shows)
@@ -1351,7 +1355,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               for (final item in collections)
                 InkWell(
                   onTap: () {
-                    ref.read(selectedCollectionIdProvider.notifier).select(item.id);
+                    ref
+                        .read(selectedCollectionIdProvider.notifier)
+                        .select(item.id);
                     context.pelevoOpen(
                       '/screen/library-11?id=${Uri.encodeComponent(item.id)}',
                     );
@@ -1446,13 +1452,18 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       );
     }
     final collection = async.requireValue;
-    final firstEpisode = collection.items.where((item) => item.type == 'episode');
+    final firstEpisode = collection.items.where(
+      (item) => item.type == 'episode',
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Center(
           child: CatalogArtwork(
-            url: collection.items.isEmpty ? null : collection.items.first.artworkUrl,
+            url:
+                collection.items.isEmpty
+                    ? null
+                    : collection.items.first.artworkUrl,
             width: 180,
             height: 180,
             radius: PelevoRadii.large,
@@ -1460,7 +1471,10 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           ),
         ),
         const SizedBox(height: PelevoSpacing.md),
-        Text(collection.name, style: Theme.of(context).textTheme.headlineMedium),
+        Text(
+          collection.name,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
         Text(
           collection.countLabel,
           style: const TextStyle(color: PelevoColors.textMuted),
@@ -1473,18 +1487,19 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                 label: 'Play All',
                 color: PelevoColors.green,
                 icon: Icons.play_arrow_rounded,
-                onPressed: firstEpisode.isEmpty
-                    ? () => context.showPelevoMessage(
-                      'This collection has no episodes yet.',
-                    )
-                    : () {
-                      final item = firstEpisode.first;
-                      playCatalogEpisode(
-                        context,
-                        episodeId: item.id,
-                        showId: item.showId,
-                      );
-                    },
+                onPressed:
+                    firstEpisode.isEmpty
+                        ? () => context.showPelevoMessage(
+                          'This collection has no episodes yet.',
+                        )
+                        : () {
+                          final item = firstEpisode.first;
+                          playCatalogEpisode(
+                            context,
+                            episodeId: item.id,
+                            showId: item.showId,
+                          );
+                        },
               ),
             ),
             IconButton(
@@ -1494,7 +1509,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
             ),
             IconButton(
               tooltip: 'Share',
-              onPressed: () => context.pelevoOpen('/screen/share-card-share-options'),
+              onPressed:
+                  () => context.pelevoOpen('/screen/share-card-share-options'),
               icon: const Icon(Icons.ios_share_rounded),
             ),
           ],
@@ -1519,18 +1535,19 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               subtitle: Text(item.subtitle ?? ''),
               trailing: IconButton(
                 tooltip: 'Play',
-                onPressed: item.type == 'episode'
-                    ? () {
-                      playCatalogEpisode(
-                        context,
-                        episodeId: item.id,
-                        showId: item.showId,
-                      );
-                    }
-                    : () {
-                      openCatalogShow(context, item.id);
-                      context.push('/screen/podcast-details');
-                    },
+                onPressed:
+                    item.type == 'episode'
+                        ? () {
+                          playCatalogEpisode(
+                            context,
+                            episodeId: item.id,
+                            showId: item.showId,
+                          );
+                        }
+                        : () {
+                          openCatalogShow(context, item.id);
+                          context.push('/screen/podcast-details');
+                        },
                 icon: const Icon(Icons.play_circle_fill_rounded),
               ),
               onTap: () {
@@ -1606,18 +1623,18 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           ),
           value: download.autoDownloadNew,
           activeColor: PelevoColors.green,
-          onChanged: _busy
-              ? null
-              : (value) => _saveAutoDownload(context, download, value),
+          onChanged:
+              _busy
+                  ? null
+                  : (value) => _saveAutoDownload(context, download, value),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Download on Wi-Fi Only'),
           value: download.wifiOnly,
           activeColor: PelevoColors.green,
-          onChanged: _busy
-              ? null
-              : (value) => _saveWifiOnly(context, download, value),
+          onChanged:
+              _busy ? null : (value) => _saveWifiOnly(context, download, value),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         Text('Storage', style: Theme.of(context).textTheme.titleLarge),
@@ -1636,7 +1653,10 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         Text('Permissions', style: Theme.of(context).textTheme.titleLarge),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.security_rounded, color: PelevoColors.green),
+          leading: const Icon(
+            Icons.security_rounded,
+            color: PelevoColors.green,
+          ),
           title: const Text('App Permissions'),
           subtitle: const Text('Notifications, mic, storage, and more'),
           trailing: const Icon(Icons.chevron_right_rounded),
@@ -1780,7 +1800,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     }
     setState(() => _busy = true);
     try {
-      final created = await ref.read(libraryRepositoryProvider).createCollection(name);
+      final created = await ref
+          .read(libraryRepositoryProvider)
+          .createCollection(name);
       ref.invalidate(libraryCollectionsProvider);
       ref.invalidate(libraryOverviewProvider);
       ref.read(selectedCollectionIdProvider.notifier).select(created.id);
@@ -1803,11 +1825,13 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     final next = order[(current.sortIndex + 1) % order.length];
     setState(() => _busy = true);
     try {
-      await ref.read(libraryRepositoryProvider).saveSettings(
-        hideCompleted: current.hideCompleted,
-        sort: next,
-        version: current.version,
-      );
+      await ref
+          .read(libraryRepositoryProvider)
+          .saveSettings(
+            hideCompleted: current.hideCompleted,
+            sort: next,
+            version: current.version,
+          );
       ref.invalidate(librarySettingsProvider);
     } catch (error) {
       if (context.mounted) {
@@ -1825,10 +1849,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   ) async {
     setState(() => _busy = true);
     try {
-      await ref.read(libraryRepositoryProvider).saveDownloadSettings(
-        current,
-        autoDownloadNew: enabled,
-      );
+      await ref
+          .read(libraryRepositoryProvider)
+          .saveDownloadSettings(current, autoDownloadNew: enabled);
       ref.invalidate(downloadSettingsProvider);
       if (!context.mounted) return;
       if (enabled) {
@@ -1865,22 +1888,23 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   Future<void> _clearDownloads(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear downloaded files'),
-        content: const Text(
-          'This removes episodes saved on this device. You can download them again later.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Clear downloaded files'),
+            content: const Text(
+              'This removes episodes saved on this device. You can download them again later.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Clear'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
     );
     if (confirmed != true || !context.mounted) return;
     setState(() => _busy = true);
@@ -1908,10 +1932,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   ) async {
     setState(() => _busy = true);
     try {
-      await ref.read(libraryRepositoryProvider).saveDownloadSettings(
-        current,
-        wifiOnly: wifiOnly,
-      );
+      await ref
+          .read(libraryRepositoryProvider)
+          .saveDownloadSettings(current, wifiOnly: wifiOnly);
       ref.invalidate(downloadSettingsProvider);
     } catch (error) {
       if (context.mounted) {
@@ -1937,7 +1960,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           (dialogContext) => StatefulBuilder(
             builder: (dialogContext, setDialogState) {
               return AlertDialog(
-                title: Text(editing == null ? 'Create playlist' : 'Edit playlist'),
+                title: Text(
+                  editing == null ? 'Create playlist' : 'Edit playlist',
+                ),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1954,7 +1979,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                             if (photo == null) return;
                             if (await photo.length() > 5 * 1024 * 1024) {
                               if (dialogContext.mounted) {
-                                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                ScaffoldMessenger.of(
+                                  dialogContext,
+                                ).showSnackBar(
                                   const SnackBar(
                                     content: Text(
                                       'Choose a photo smaller than 5 MB.',
@@ -2018,7 +2045,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                           'Public playlists appear in search and By Others.',
                         ),
                         value: isPublic,
-                        onChanged: (value) => setDialogState(() => isPublic = value),
+                        onChanged:
+                            (value) => setDialogState(() => isPublic = value),
                       ),
                     ],
                   ),
@@ -2047,31 +2075,36 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     setState(() => _busy = true);
     try {
       if (editing == null) {
-        final created = await ref.read(libraryRepositoryProvider).createPlaylist(
-          name: name,
-          isPublic: isPublic,
-        );
+        final created = await ref
+            .read(libraryRepositoryProvider)
+            .createPlaylist(name: name, isPublic: isPublic);
         if (artworkBytes != null && artworkName != null) {
-          await ref.read(libraryRepositoryProvider).uploadPlaylistArtwork(
-            playlistId: created.id,
-            bytes: artworkBytes!,
-            filename: artworkName!,
-          );
+          await ref
+              .read(libraryRepositoryProvider)
+              .uploadPlaylistArtwork(
+                playlistId: created.id,
+                bytes: artworkBytes!,
+                filename: artworkName!,
+              );
         }
         if (context.mounted) context.showPelevoMessage('Playlist created');
       } else {
-        await ref.read(libraryRepositoryProvider).updatePlaylist(
-          editing,
-          name: name,
-          description: editing.description,
-          isPublic: isPublic,
-        );
+        await ref
+            .read(libraryRepositoryProvider)
+            .updatePlaylist(
+              editing,
+              name: name,
+              description: editing.description,
+              isPublic: isPublic,
+            );
         if (artworkBytes != null && artworkName != null) {
-          await ref.read(libraryRepositoryProvider).uploadPlaylistArtwork(
-            playlistId: editing.id,
-            bytes: artworkBytes!,
-            filename: artworkName!,
-          );
+          await ref
+              .read(libraryRepositoryProvider)
+              .uploadPlaylistArtwork(
+                playlistId: editing.id,
+                bytes: artworkBytes!,
+                filename: artworkName!,
+              );
         }
         if (context.mounted) context.showPelevoMessage('Playlist updated');
         ref.invalidate(libraryPlaylistProvider);
@@ -2107,9 +2140,12 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                       context.pelevoOpen('/screen/library-10');
                       return;
                     }
-                    final playlist = ref.read(libraryPlaylistProvider).asData?.value;
+                    final playlist =
+                        ref.read(libraryPlaylistProvider).asData?.value;
                     if (playlist != null && !playlist.isOwner) {
-                      context.showPelevoMessage('Only the owner can edit this playlist.');
+                      context.showPelevoMessage(
+                        'Only the owner can edit this playlist.',
+                      );
                       return;
                     }
                     _showPlaylistEditor(context, editing: playlist);
@@ -2162,7 +2198,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         final playlist = ref.read(libraryPlaylistProvider).asData?.value;
         if (playlist != null && !playlist.isOwner) {
           if (context.mounted) {
-            context.showPelevoMessage('Only the owner can delete this playlist.');
+            context.showPelevoMessage(
+              'Only the owner can delete this playlist.',
+            );
           }
           return;
         }

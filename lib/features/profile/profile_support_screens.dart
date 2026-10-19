@@ -16,6 +16,7 @@ import 'package:pelevo/features/profile/invite_data.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/profile/profile_widgets.dart';
 import 'package:pelevo/features/reels/reel_ad_service.dart';
+import 'package:pelevo/features/reels/reel_data.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
@@ -82,6 +83,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           .read(profileProvider.notifier)
           .saveProfile(name: _name.text, handle: _handle.text, bio: _bio.text);
       if (!mounted) return;
+      ref.invalidate(reelsFeedProvider);
+      ref.invalidate(publicCreatorProfileProvider);
+      ref.invalidate(publicCreatorReelsProvider);
       setState(() => _dirty = false);
       context.showPelevoMessage('Profile updated');
       context.go('/screen/profile');

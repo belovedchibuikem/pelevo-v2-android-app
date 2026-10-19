@@ -423,6 +423,13 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                     subtitle: 'Google, Apple, Facebook',
                     onTap: () => context.push('/screen/profile-connected'),
                   ),
+                  const _SectionLabel('Admin'),
+                  _SettingsTile(
+                    icon: Icons.currency_exchange_rounded,
+                    title: 'Exchange rates',
+                    subtitle: 'USD rates used by the app',
+                    onTap: () => context.push('/screen/admin-fx-rates'),
+                  ),
                   const _SectionLabel('Playback'),
                   _SettingsTile(
                     icon: Icons.graphic_eq_rounded,

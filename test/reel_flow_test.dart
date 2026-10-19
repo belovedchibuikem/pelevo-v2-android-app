@@ -140,7 +140,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ApiAdapter feedAdapter() => ApiAdapter((request) {
+  ApiAdapter feedAdapter({
+    String bio = 'African stories on the go.',
+  }) => ApiAdapter((request) {
     if (request.path == '/me') {
       return jsonResponse(profileFixture());
     }
@@ -189,7 +191,7 @@ void main() {
         'id': 'creator-1',
         'display_name': 'Ada Creator',
         'handle': 'ada_creator',
-        'bio': 'African stories on the go.',
+        'bio': bio,
         'avatar_url': null,
         'verified': true,
         'is_self': false,
@@ -366,6 +368,34 @@ void main() {
     expect(find.text('This is my public profile.'), findsOneWidget);
     expect(find.text('Edit profile'), findsOneWidget);
     expect(find.text('Follow'), findsNothing);
+  });
+
+  testWidgets('profile share stays on the profile', (tester) async {
+    await mount(
+      tester,
+      location: '/screen/creator-profile?id=self-1',
+      adapter: feedAdapter(),
+    );
+    await tester.tap(find.text('Share'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Share Cards'), findsNothing);
+    expect(find.text('Edit profile'), findsOneWidget);
+    expect(find.text('My Studio'), findsWidgets);
+  });
+
+  testWidgets('a link in the bio is tappable', (tester) async {
+    await mount(
+      tester,
+      location: '/screen/creator-profile?id=creator-1',
+      adapter: feedAdapter(
+        bio: 'follow my YouTube link here\nhttps://pelevo.com/',
+      ),
+    );
+    expect(
+      find.text('follow my YouTube link here\nhttps://pelevo.com/'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('linked episode chip opens the episode', (tester) async {

@@ -67,6 +67,7 @@ abstract final class PelevoDeepLinks {
       'episode' => '/episodes/$id',
       'show' => '/shows/$id',
       'reel' => '/reels/$id',
+      'creator' => '/creators/$id',
       'invite' => '/screen/auth-sign-in?invite=$id',
       's' => '/s/$id',
       _ => null,
@@ -84,7 +85,9 @@ abstract final class PelevoDeepLinks {
       if (!uri.path.startsWith('/s/') &&
           !uri.path.startsWith('/episodes/') &&
           !uri.path.startsWith('/shows/') &&
-          !uri.path.startsWith('/reels/')) {
+          !uri.path.startsWith('/reels/') &&
+          !uri.path.startsWith('/creator/') &&
+          !uri.path.startsWith('/creators/')) {
         return null;
       }
     }
@@ -93,7 +96,15 @@ abstract final class PelevoDeepLinks {
       return '/s/${segments[1]}';
     }
     if (segments.length >= 2 &&
-        const {'episodes', 'shows', 'reels'}.contains(segments.first)) {
+        (segments.first == 'creator' || segments.first == 'creators')) {
+      return '/creators/${segments[1]}';
+    }
+    if (segments.length >= 2 &&
+        const {
+          'episodes',
+          'shows',
+          'reels',
+        }.contains(segments.first)) {
       return '/${segments[0]}/${segments[1]}';
     }
     return null;

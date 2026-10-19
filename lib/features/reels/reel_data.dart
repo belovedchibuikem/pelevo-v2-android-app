@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/player/play_location.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/reels/reels_monetization_service.dart';
 
@@ -690,6 +691,7 @@ class ReelRepository {
     required bool adEligible,
   }) async {
     try {
+      final location = await PlayLocation.instance.fields();
       final data = requireApiData(
         (await _dio.post<Map<String, dynamic>>(
           '/reels/$id/view-heartbeat',
@@ -702,6 +704,7 @@ class ReelRepository {
             'app_foreground': appForeground,
             'audible': audible,
             'ad_eligible': adEligible,
+            if (location.isNotEmpty) 'location': location,
           },
           options: Options(
             sendTimeout: const Duration(seconds: 8),

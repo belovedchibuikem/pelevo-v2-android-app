@@ -138,6 +138,7 @@ class AiRecommendation {
     required this.id,
     required this.title,
     this.showId,
+    this.artworkUrl,
     this.reason,
   });
 
@@ -145,11 +146,12 @@ class AiRecommendation {
     id: _text(data, 'id'),
     title: _text(data, 'title'),
     showId: _optionalText(data, 'show_id'),
+    artworkUrl: _optionalText(data, 'artwork_url'),
     reason: _optionalText(data, 'reason'),
   );
 
   final String id, title;
-  final String? showId, reason;
+  final String? showId, artworkUrl, reason;
 }
 
 class AiRepository {
@@ -242,7 +244,9 @@ class AiRepository {
           cancelToken: token,
         )).data,
       );
-      return _maps(data['items']).map(AiRecommendation.parse).toList(growable: false);
+      return _maps(
+        data['items'],
+      ).map(AiRecommendation.parse).toList(growable: false);
     } on ApiFailure {
       rethrow;
     } on DioException catch (error) {
@@ -259,7 +263,7 @@ class SelectedAiJobIdNotifier extends Notifier<String?> {
 
 class SelectedAiQuestionNotifier extends Notifier<String> {
   @override
-  String build() => 'Summarize this episode';
+  String build() => 'Something thoughtful about growth';
   void set(String value) => state = value;
 }
 
@@ -270,22 +274,31 @@ class AiNoticeNotifier extends Notifier<String?> {
 }
 
 final selectedAiJobIdProvider =
-    NotifierProvider<SelectedAiJobIdNotifier, String?>(SelectedAiJobIdNotifier.new);
+    NotifierProvider<SelectedAiJobIdNotifier, String?>(
+      SelectedAiJobIdNotifier.new,
+    );
 
 final selectedAiQuestionProvider =
-    NotifierProvider<SelectedAiQuestionNotifier, String>(SelectedAiQuestionNotifier.new);
+    NotifierProvider<SelectedAiQuestionNotifier, String>(
+      SelectedAiQuestionNotifier.new,
+    );
 
-final aiNoticeProvider =
-    NotifierProvider<AiNoticeNotifier, String?>(AiNoticeNotifier.new);
+final aiNoticeProvider = NotifierProvider<AiNoticeNotifier, String?>(
+  AiNoticeNotifier.new,
+);
 
-final aiRepositoryProvider = Provider((ref) => AiRepository(ref.watch(dioProvider)));
+final aiRepositoryProvider = Provider(
+  (ref) => AiRepository(ref.watch(dioProvider)),
+);
 
-final aiAskProvider = FutureProvider.autoDispose
-    .family<AiConversation, String>((ref, question) async {
-      final token = CancelToken();
-      ref.onDispose(token.cancel);
-      return ref.watch(aiRepositoryProvider).ask(question, token);
-    }, retry: (count, error) => null);
+final aiAskProvider = FutureProvider.autoDispose.family<AiConversation, String>(
+  (ref, question) async {
+    final token = CancelToken();
+    ref.onDispose(token.cancel);
+    return ref.watch(aiRepositoryProvider).ask(question, token);
+  },
+  retry: (count, error) => null,
+);
 
 final aiLineupProvider = FutureProvider.autoDispose<AiLineup>((ref) async {
   final token = CancelToken();
@@ -293,13 +306,12 @@ final aiLineupProvider = FutureProvider.autoDispose<AiLineup>((ref) async {
   return ref.watch(aiRepositoryProvider).lineup(token);
 }, retry: (count, error) => null);
 
-final aiRecommendationsProvider = FutureProvider.autoDispose<List<AiRecommendation>>((
-  ref,
-) async {
-  final token = CancelToken();
-  ref.onDispose(() => token.cancel());
-  return ref.watch(aiRepositoryProvider).recommendations(token);
-}, retry: (count, error) => null);
+final aiRecommendationsProvider =
+    FutureProvider.autoDispose<List<AiRecommendation>>((ref) async {
+      final token = CancelToken();
+      ref.onDispose(() => token.cancel());
+      return ref.watch(aiRepositoryProvider).recommendations(token);
+    }, retry: (count, error) => null);
 
 const missingAiJob = ApiFailure(
   code: 'NO_AI_JOB',

@@ -13,6 +13,7 @@ import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
 import 'package:pelevo/features/premium/premium_store.dart';
 import 'package:pelevo/features/premium/premium_trial_offer.dart';
+import 'package:pelevo/features/store/fx_rates.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
 import 'package:pelevo/features/profile/legal_links.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
@@ -244,8 +245,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     deviceCountry: View.of(context).platformDispatcher.locale.countryCode,
   );
 
+  FxRateBook? get _fx => ref.watch(fxRatesProvider).asData?.value;
+
   String _localizedPlanPrice(PremiumPlan plan) =>
-      PremiumStore.instance.priceLabel(plan, _countryCode);
+      PremiumStore.instance.priceLabel(plan, _countryCode, rates: _fx);
 
   bool _offersTrial(PremiumPlan plan) =>
       plan.isThreeMonthTrial || _trialOfferRequested;
@@ -555,7 +558,11 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           const SizedBox(height: PelevoSpacing.sm),
           Text(
             plan == null
-                ? seededPlusPrice(_countryCode, yearly: false)
+                ? plusPriceLabel(
+                    countryCode: _countryCode,
+                    yearly: false,
+                    rates: _fx,
+                  )
                 : _localizedPlanPrice(plan),
             style: const TextStyle(
               color: PelevoColors.yellow,

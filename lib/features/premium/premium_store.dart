@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
+import 'package:pelevo/features/store/fx_rates.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
 
 class PremiumPurchaseResult {
@@ -42,9 +43,19 @@ class PremiumStore {
   String productIdFor(PremiumPlan plan) =>
       plusIntervalIsYearly(plan.interval) ? yearlyProductId : monthlyProductId;
 
-  String priceLabel(PremiumPlan plan, String countryCode) =>
-      _pricedProduct(productIdFor(plan))?.price ??
-      seededPlusPrice(countryCode, yearly: plusIntervalIsYearly(plan.interval));
+  String priceLabel(
+    PremiumPlan plan,
+    String countryCode, {
+    FxRateBook? rates,
+  }) {
+    final listed = _pricedProduct(productIdFor(plan))?.price;
+    if (listed != null && listed.isNotEmpty) return listed;
+    return plusPriceLabel(
+      countryCode: countryCode,
+      yearly: plusIntervalIsYearly(plan.interval),
+      rates: rates,
+    );
+  }
 
   Future<void> prepare(Iterable<PremiumPlan> plans) async {
     if (!_isMobileStore) return;

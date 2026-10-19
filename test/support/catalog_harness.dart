@@ -1022,8 +1022,13 @@ class CatalogHarness extends StatelessWidget {
               'locale': 'en',
             });
           }
-          if (request.path == '/auth/register' ||
-              request.path == '/auth/login') {
+          if (request.path == '/auth/register') {
+            return jsonResponse({
+              'verification_required': true,
+              'email': 'listener@example.com',
+            }, status: 201);
+          }
+          if (request.path == '/auth/login') {
             return jsonResponse({
               'access_token': 'test-access',
               'refresh_token': 'test-refresh',

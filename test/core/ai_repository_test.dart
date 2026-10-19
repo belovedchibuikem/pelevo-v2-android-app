@@ -25,6 +25,20 @@ void main() {
     final items = await repository(dio).recommendations(CancelToken());
     expect(items.single.title, 'The Honest Bunch');
     expect(items.single.reason, 'From your listening history');
+    expect(items.single.artworkUrl, isNull);
+  });
+
+  test('recommendations keep show artwork from the server', () async {
+    final dio = dioWith(
+      ApiAdapter((request) {
+        final body = aiRecommendationsFixture();
+        (body['items'] as List).single['artwork_url'] =
+            'https://cdn.pelevo.com/shows/honest.jpg';
+        return jsonResponse(body);
+      }),
+    );
+    final items = await repository(dio).recommendations(CancelToken());
+    expect(items.single.artworkUrl, 'https://cdn.pelevo.com/shows/honest.jpg');
   });
 
   test('completed jobs expose output text only', () async {
@@ -52,10 +66,9 @@ void main() {
         return jsonResponse(aiJobFixture(), status: 202);
       }),
     );
-    final job = await repository(dio).createJob(
-      type: 'summary',
-      input: {'episode_id': 'catalog-episode-1'},
-    );
+    final job = await repository(
+      dio,
+    ).createJob(type: 'summary', input: {'episode_id': 'catalog-episode-1'});
     expect(job.type, 'summary');
     expect(job.state, 'queued');
   });

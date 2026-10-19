@@ -109,6 +109,21 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final success = await ref
         .read(authFormProvider.notifier)
         .login(email, _password.text);
+    if (!success && mounted) {
+      final failure = ref.read(authFormProvider).failure;
+      if (failure?.code == 'EMAIL_UNVERIFIED') {
+        context.go(
+          Uri(
+            path: '/screen/auth-verify-number',
+            queryParameters: {
+              'email': email.toLowerCase(),
+              'purpose': 'email_verification',
+            },
+          ).toString(),
+        );
+      }
+      return;
+    }
     if (success && mounted) {
       await applyPendingOnboardingDraft(ref);
       if (!mounted) return;
@@ -124,6 +139,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           path.startsWith('/episodes/') ||
           path.startsWith('/shows/') ||
           path.startsWith('/reels/') ||
+          path.startsWith('/creators/') ||
           path.startsWith('/s/');
       context.go(
         uri != null &&
@@ -282,8 +298,15 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
           handle,
         );
     if (success && mounted) {
-      await applyPendingOnboardingDraft(ref);
-      if (mounted) context.go('/screen/auth-account-created');
+      context.go(
+        Uri(
+          path: '/screen/auth-verify-number',
+          queryParameters: {
+            'email': _email.text.trim().toLowerCase(),
+            'purpose': 'email_verification',
+          },
+        ).toString(),
+      );
     }
   }
 }
@@ -299,7 +322,25 @@ class _VerifyNumberScreenState extends ConsumerState<VerifyNumberScreen> {
   final _code = TextEditingController();
   bool _sent = false;
   bool _sending = false;
+  bool _routeReady = false;
+  String _purpose = 'login';
   ApiFailure? _failure;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeReady) return;
+    _routeReady = true;
+    final params = GoRouterState.of(context).uri.queryParameters;
+    final email = params['email']?.trim() ?? '';
+    if (params['purpose'] == 'email_verification') {
+      _purpose = 'email_verification';
+    }
+    if (email.isNotEmpty) {
+      _email.text = email;
+      if (_purpose == 'email_verification') _sent = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -319,7 +360,9 @@ class _VerifyNumberScreenState extends ConsumerState<VerifyNumberScreen> {
       _failure = null;
     });
     try {
-      await ref.read(authRepositoryProvider).sendCode(_email.text);
+      await ref
+          .read(authRepositoryProvider)
+          .sendCode(_email.text, purpose: _purpose);
       if (mounted) setState(() => _sent = true);
     } on DioException catch (error) {
       if (mounted) setState(() => _failure = apiFailureFromDio(error));
@@ -337,8 +380,12 @@ class _VerifyNumberScreenState extends ConsumerState<VerifyNumberScreen> {
     }
     final verified = await ref
         .read(authFormProvider.notifier)
-        .verifyCode(_email.text, _code.text);
+        .verifyCode(_email.text, _code.text, purpose: _purpose);
     if (mounted && verified) {
+      if (_purpose == 'email_verification') {
+        context.go('/screen/auth-account-created');
+        return;
+      }
       await applyPendingOnboardingDraft(ref);
       if (mounted) context.go('/screen/home-feed');
     }

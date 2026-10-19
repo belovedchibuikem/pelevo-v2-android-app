@@ -102,7 +102,9 @@ Future<void> _replaceQueueQuietly(
   List<String> episodeIds,
 ) async {
   try {
-    await container.read(catalogRepositoryProvider).replaceQueueRetry(episodeIds);
+    await container
+        .read(catalogRepositoryProvider)
+        .replaceQueueRetry(episodeIds);
     container.invalidate(catalogQueueProvider);
   } catch (_) {}
 }
@@ -118,19 +120,13 @@ void openCatalogHomeItem(BuildContext context, HomeItem item) {
       item.type == 'browse') {
     return;
   }
-  openCatalogEpisode(
-    context,
-    episodeId: item.id,
-    showId: item.showId,
-  );
+  openCatalogEpisode(context, episodeId: item.id, showId: item.showId);
 }
 
 /// Opens show or episode details (does not start playback).
 void openCatalogHomeDestination(BuildContext context, HomeItem item) {
   openCatalogHomeItem(context, item);
-  if (item.type == 'mood' ||
-      item.type == 'category' ||
-      item.type == 'browse') {
+  if (item.type == 'mood' || item.type == 'category' || item.type == 'browse') {
     return;
   }
   context.push(homeItemRoute(item));
@@ -190,11 +186,17 @@ String? sanitizeArtworkUrl(String? url) {
   if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
     return null;
   }
-  if (value.contains('?.') || RegExp(r'\?\.(jpe?g|png|webp|gif|avif)$', caseSensitive: false).hasMatch(value)) {
+  if (value.contains('?.') ||
+      RegExp(
+        r'\?\.(jpe?g|png|webp|gif|avif)$',
+        caseSensitive: false,
+      ).hasMatch(value)) {
     return null;
   }
   final path = uri.path.toLowerCase();
-  if (path.endsWith('?.jpg') || path.endsWith('?.png') || path.endsWith('?.webp')) {
+  if (path.endsWith('?.jpg') ||
+      path.endsWith('?.png') ||
+      path.endsWith('?.webp')) {
     return null;
   }
   return value;
@@ -281,6 +283,9 @@ String catalogShareEpisodeLink(String episodeId) =>
 
 String catalogShareReelLink(String reelId) =>
     '${ApiEnvironment.publicWebBase}/reels/$reelId';
+
+String catalogShareCreatorLink(String creatorId) =>
+    '${ApiEnvironment.publicWebBase}/creators/${Uri.encodeComponent(creatorId.trim())}';
 
 List<CatalogReview> sortedCatalogReviews(
   List<CatalogReview> reviews,

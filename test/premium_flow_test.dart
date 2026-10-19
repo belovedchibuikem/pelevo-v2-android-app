@@ -134,7 +134,7 @@ void main() {
   ) async {
     await mount(tester, location: '/screen/premium-plans', adapter: _adapter());
     expect(find.text('Pelevo Plus Monthly'), findsOneWidget);
-    expect(find.text('₦1,600 / month'), findsOneWidget);
+    expect(find.text(r'$10.50 / month'), findsOneWidget);
     expect(find.text('NGN 25.00 / month'), findsNothing);
   });
 
@@ -192,8 +192,8 @@ void main() {
     expect(find.text('Annual'), findsOneWidget);
     expect(find.text('3 months free'), findsOneWidget);
     expect(find.text('1 month free'), findsOneWidget);
-    expect(find.text('Free for 3 months, then ₦1,600 / month'), findsOneWidget);
-    expect(find.text('Free for 3 months, then ₦17,600 / year'), findsOneWidget);
+    expect(find.text('Free for 3 months, then \$10.50 / month'), findsOneWidget);
+    expect(find.text('Free for 3 months, then \$105.00 / year'), findsOneWidget);
     expect(find.text('Your 3-month free trial is selected.'), findsOneWidget);
     expect(
       find.text(

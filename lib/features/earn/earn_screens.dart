@@ -15,6 +15,8 @@ import 'package:pelevo/features/earn/earn_playback_session.dart';
 export 'package:pelevo/features/earn/earn_playback_session.dart';
 import 'package:pelevo/features/earn/earn_wallet_data.dart';
 import 'package:pelevo/features/player/pelevo_playback.dart';
+import 'package:pelevo/features/store/fx_rates.dart';
+import 'package:pelevo/features/store/regional_prices.dart';
 
 class EarnBrowseFilter {
   static String? showId;
@@ -1361,6 +1363,26 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
   }
 }
 
+String _earnValueLine(
+  EarnWallet wallet,
+  String countryCode,
+  FxRateBook? rates,
+) {
+  final perCoin = (wallet.coinUsdMilli / 1000).toStringAsFixed(3);
+  final base = '1 coin = \$$perCoin USD · about ${wallet.usdLabel}';
+  final cents =
+      wallet.balance * BigInt.from(wallet.coinUsdMilli) ~/ BigInt.from(10);
+  if (cents.isNegative || cents > BigInt.from(2000000000)) return base;
+  final local = localPriceFromUsd(
+    usdMinor: cents.toInt(),
+    countryCode: countryCode,
+    rates: rates,
+  );
+  final usd = formatMoney(cents.toInt(), 'USD');
+  if (local == usd) return base;
+  return '$base · $local';
+}
+
 class EarnWalletScreen extends ConsumerWidget {
   const EarnWalletScreen({super.key});
 
@@ -1435,7 +1457,16 @@ class EarnWalletScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '1 coin = \$0.004 USD · about ${wallet.usdLabel}',
+                            _earnValueLine(
+                              wallet,
+                              listenerCountryCode(
+                                deviceCountry:
+                                    View.of(
+                                      context,
+                                    ).platformDispatcher.locale.countryCode,
+                              ),
+                              ref.watch(fxRatesProvider).asData?.value,
+                            ),
                             style: const TextStyle(color: PelevoColors.green),
                           ),
                         ],

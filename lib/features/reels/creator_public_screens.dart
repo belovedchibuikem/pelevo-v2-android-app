@@ -2,10 +2,14 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
+import 'package:pelevo/core/widgets/pelevo_link_text.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
+import 'package:pelevo/features/share/pelevo_native_share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:pelevo/features/comments/comment_data.dart';
 import 'package:pelevo/features/comments/comment_screens.dart';
 import 'package:pelevo/features/comments/comment_service.dart';
@@ -39,6 +43,36 @@ Future<void> openPublicCreatorProfile(
     context,
   ).read(selectedCreatorProfileIdProvider.notifier).select(id);
   await context.push('/screen/creator-profile?id=$id');
+}
+
+Future<void> sharePublicCreatorProfile(
+  BuildContext context,
+  PublicCreatorProfile profile,
+) async {
+  final handle = profile.handleLabel;
+  final title =
+      handle.isEmpty ? profile.displayName : '${profile.displayName} ($handle)';
+  final url = catalogShareCreatorLink(profile.id);
+  try {
+    final result = await pelevoShare(
+      context: context,
+      text: '$title on Pelevo\n$url',
+      title: title,
+      subject: title,
+    );
+    if (result.status == ShareResultStatus.unavailable) {
+      await _copyCreatorLink(context, url);
+    }
+  } on Object {
+    await _copyCreatorLink(context, url);
+  }
+}
+
+Future<void> _copyCreatorLink(BuildContext context, String url) async {
+  await Clipboard.setData(ClipboardData(text: url));
+  if (context.mounted) {
+    context.showPelevoMessage('Profile link copied');
+  }
 }
 
 Future<void> openCreatorReelStories(
@@ -75,10 +109,8 @@ class _PublicCreatorProfileScreenState
   var _followingOverride = <String, bool>{};
   var _busy = false;
 
-  String? get _creatorId => creatorIdFromRoute(
-    context,
-    ref.watch(selectedCreatorProfileIdProvider),
-  );
+  String? get _creatorId =>
+      creatorIdFromRoute(context, ref.watch(selectedCreatorProfileIdProvider));
 
   Future<void> _toggleFollow(PublicCreatorProfile profile) async {
     if (_busy || profile.isSelf) return;
@@ -135,7 +167,8 @@ class _PublicCreatorProfileScreenState
                     ),
                     TextButton(
                       onPressed:
-                          () => ref.invalidate(publicCreatorProfileProvider(id)),
+                          () =>
+                              ref.invalidate(publicCreatorProfileProvider(id)),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -143,8 +176,7 @@ class _PublicCreatorProfileScreenState
               ),
             ),
         data: (profile) {
-          final following =
-              _followingOverride[profile.id] ?? profile.following;
+          final following = _followingOverride[profile.id] ?? profile.following;
           return ListView(
             children: [
               Row(
@@ -187,7 +219,7 @@ class _PublicCreatorProfileScreenState
               ),
               if ((profile.bio ?? '').trim().isNotEmpty) ...[
                 const SizedBox(height: PelevoSpacing.md),
-                Text(profile.bio!.trim()),
+                PelevoLinkedText(profile.bio!.trim()),
               ],
               const SizedBox(height: PelevoSpacing.md),
               Row(
@@ -224,9 +256,16 @@ class _PublicCreatorProfileScreenState
                     child: const Text('Gift'),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () => context.push('/screen/share-card-home'),
-                    child: const Text('Share'),
+                  Builder(
+                    builder:
+                        (buttonContext) => OutlinedButton(
+                          onPressed:
+                              () => sharePublicCreatorProfile(
+                                buttonContext,
+                                profile,
+                              ),
+                          child: const Text('Share'),
+                        ),
                   ),
                 ],
               ),
@@ -306,9 +345,7 @@ class _PublicCreatorProfileScreenState
                                               show.artworkUrl!.isEmpty
                                           ? const ColoredBox(
                                             color: PelevoColors.surfaceHigh,
-                                            child: Icon(
-                                              Icons.podcasts_rounded,
-                                            ),
+                                            child: Icon(Icons.podcasts_rounded),
                                           )
                                           : CachedNetworkImage(
                                             imageUrl: show.artworkUrl!,
@@ -471,10 +508,8 @@ class _CreatorStoriesScreenState extends ConsumerState<CreatorStoriesScreen>
     WidgetsBinding.instance.addObserver(this);
   }
 
-  String? get _creatorId => creatorIdFromRoute(
-    context,
-    ref.watch(selectedCreatorProfileIdProvider),
-  );
+  String? get _creatorId =>
+      creatorIdFromRoute(context, ref.watch(selectedCreatorProfileIdProvider));
 
   @override
   void didChangeDependencies() {
@@ -762,9 +797,7 @@ class _CreatorStoriesScreenState extends ConsumerState<CreatorStoriesScreen>
                                 );
                                 if (mounted) {
                                   setState(() => _paused = false);
-                                  unawaited(
-                                    ReelWakeLock.setEnabled(true),
-                                  );
+                                  unawaited(ReelWakeLock.setEnabled(true));
                                 }
                               },
                               child: Row(

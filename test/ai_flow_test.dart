@@ -85,36 +85,43 @@ void main() {
     return container;
   }
 
-  testWidgets('summary generate waits for a queued job and keeps Topics Covered', (
-    tester,
-  ) async {
-    await mount(
-      tester,
-      location: '/screen/ai-summary',
-      adapter: ApiAdapter((request) {
-        if (request.path == '/episodes/$catalogEpisodeId') {
-          return jsonResponse(catalogEpisodeFixture(detailed: true));
-        }
-        if (request.path == '/ai/jobs' && request.method == 'POST') {
-          return jsonResponse(aiJobFixture(), status: 202);
-        }
-        if (request.path == '/ai/jobs/$aiJobId') {
-          return jsonResponse(
-            aiJobFixture(
-              state: 'completed',
-              outputText: 'Queued jobs return text when complete.',
-            ),
-          );
-        }
-        throw StateError('${request.method} ${request.path}');
-      }),
-    );
-    await tester.tap(find.widgetWithText(PelevoButton, 'Generate Summary'));
-    await tester.pumpAndSettle();
-    expect(find.text('Topics Covered'), findsOneWidget);
-    expect(find.text('Queued jobs return text when complete.'), findsOneWidget);
-    expect(find.textContaining('Honesty is the first real shift'), findsNothing);
-  });
+  testWidgets(
+    'summary generate waits for a queued job and keeps Topics Covered',
+    (tester) async {
+      await mount(
+        tester,
+        location: '/screen/ai-summary',
+        adapter: ApiAdapter((request) {
+          if (request.path == '/episodes/$catalogEpisodeId') {
+            return jsonResponse(catalogEpisodeFixture(detailed: true));
+          }
+          if (request.path == '/ai/jobs' && request.method == 'POST') {
+            return jsonResponse(aiJobFixture(), status: 202);
+          }
+          if (request.path == '/ai/jobs/$aiJobId') {
+            return jsonResponse(
+              aiJobFixture(
+                state: 'completed',
+                outputText: 'Queued jobs return text when complete.',
+              ),
+            );
+          }
+          throw StateError('${request.method} ${request.path}');
+        }),
+      );
+      await tester.tap(find.widgetWithText(PelevoButton, 'Generate Summary'));
+      await tester.pumpAndSettle();
+      expect(find.text('Topics Covered'), findsOneWidget);
+      expect(
+        find.text('Queued jobs return text when complete.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Honesty is the first real shift'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('recommendations bind server reasons instead of match percents', (
     tester,
@@ -154,8 +161,10 @@ void main() {
         throw StateError('${request.method} ${request.path}');
       }),
     );
-    container.read(selectedAiQuestionProvider.notifier).set('Summarize this episode');
-    await tester.tap(find.text('Summarize this episode'));
+    container
+        .read(selectedAiQuestionProvider.notifier)
+        .set('Something thoughtful about growth');
+    await tester.tap(find.text('Something thoughtful about growth'));
     await tester.pumpAndSettle();
     expect(find.text('Ask another question'), findsOneWidget);
     expect(

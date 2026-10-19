@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/core/network/api_contract.dart';
+import 'package:pelevo/features/player/play_location.dart';
 import 'package:pelevo/features/reels/reel_data.dart';
 import '../support/api_adapter.dart';
 import '../support/reel_fixture.dart';
@@ -233,6 +234,45 @@ void main() {
     expect(seen.last.data, {
       'feed_session_id': 'feed-1',
       'reason': 'load_failed',
+    });
+  });
+
+  test('heartbeat sends the listener location when it is available', () async {
+    PlayLocation.instance.debugFix = const PlayFix(
+      latitude: 9.0579,
+      longitude: 7.4951,
+      accuracyMeters: 1500,
+    );
+    addTearDown(PlayLocation.instance.reset);
+    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
+    addTearDown(() => dio.close(force: true));
+    late RequestOptions seen;
+    dio.httpClientAdapter = ApiAdapter((request) {
+      seen = request;
+      return jsonResponse({
+        'server_watched_ms': 15000,
+        'is_valid_view': true,
+        'ad_due': null,
+      });
+    });
+
+    await ReelRepository(dio).heartbeat(
+      'reel-1',
+      sessionId: 'view-1',
+      feedSessionId: 'feed-1',
+      sequence: 1,
+      playbackPositionMs: 15000,
+      completed: false,
+      appForeground: true,
+      audible: true,
+      adEligible: true,
+    );
+
+    expect(seen.data['location'], {
+      'latitude': 9.058,
+      'longitude': 7.495,
+      'accuracy_m': 1500,
+      'source': 'device',
     });
   });
 

@@ -192,7 +192,7 @@ class AuthRepository {
   const AuthRepository(this._dio);
   final Dio _dio;
 
-  Future<AuthSession> register({
+  Future<void> register({
     required String name,
     String? handle,
     required String email,
@@ -211,7 +211,13 @@ class AuthRepository {
         'device_name': await _deviceName(),
       },
     );
-    return AuthSession.fromApi(requireApiData(asApiJsonMap(response.data)));
+    final data = requireApiData(asApiJsonMap(response.data));
+    if (data['verification_required'] != true) {
+      throw const ApiFailure(
+        code: 'INVALID_RESPONSE',
+        message: 'Unable to start email verification. Please try again.',
+      );
+    }
   }
 
   Future<AuthSession> login({
@@ -260,21 +266,28 @@ class AuthRepository {
     requireApiData(asApiJsonMap(response.data));
   }
 
-  Future<void> sendCode(String email) async {
+  Future<void> sendCode(String email, {String purpose = 'login'}) async {
     final response = await _dio.post<dynamic>(
       '/auth/otp/send',
-      data: {'email': email.trim().toLowerCase(), 'purpose': 'login'},
+      data: {
+        'email': email.trim().toLowerCase(),
+        'purpose': purpose == 'email_verification' ? purpose : 'login',
+      },
     );
     requireApiData(asApiJsonMap(response.data));
   }
 
-  Future<AuthSession> verifyCode(String email, String code) async {
+  Future<AuthSession> verifyCode(
+    String email,
+    String code, {
+    String purpose = 'login',
+  }) async {
     final response = await _dio.post<dynamic>(
       '/auth/otp/verify',
       data: {
         'email': email.trim().toLowerCase(),
         'code': code,
-        'purpose': 'login',
+        'purpose': purpose == 'email_verification' ? purpose : 'login',
         'device_name': await _deviceName(),
       },
     );
@@ -301,14 +314,18 @@ class AuthRepository {
   Future<String> _deviceName() async {
     // dart:io Platform throws on Flutter web; never touch it in browsers.
     if (kIsWeb) return 'Web browser';
-    final info = DeviceInfoPlugin();
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return (await info.androidInfo).model;
-      case TargetPlatform.iOS:
-        return (await info.iosInfo).utsname.machine;
-      default:
-        return '${defaultTargetPlatform.name} device';
+    try {
+      final info = DeviceInfoPlugin();
+      final name = await switch (defaultTargetPlatform) {
+        TargetPlatform.android => info.androidInfo.then((value) => value.model),
+        TargetPlatform.iOS =>
+          info.iosInfo.then((value) => value.utsname.machine),
+        _ => Future<String>.value('${defaultTargetPlatform.name} device'),
+      }.timeout(const Duration(seconds: 2));
+      final trimmed = name.trim();
+      return trimmed.isEmpty ? '${defaultTargetPlatform.name} device' : trimmed;
+    } on Object {
+      return '${defaultTargetPlatform.name} device';
     }
   }
 }
@@ -339,7 +356,7 @@ class AuthFormController extends Notifier<AuthFormState> {
     String password,
     String confirmation, [
     String? handle,
-  ]) => _run(
+  ]) => _guard(
     () => ref
         .read(authRepositoryProvider)
         .register(
@@ -351,8 +368,15 @@ class AuthFormController extends Notifier<AuthFormState> {
         ),
   );
 
-  Future<bool> verifyCode(String email, String code) =>
-      _run(() => ref.read(authRepositoryProvider).verifyCode(email, code));
+  Future<bool> verifyCode(
+    String email,
+    String code, {
+    String purpose = 'login',
+  }) => _run(
+    () => ref
+        .read(authRepositoryProvider)
+        .verifyCode(email, code, purpose: purpose),
+  );
 
   Future<bool> social({
     required String provider,
@@ -364,13 +388,17 @@ class AuthFormController extends Notifier<AuthFormState> {
         .social(provider: provider, token: token, nonce: nonce),
   );
 
-  Future<bool> _run(Future<AuthSession> Function() operation) async {
+  Future<bool> _run(Future<AuthSession> Function() operation) => _guard(() async {
+    final session = await operation();
+    if (!ref.mounted) return;
+    await ref.read(authSessionProvider.notifier).save(session);
+  });
+
+  Future<bool> _guard(Future<void> Function() operation) async {
     if (state.submitting) return false;
     state = const AuthFormState(submitting: true);
     try {
-      final session = await operation();
-      if (!ref.mounted) return false;
-      await ref.read(authSessionProvider.notifier).save(session);
+      await operation();
       if (!ref.mounted) return false;
       state = const AuthFormState();
       return true;

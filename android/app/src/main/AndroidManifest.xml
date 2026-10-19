@@ -14,13 +14,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
-    <!-- Chromecast discovery: location on Android 12 and below, Nearby Wi‑Fi on 13+. -->
-    <uses-permission
-        android:name="android.permission.ACCESS_COARSE_LOCATION"
-        android:maxSdkVersion="32"/>
-    <uses-permission
-        android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="32"/>
+    <!-- Location: Chromecast discovery on Android 12 and below, and the listener
+         region sent with episode and Reel plays. Nearby Wi‑Fi stays for Cast on 13+. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"/>
@@ -55,10 +52,12 @@
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/episodes"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/shows"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/reels"/>
+                <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/creators"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/episodes"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/shows"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/reels"/>
+                <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/creators"/>
                 <data android:scheme="http" android:host="pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="http" android:host="pelevo.com" android:pathPrefix="/episodes"/>
             </intent-filter>
@@ -72,6 +71,7 @@
                 <data android:scheme="pelevo" android:host="reel"/>
                 <data android:scheme="pelevo" android:host="s"/>
                 <data android:scheme="pelevo" android:host="invite"/>
+                <data android:scheme="pelevo" android:host="creator"/>
             </intent-filter>
         </activity>
         <service
@@ -140,6 +140,14 @@
         <intent>
             <action android:name="android.intent.action.SEND"/>
             <data android:mimeType="image/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
         </intent>
     </queries>
 </manifest>

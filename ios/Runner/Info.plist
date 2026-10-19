@@ -120,6 +120,8 @@
 		<string>Pelevo can save published Reels and share cards to your photo library when you choose.</string>
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>Pelevo uses the local network to find Chromecast, AirPlay, and Cast speakers on your Wi‑Fi.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Pelevo uses your location while you play episodes and Reels so creators can see which regions their listeners are in.</string>
 		<key>NSBonjourServices</key>
 		<array>
 			<string>_CC1AD845._googlecast._tcp</string>

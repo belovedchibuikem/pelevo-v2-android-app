@@ -1,4 +1,6 @@
-/// Store list prices used until Apple or Google Play returns a localized price.
+import 'package:pelevo/features/store/fx_rates.dart';
+
+/// Listener country: profile first, then the device locale, then the US.
 String listenerCountryCode({String? profileCountry, String? deviceCountry}) {
   final profile = profileCountry?.trim().toUpperCase();
   if (profile != null && RegExp(r'^[A-Z]{2}$').hasMatch(profile)) {
@@ -9,144 +11,54 @@ String listenerCountryCode({String? profileCountry, String? deviceCountry}) {
   return 'US';
 }
 
-String seededCoinPrice(int coins, String countryCode) {
-  final country = countryCode.toUpperCase();
-  final listed = _coinLists[country] ?? _coinLists['US']!;
-  final exact = listed[coins];
-  if (exact != null) return exact;
-  final rate = _coinUnitMinor[country] ?? _coinUnitMinor['US']!;
-  final minor = (coins * rate).round();
-  return _formatMinor(country, minor);
-}
-
-String seededPlusPrice(String countryCode, {required bool yearly}) {
-  final country = countryCode.toUpperCase();
-  final monthly = _plusMonthly[country] ?? _plusMonthly['US']!;
-  if (!yearly) return '$monthly / month';
-  final yearlyLabel = _plusYearly[country] ?? _plusYearly['US']!;
-  return '$yearlyLabel / year';
-}
-
 bool plusIntervalIsYearly(String interval) {
   final value = interval.toLowerCase();
   return value.contains('year') || value.contains('annual');
 }
 
-/// Retail prices the listener pays. Apple and Google deduct their fee from
-/// these amounts; they are not added on top.
-const _coinLists = <String, Map<int, String>>{
-  'NG': {
-    300: '₦500',
-    500: '₦850',
-    750: '₦1,250',
-    1000: '₦1,700',
-    1200: '₦2,040',
-    1500: '₦2,500',
-    2000: '₦3,350',
-    2500: '₦4,250',
-    6500: '₦11,050',
-    15000: '₦25,500',
-  },
-  'US': {
-    300: r'$0.35',
-    500: r'$0.49',
-    750: r'$0.79',
-    1000: r'$0.99',
-    1200: r'$1.19',
-    1500: r'$1.49',
-    2000: r'$1.99',
-    2500: r'$2.48',
-    6500: r'$6.44',
-    15000: r'$14.85',
-  },
-  'GB': {
-    300: '£0.79',
-    500: '£1.19',
-    750: '£1.49',
-    1000: '£2.49',
-    1500: '£3.49',
-    2000: '£3.99',
-  },
-  'GH': {
-    300: 'GH₵15',
-    500: 'GH₵25',
-    750: 'GH₵35',
-    1000: 'GH₵45',
-    1500: 'GH₵65',
-    2000: 'GH₵85',
-  },
-  'KE': {
-    300: 'KSh 130',
-    500: 'KSh 200',
-    750: 'KSh 300',
-    1000: 'KSh 390',
-    1500: 'KSh 550',
-    2000: 'KSh 720',
-  },
-  'ZA': {
-    300: 'R18',
-    500: 'R28',
-    750: 'R40',
-    1000: 'R55',
-    1500: 'R75',
-    2000: 'R99',
-  },
+/// USD shelf used as the lead price. Local currencies are converted from this.
+const plusMonthlyUsdMinor = 1050;
+const plusYearlyUsdMinor = 10500;
+
+const _usdCoinMinor = <int, int>{
+  300: 35,
+  500: 49,
+  750: 79,
+  1000: 99,
+  1200: 119,
+  1500: 149,
+  2000: 199,
+  2500: 248,
+  6500: 644,
+  15000: 1485,
 };
 
-/// Per-coin retail used when a pack size is not listed.
-/// NG is whole naira. USD is cents, because [_formatMinor] divides by 100.
-const _coinUnitMinor = <String, double>{
-  'NG': 1.7,
-  'US': 0.099,
-  'GB': 0.20,
-  'GH': 4,
-  'KE': 36,
-  'ZA': 5,
-};
-
-const _plusMonthly = <String, String>{
-  'NG': '₦1,600',
-  'US': r'$10.50',
-  'GB': '£8.49',
-  'GH': 'GH₵165',
-  'KE': 'KSh 1,350',
-  'ZA': 'R195',
-  'CA': r'CA$14.50',
-};
-
-const _plusYearly = <String, String>{
-  'NG': '₦17,600',
-  'US': r'$105.00',
-  'GB': '£84.90',
-  'GH': 'GH₵1,650',
-  'KE': 'KSh 13,500',
-  'ZA': 'R1,950',
-  'CA': r'CA$145.00',
-};
-
-String _formatMinor(String country, num minor) {
-  switch (country) {
-    case 'NG':
-      return '₦${_grouped(minor.round())}';
-    case 'GB':
-      return '£${(minor / 100).toStringAsFixed(2)}';
-    case 'GH':
-      return 'GH₵${minor.round()}';
-    case 'KE':
-      return 'KSh ${_grouped(minor.round())}';
-    case 'ZA':
-      return 'R${minor.round()}';
-    default:
-      return '\$${(minor / 100).toStringAsFixed(2)}';
-  }
+int usdMinorForCoins(int coins) {
+  final listed = _usdCoinMinor[coins];
+  if (listed != null) return listed;
+  return (coins * 0.099).round();
 }
 
-String _grouped(int value) {
-  final text = value.toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < text.length; i++) {
-    if (i > 0 && (text.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(text[i]);
-  }
-  return buffer.toString();
-}
+int usdMinorForPlus({required bool yearly}) =>
+    yearly ? plusYearlyUsdMinor : plusMonthlyUsdMinor;
+
+String coinPriceLabel({
+  required int coins,
+  required String countryCode,
+  FxRateBook? rates,
+}) => localPriceFromUsd(
+  usdMinor: usdMinorForCoins(coins),
+  countryCode: countryCode,
+  rates: rates,
+);
+
+String plusPriceLabel({
+  required String countryCode,
+  required bool yearly,
+  FxRateBook? rates,
+}) => localPriceFromUsd(
+  usdMinor: usdMinorForPlus(yearly: yearly),
+  countryCode: countryCode,
+  rates: rates,
+  suffix: yearly ? ' / year' : ' / month',
+);
