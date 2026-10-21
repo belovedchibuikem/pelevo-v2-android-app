@@ -419,7 +419,7 @@ RSS claim: API generates a token; creator places it in the feed `<podcast:guid>`
 | POST | `/premium/restore` | `premium-restore` |
 | GET | `/premium/exclusive` | `premium-exclusive` |
 
-Webhooks: `/webhooks/paystack`, `/webhooks/flutterwave`, `/webhooks/paypal` — signature verified, then entitlement + invoice rows. Never trust a client “payment successful” screen.
+Webhooks: `/webhooks/app-store`, `/webhooks/google-play`, and optionally `/webhooks/revenuecat` update `user_subscriptions`, the append-only `subscription_transactions` log, and `premium_entitlements`. Paystack and PayPal webhooks remain the payout path, not the Plus source of truth. Signature-verify, enqueue, then apply. Never trust a client “payment successful” screen. Billing country comes from the store transaction, not from IP or the profile country. See `docs/architecture/backend-subscription.md`.
 
 ### Notifications, lock screen, devices, share cards, AI
 
@@ -557,7 +557,7 @@ Admin UI talks only to this prefix. Mobile tokens must 403 here.
 IAP Store ──verify──► gift_wallets ──send gift──► creator_balances
 Listen heartbeats ──complete──► earn_wallets ──withdraw──► Paystack/PayPal/Flutterwave
 Reels ads/tips/bonus ──monthly──► creator_balances ──payout──► bank
-Paystack/Flutterwave checkout ──webhook──► premium_entitlements
+App Store / Google Play (or RevenueCat) ──webhook──► user_subscriptions + subscription_transactions ──project──► premium_entitlements
 ```
 
 **Platform fee** (set in admin, default suggestion): 30% of gift coin value credited to creator in NGN at the dated FX rate. Listen-to-earn is a **user acquisition cost**, not a creator revenue share, unless product later says otherwise.

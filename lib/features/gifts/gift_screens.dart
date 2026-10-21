@@ -10,8 +10,6 @@ import 'package:pelevo/features/gifts/gift_data.dart';
 import 'package:pelevo/features/profile/legal_links.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/gifts/gift_service.dart';
-import 'package:pelevo/features/store/fx_rates.dart';
-import 'package:pelevo/features/store/regional_prices.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 final List<PelevoScreenSpec> giftScreens = List.unmodifiable([
@@ -525,7 +523,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _purchase(List<GiftPack> packs, String countryCode) async {
+  Future<void> _purchase(List<GiftPack> packs) async {
     if (packs.isEmpty || !_ageConfirmed) return;
     final pack = packs[_selected.clamp(0, packs.length - 1)];
     try {
@@ -548,15 +546,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
       return;
     }
     final result = await store.purchase(
-      CoinPack(
-        productId: pack.productId,
-        coins: pack.coins,
-        fallbackPrice: coinPriceLabel(
-          coins: pack.coins,
-          countryCode: countryCode,
-          rates: ref.read(fxRatesProvider).asData?.value,
-        ),
-      ),
+      CoinPack(productId: pack.productId, coins: pack.coins),
     );
     if (!mounted) return;
     if (result == GiftPurchaseStage.success) {
@@ -595,11 +585,6 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(giftWalletProvider);
     final packsAsync = ref.watch(giftPacksProvider);
-    final country = listenerCountryCode(
-      profileCountry: ref.watch(profileProvider).asData?.value.countryCode,
-      deviceCountry: View.of(context).platformDispatcher.locale.countryCode,
-    );
-    final rates = ref.watch(fxRatesProvider).asData?.value;
     ref.listen(giftPacksProvider, (previous, next) {
       final packs = next.asData?.value;
       if (packs == null || packs.isEmpty) return;
@@ -657,12 +642,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
               final price =
                   selected == null
                       ? 'Select a pack'
-                      : GiftWalletService.instance.priceFor(
-                        productId: selected.productId,
-                        coins: selected.coins,
-                        countryCode: country,
-                        rates: rates,
-                      );
+                      : GiftWalletService.instance.priceFor(selected.productId);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -739,10 +719,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                         child: _CoinPackTile(
                           coins: packs[index].coins,
                           price: GiftWalletService.instance.priceFor(
-                            productId: packs[index].productId,
-                            coins: packs[index].coins,
-                            countryCode: country,
-                            rates: rates,
+                            packs[index].productId,
                           ),
                           selected: _selected == index,
                           onTap: () => setState(() => _selected = index),
@@ -771,7 +748,7 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                     onPressed:
                         selected == null || !_ageConfirmed
                             ? null
-                            : () => _purchase(packs, country),
+                            : () => _purchase(packs),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -1157,7 +1134,14 @@ class _CoinPackTile extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
-          Text(price, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              price,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
         ],
       ),
     ),

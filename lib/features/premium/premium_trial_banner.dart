@@ -35,7 +35,7 @@ class _PremiumTrialRepositoryRemote implements PremiumTrialRemote {
   Future<bool?> readPremiumActive() async {
     try {
       final account = await _repository.me(CancelToken());
-      return account.entitlement?.active == true;
+      return account.entitlement?.grantsPlus == true;
     } on Object {
       return null;
     }

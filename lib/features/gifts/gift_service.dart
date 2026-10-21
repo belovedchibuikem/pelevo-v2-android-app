@@ -4,8 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:pelevo/features/store/fx_rates.dart';
-import 'package:pelevo/features/store/regional_prices.dart';
+import 'package:pelevo/features/premium/storefront_price.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum GiftPurchaseStage {
@@ -19,16 +18,10 @@ enum GiftPurchaseStage {
 }
 
 class CoinPack {
-  const CoinPack({
-    required this.productId,
-    required this.coins,
-    required this.fallbackPrice,
-    this.badge,
-  });
+  const CoinPack({required this.productId, required this.coins, this.badge});
 
   final String productId;
   final int coins;
-  final String fallbackPrice;
   final String? badge;
 }
 
@@ -70,29 +63,11 @@ class GiftWalletService extends ChangeNotifier {
 
   static const _balanceKey = 'pelevo_coin_balance';
   static const coinPacks = [
-    CoinPack(productId: 'pelevo_coins_500', coins: 500, fallbackPrice: r'$0.49'),
-    CoinPack(
-      productId: 'pelevo_coins_1200',
-      coins: 1200,
-      fallbackPrice: r'$1.19',
-      badge: 'Popular',
-    ),
-    CoinPack(
-      productId: 'pelevo_coins_2500',
-      coins: 2500,
-      fallbackPrice: r'$2.48',
-      badge: 'Best value',
-    ),
-    CoinPack(
-      productId: 'pelevo_coins_6500',
-      coins: 6500,
-      fallbackPrice: r'$6.44',
-    ),
-    CoinPack(
-      productId: 'pelevo_coins_15000',
-      coins: 15000,
-      fallbackPrice: r'$14.85',
-    ),
+    CoinPack(productId: 'pelevo_coins_500', coins: 500),
+    CoinPack(productId: 'pelevo_coins_1200', coins: 1200, badge: 'Popular'),
+    CoinPack(productId: 'pelevo_coins_2500', coins: 2500, badge: 'Best value'),
+    CoinPack(productId: 'pelevo_coins_6500', coins: 6500),
+    CoinPack(productId: 'pelevo_coins_15000', coins: 15000),
   ];
 
   static const gifts = [
@@ -113,6 +88,7 @@ class GiftWalletService extends ChangeNotifier {
 
   int _balance = 1250;
   GiftPurchaseStage _purchaseStage = GiftPurchaseStage.idle;
+  Map<String, StorefrontPrice>? _quoteOverride;
   String? _purchaseError;
   CoinPack? _lastPurchasedPack;
   GiftOption? _lastGift;
@@ -182,23 +158,31 @@ class GiftWalletService extends ChangeNotifier {
     _verifier = verifier;
   }
 
-  String localizedPrice(CoinPack pack) =>
-      _storeProducts[pack.productId]?.price ?? pack.fallbackPrice;
-
-  String? storePrice(String productId) => _storeProducts[productId]?.price;
-
-  /// Store listing for this country when Play or the App Store has one.
-  /// Otherwise the USD shelf converted with the current FX book.
-  String priceFor({
-    required String productId,
-    required int coins,
-    required String countryCode,
-    FxRateBook? rates,
-  }) {
-    final listed = _storeProducts[productId]?.price;
-    if (listed != null && listed.isNotEmpty) return listed;
-    return coinPriceLabel(coins: coins, countryCode: countryCode, rates: rates);
+  /// Installs store quotes for tests. Production reads the native catalog.
+  @visibleForTesting
+  void debugInstallQuotes(Map<String, StorefrontPrice> quotes) {
+    _quoteOverride = Map.unmodifiable(quotes);
+    notifyListeners();
   }
+
+  @visibleForTesting
+  void debugClearQuotes() {
+    _quoteOverride = null;
+    notifyListeners();
+  }
+
+  /// Formatted price and currency from the signed-in store account.
+  StorefrontPrice? quoteFor(String productId) {
+    final override = _quoteOverride;
+    if (override != null) return override[productId];
+    final product = _storeProducts[productId];
+    if (product == null) return null;
+    return storefrontPriceFromProduct(product);
+  }
+
+  /// Store-formatted price. A missing catalog row stays unlabeled.
+  String priceFor(String productId) =>
+      subscriptionPriceLine(quoteFor(productId));
 
   Future<void> ensureProducts(Iterable<String> productIds) async {
     if (!_isMobileStore || !_storeAvailable) return;

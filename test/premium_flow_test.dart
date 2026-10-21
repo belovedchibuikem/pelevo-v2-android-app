@@ -7,7 +7,9 @@ import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/premium/premium_store.dart';
 import 'package:pelevo/features/premium/premium_system_screens.dart';
+import 'package:pelevo/features/premium/storefront_price.dart';
 import 'support/api_adapter.dart';
 import 'support/catalog_fixture.dart';
 import 'support/premium_fixture.dart';
@@ -18,10 +20,15 @@ void main() {
     WidgetTester tester, {
     required String location,
     required ApiAdapter adapter,
+    Map<String, StorefrontPrice>? quotes,
   }) async {
     tester.view.physicalSize = const Size(430, 2200);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.localeTestValue = const Locale('en', 'NG');
+    if (quotes != null) {
+      PremiumStore.instance.debugInstallQuotes(quotes);
+    }
+    addTearDown(PremiumStore.instance.debugClearQuotes);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearLocaleTestValue);
@@ -90,13 +97,14 @@ void main() {
   ApiAdapter _adapter({
     void Function(RequestOptions request)? onCheckout,
     List<Map<String, dynamic>>? plans,
+    Map<String, dynamic>? account,
   }) => ApiAdapter((request) {
     if (request.path == '/me') return jsonResponse(profileFixture());
     if (request.path == '/premium/plans') {
       return jsonResponse(plans ?? [premiumPlanFixture()]);
     }
     if (request.path == '/premium/me') {
-      return jsonResponse(premiumAccountFixture());
+      return jsonResponse(account ?? premiumAccountFixture());
     }
     if (request.path == '/premium/invoices') {
       return jsonResponse([premiumInvoiceFixture()]);
@@ -132,10 +140,32 @@ void main() {
   testWidgets('plans bind the server name instead of invented naira copy', (
     tester,
   ) async {
-    await mount(tester, location: '/screen/premium-plans', adapter: _adapter());
+    await mount(
+      tester,
+      location: '/screen/premium-plans',
+      adapter: _adapter(),
+      quotes: {
+        PremiumStore.monthlyProductId: const StorefrontPrice(
+          priceString: '₦1,600.00',
+          currencyCode: 'NGN',
+        ),
+      },
+    );
     expect(find.text('Pelevo Plus Monthly'), findsOneWidget);
-    expect(find.text(r'$10.50 / month'), findsOneWidget);
+    expect(find.text('₦1,600.00'), findsOneWidget);
+    expect(find.text('Subscribe for ₦1,600.00'), findsOneWidget);
     expect(find.text('NGN 25.00 / month'), findsNothing);
+    expect(find.text(r'$10.50 / month'), findsNothing);
+  });
+
+  testWidgets('plans wait for the store instead of converting a shelf price', (
+    tester,
+  ) async {
+    await mount(tester, location: '/screen/premium-plans', adapter: _adapter());
+    expect(find.text(storefrontPricePending), findsOneWidget);
+    expect(find.text('NGN 25.00 / month'), findsNothing);
+    expect(find.text(r'$10.50 / month'), findsNothing);
+    expect(find.textContaining('₦'), findsNothing);
   });
 
   testWidgets(
@@ -167,6 +197,20 @@ void main() {
     await mount(
       tester,
       location: '/screen/premium-plans?offer=plus-3-month-trial',
+      quotes: {
+        PremiumStore.monthlyProductId: const StorefrontPrice(
+          priceString: '₦1,600.00',
+          currencyCode: 'NGN',
+          introductoryPeriodLabel: '3 months',
+          introductoryPriceIsFree: true,
+        ),
+        PremiumStore.yearlyProductId: const StorefrontPrice(
+          priceString: 'R699.99',
+          currencyCode: 'ZAR',
+          introductoryPeriodLabel: '3 months',
+          introductoryPriceIsFree: true,
+        ),
+      },
       adapter: _adapter(
         plans: [
           premiumPlanFixture(
@@ -190,10 +234,18 @@ void main() {
     );
     expect(find.text('Monthly'), findsOneWidget);
     expect(find.text('Annual'), findsOneWidget);
-    expect(find.text('3 months free'), findsOneWidget);
-    expect(find.text('1 month free'), findsOneWidget);
-    expect(find.text('Free for 3 months, then \$10.50 / month'), findsOneWidget);
-    expect(find.text('Free for 3 months, then \$105.00 / year'), findsOneWidget);
+    expect(find.text('3 months free'), findsNWidgets(2));
+    expect(find.text('1 month free'), findsNothing);
+    expect(
+      find.text('Free for your first 3 months, then ₦1,600.00'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Free for your first 3 months, then R699.99'),
+      findsOneWidget,
+    );
+    expect(find.textContaining(r'$10.50'), findsNothing);
+    expect(find.textContaining(r'$105.00'), findsNothing);
     expect(find.text('Your 3-month free trial is selected.'), findsOneWidget);
     expect(
       find.text(
@@ -202,5 +254,132 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Claim Offer'), findsOneWidget);
+    expect(find.textContaining('Promo:'), findsNothing);
+  });
+
+  testWidgets('a paid store intro is shown with the store price', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-plans',
+      quotes: {
+        PremiumStore.monthlyProductId: const StorefrontPrice(
+          priceString: 'KES 419.00',
+          currencyCode: 'KES',
+          introductoryPriceString: 'KES 199.00',
+          introductoryPeriodLabel: 'month',
+        ),
+      },
+      adapter: _adapter(),
+    );
+
+    expect(
+      find.text('Promo: Get your first month for only KES 199.00!'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Pay only KES 199.00 for your first month, then KES 419.00'),
+      findsOneWidget,
+    );
+    expect(find.text('Subscribe for KES 199.00'), findsOneWidget);
+    expect(find.text('Start Free Trial'), findsNothing);
+    expect(find.textContaining(r'$'), findsNothing);
+  });
+
+  testWidgets('a grace-period membership stays labeled and entitled', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-subscription',
+      adapter: _adapter(
+        account: premiumAccountFixture(
+          entitlement: premiumEntitlementFixture(state: 'in_grace_period'),
+          subscription: {
+            'id': 'sub-1',
+            'state': 'in_grace_period',
+            'provider': 'google',
+            'current_period_start': '2026-09-10T00:00:00Z',
+            'current_period_end': '2026-10-10T00:00:00Z',
+            'plan_id': 'plan-monthly',
+          },
+        ),
+      ),
+    );
+    expect(find.text('Grace period'), findsOneWidget);
+    expect(find.text('Expired'), findsNothing);
+    expect(find.textContaining('Auto-renew is off'), findsNothing);
+  });
+
+  testWidgets('turning off auto-renew keeps Plus until the paid period ends', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-subscription',
+      adapter: _adapter(
+        account: premiumAccountFixture(
+          entitlement: premiumEntitlementFixture(),
+          subscription: {
+            'id': 'sub-1',
+            'state': 'active',
+            'provider': 'apple',
+            'current_period_start': '2026-09-10T00:00:00Z',
+            'current_period_end': '2026-10-10T00:00:00Z',
+            'plan_id': 'plan-monthly',
+            'cancel_at': '2026-10-10T00:00:00Z',
+          },
+        ),
+      ),
+    );
+    expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Canceled'), findsNothing);
+    expect(
+      find.textContaining(
+        'Auto-renew is off. Pelevo Plus stays available until the period you already paid for ends.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a moved storefront is labeled from the billed country', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-subscription',
+      adapter: _adapter(
+        plans: [
+          premiumPlanFixture(
+            id: 'plan-monthly',
+            slug: 'plus-monthly',
+            interval: 'month',
+          ),
+        ],
+        account: premiumAccountFixture(
+          entitlement: premiumEntitlementFixture(),
+          subscription: {
+            'id': 'sub-1',
+            'state': 'active',
+            'provider': 'google',
+            'current_period_start': '2026-09-10T00:00:00Z',
+            'current_period_end': '2026-10-10T00:00:00Z',
+            'plan_id': 'plan-monthly',
+            'billing_country_code': 'ZA',
+            'billing_currency': 'ZAR',
+            'is_in_intro_offer': true,
+          },
+        ),
+      ),
+    );
+    expect(find.textContaining('Billed in South Africa (ZAR)'), findsOneWidget);
+    expect(find.textContaining('Introductory offer'), findsOneWidget);
+    expect(find.textContaining('Nigeria'), findsNothing);
+    expect(
+      find.text('Contact support to cancel your subscription'),
+      findsNothing,
+    );
+    expect(find.text('Cancel Subscription'), findsOneWidget);
   });
 }

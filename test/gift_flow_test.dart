@@ -7,6 +7,8 @@ import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/gifts/gift_screens.dart';
+import 'package:pelevo/features/gifts/gift_service.dart';
+import 'package:pelevo/features/premium/storefront_price.dart';
 import 'support/api_adapter.dart';
 import 'support/gift_fixture.dart';
 
@@ -15,10 +17,15 @@ void main() {
     WidgetTester tester, {
     required String location,
     required ApiAdapter adapter,
+    Map<String, StorefrontPrice>? quotes,
   }) async {
     tester.view.physicalSize = const Size(430, 1600);
     tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.localeTestValue = const Locale('en', 'US');
+    tester.platformDispatcher.localeTestValue = const Locale('en', 'NG');
+    if (quotes != null) {
+      GiftWalletService.instance.debugInstallQuotes(quotes);
+    }
+    addTearDown(GiftWalletService.instance.debugClearQuotes);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearLocaleTestValue);
@@ -110,8 +117,10 @@ void main() {
     expect(find.text('100'), findsOneWidget);
     expect(find.text('Choose a coin pack'), findsOneWidget);
     expect(find.text('1200 coins'), findsOneWidget);
-    expect(find.text(r'$0.49'), findsOneWidget);
-    expect(find.text(r'$1.19'), findsOneWidget);
+    expect(find.text(storefrontPricePending), findsNWidgets(2));
+    expect(find.textContaining('Continue · $storefrontPricePending'), findsOneWidget);
+    expect(find.text(r'$0.49'), findsNothing);
+    expect(find.text(r'$1.19'), findsNothing);
     expect(find.text('₦850'), findsNothing);
     expect(find.text('₦1,900'), findsNothing);
     expect(find.text('1250'), findsNothing);
@@ -124,6 +133,37 @@ void main() {
       find.text('In-app purchases are not available on this device.'),
       findsWidgets,
     );
+  });
+
+  testWidgets('coin store shows the store formatted price for each pack', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/gift-coin-store',
+      adapter: giftsAdapter(),
+      quotes: const {
+        'pelevo_coins_500': StorefrontPrice(
+          priceString: '₦1,600.00',
+          currencyCode: 'NGN',
+        ),
+        'pelevo_coins_1200': StorefrontPrice(
+          priceString: 'R69.99',
+          currencyCode: 'ZAR',
+          introductoryPriceString: 'R29.99',
+          introductoryPeriodLabel: '3 months',
+        ),
+      },
+    );
+    expect(find.text('₦1,600.00'), findsOneWidget);
+    expect(
+      find.text('Pay only R29.99 for your first 3 months, then R69.99'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Continue · ₦1,600.00'), findsOneWidget);
+    expect(find.text(r'$0.49'), findsNothing);
+    expect(find.text(r'$1.19'), findsNothing);
+    expect(find.text('₦490.00'), findsNothing);
   });
 
   testWidgets('coin wallet shows ledger event types instead of invented copy', (

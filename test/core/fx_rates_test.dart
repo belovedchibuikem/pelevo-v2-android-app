@@ -14,18 +14,7 @@ void main() {
     expect(currencyForCountry('ZZ'), 'USD');
   });
 
-  test('USD shelf stays the lead price', () {
-    expect(coinPriceLabel(coins: 500, countryCode: 'US'), r'$0.49');
-    expect(coinPriceLabel(coins: 1200, countryCode: 'US'), r'$1.19');
-    expect(coinPriceLabel(coins: 400, countryCode: 'US'), r'$0.40');
-    expect(
-      plusPriceLabel(countryCode: 'US', yearly: false),
-      r'$10.50 / month',
-    );
-    expect(coinPriceLabel(coins: 500, countryCode: 'NG'), r'$0.49');
-  });
-
-  test('a reviewed naira rate converts the USD shelf', () {
+  test('a reviewed rate converts a USD amount for non-store balances', () {
     const rates = FxRateBook(
       rates: {'USD': 1, 'NGN': 1000, 'JPY': 150},
       source: 'reviewed',
@@ -33,17 +22,14 @@ void main() {
       reviewed: {'NGN'},
     );
     expect(
-      coinPriceLabel(coins: 500, countryCode: 'NG', rates: rates),
+      localPriceFromUsd(usdMinor: 49, countryCode: 'NG', rates: rates),
       '₦490.00',
-    );
-    expect(
-      plusPriceLabel(countryCode: 'NG', yearly: false, rates: rates),
-      '₦10,500.00 / month',
     );
     expect(
       localPriceFromUsd(usdMinor: 100, countryCode: 'JP', rates: rates),
       '¥150',
     );
+    expect(localPriceFromUsd(usdMinor: 49, countryCode: 'NG'), r'$0.49');
   });
 
   test('reviewed currencies override the automatic board', () {

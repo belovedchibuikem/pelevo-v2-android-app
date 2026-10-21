@@ -4,6 +4,7 @@ import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/premium/premium_trial_offer.dart';
+import 'package:pelevo/features/store/fx_rates.dart';
 
 const _invalidPremium = ApiFailure(
   code: 'INVALID_RESPONSE',
@@ -56,9 +57,42 @@ List<Map<String, dynamic>> _listBody(Map<String, dynamic>? body) {
   return _maps(body['data']);
 }
 
-String formatPremiumPrice(int minor, String currency, String interval) {
-  final major = (minor / 100).toStringAsFixed(2);
-  return '$currency $major / $interval';
+/// Store charge in minor units. XOF and XAF use exponent 0, so 1,800 stays 1,800.
+String formatPremiumAmount(int minor, String currency) {
+  final digits = fractionDigits(currency);
+  final scale = switch (digits) {
+    0 => 1,
+    3 => 1000,
+    _ => 100,
+  };
+  final major = (minor / scale).toStringAsFixed(digits);
+  return '$currency $major';
+}
+
+String formatPremiumPrice(int minor, String currency, String interval) =>
+    '${formatPremiumAmount(minor, currency)} / $interval';
+
+const plusBillingCountryNames = <String, String>{
+  'NG': 'Nigeria',
+  'ZA': 'South Africa',
+  'KE': 'Kenya',
+  'GH': 'Ghana',
+  'EG': 'Egypt',
+  'MA': 'Morocco',
+  'CI': 'Ivory Coast',
+  'CM': 'Cameroon',
+  'US': 'United States',
+};
+
+String plusBillingCountryLabel(String countryCode) =>
+    plusBillingCountryNames[countryCode] ?? countryCode;
+
+String? _regionCode(Map<String, dynamic> data, String key, int length) {
+  final raw = _optionalText(data, key);
+  if (raw == null || raw.trim().isEmpty) return null;
+  final code = raw.trim().toUpperCase();
+  if (!RegExp('^[A-Z]{$length}\$').hasMatch(code)) throw _invalidPremium;
+  return code;
 }
 
 class PremiumPlan {
@@ -118,6 +152,10 @@ class PremiumEntitlement {
   final String? endsAt;
 
   bool get active => state == 'active';
+
+  /// Plus stays on through a failed renewal. The API sets this from the store
+  /// webhook. Expired and canceled accounts return to the free tier.
+  bool get grantsPlus => state == 'active' || state == 'in_grace_period';
 }
 
 class PremiumSubscription {
@@ -129,6 +167,9 @@ class PremiumSubscription {
     required this.currentPeriodEnd,
     required this.planId,
     this.cancelAt,
+    this.billingCountryCode,
+    this.billingCurrency,
+    this.isInIntroOffer = false,
   });
 
   factory PremiumSubscription.parse(Map<String, dynamic> data) {
@@ -138,8 +179,11 @@ class PremiumSubscription {
     if (DateTime.tryParse(start) == null || DateTime.tryParse(end) == null) {
       throw _invalidPremium;
     }
-    if (cancel != null && DateTime.tryParse(cancel) == null)
+    if (cancel != null && DateTime.tryParse(cancel) == null) {
       throw _invalidPremium;
+    }
+    final intro = data['is_in_intro_offer'];
+    if (intro != null && intro is! bool) throw _invalidPremium;
     return PremiumSubscription(
       id: _text(data, 'id'),
       state: _text(data, 'state'),
@@ -148,6 +192,9 @@ class PremiumSubscription {
       currentPeriodEnd: end,
       planId: _text(data, 'plan_id'),
       cancelAt: cancel,
+      billingCountryCode: _regionCode(data, 'billing_country_code', 2),
+      billingCurrency: _regionCode(data, 'billing_currency', 3),
+      isInIntroOffer: intro == true,
     );
   }
 
@@ -157,7 +204,17 @@ class PremiumSubscription {
       currentPeriodStart,
       currentPeriodEnd,
       planId;
-  final String? cancelAt;
+  final String? cancelAt, billingCountryCode, billingCurrency;
+  final bool isInIntroOffer;
+
+  String get billingLabel {
+    final country = billingCountryCode;
+    if (country == null) return '';
+    final name = plusBillingCountryLabel(country);
+    final currency = billingCurrency;
+    if (currency == null || currency.isEmpty) return 'Billed in $name';
+    return 'Billed in $name ($currency)';
+  }
 }
 
 class PremiumAccount {
@@ -181,7 +238,7 @@ class PremiumAccount {
 /// Active Pelevo Plus for a listener or a creator.
 /// Plus removes ads on the home feed and on search.
 bool pelevoPlusRemovesAds(PremiumAccount? account) =>
-    account?.entitlement?.active == true;
+    account?.entitlement?.grantsPlus == true;
 
 class PremiumInvoice {
   const PremiumInvoice({

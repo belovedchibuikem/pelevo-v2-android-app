@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
+import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
-import 'package:pelevo/features/store/fx_rates.dart';
+import 'package:pelevo/features/premium/storefront_price.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
 
 class PremiumPurchaseResult {
@@ -19,6 +22,9 @@ class PremiumPurchaseResult {
 }
 
 /// Google Play / App Store subscription for Pelevo Plus.
+///
+/// Monthly prices are set per country in each store console. The paywall
+/// shows that store's formatted price and does not convert a base amount.
 class PremiumStore {
   PremiumStore._();
 
@@ -35,6 +41,8 @@ class PremiumStore {
   final List<PremiumPurchaseResult> _restoreBuffer = [];
   Timer? _restoreSettle;
   DateTime? _restoreStarted;
+  Map<String, StorefrontPrice>? _quoteOverride;
+  final Map<String, bool> _introEligible = {};
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
@@ -43,19 +51,36 @@ class PremiumStore {
   String productIdFor(PremiumPlan plan) =>
       plusIntervalIsYearly(plan.interval) ? yearlyProductId : monthlyProductId;
 
-  String priceLabel(
-    PremiumPlan plan,
-    String countryCode, {
-    FxRateBook? rates,
-  }) {
-    final listed = _pricedProduct(productIdFor(plan))?.price;
-    if (listed != null && listed.isNotEmpty) return listed;
-    return plusPriceLabel(
-      countryCode: countryCode,
-      yearly: plusIntervalIsYearly(plan.interval),
-      rates: rates,
+  /// Installs store quotes for tests. Production reads the native catalog.
+  @visibleForTesting
+  void debugInstallQuotes(Map<String, StorefrontPrice> quotes) {
+    _quoteOverride = Map.unmodifiable(quotes);
+  }
+
+  @visibleForTesting
+  void debugClearQuotes() {
+    _quoteOverride = null;
+    _introEligible.clear();
+  }
+
+  bool get hasDebugQuotes => _quoteOverride != null;
+
+  StorefrontPrice? quoteForPlan(PremiumPlan plan) {
+    final override = _quoteOverride;
+    final productId = productIdFor(plan);
+    if (override != null) return override[productId];
+    final product = _productForPurchase(plan);
+    if (product == null) return null;
+    final quote = storefrontPriceFromProduct(product);
+    if (quote == null) return null;
+    return storefrontQuoteForEligibility(
+      quote,
+      eligible: _introEligible[productId] != false,
     );
   }
+
+  String priceLabel(PremiumPlan plan) =>
+      subscriptionPriceLine(quoteForPlan(plan));
 
   Future<void> prepare(Iterable<PremiumPlan> plans) async {
     if (!_isMobileStore) return;
@@ -77,28 +102,38 @@ class PremiumStore {
         offers.add(product);
       }
     }
+    await _noteIntroEligibility(ids);
   }
 
-  ProductDetails? _pricedProduct(String productId) {
-    final offers = _catalog[productId] ?? const <ProductDetails>[];
-    for (final offer in offers) {
-      if (_isThreeMonthFreeOffer(offer)) continue;
-      return offer;
-    }
-    return offers.isEmpty ? null : offers.first;
-  }
-
-  ProductDetails? _productForPurchase(PremiumPlan plan) {
-    final offers = _catalog[productIdFor(plan)] ?? const <ProductDetails>[];
-    if (plan.isThreeMonthTrial) {
-      for (final offer in offers) {
-        if (_isThreeMonthFreeOffer(offer)) return offer;
+  Future<void> _noteIntroEligibility(Set<String> ids) async {
+    if (kIsWeb || !Platform.isIOS) return;
+    for (final id in ids) {
+      if (!_catalogHasIntro(id)) continue;
+      try {
+        _introEligible[id] = await SK2Product.isIntroductoryOfferEligible(id);
+      } on Object {
+        _introEligible[id] = false;
       }
-      if (!kIsWeb && Platform.isAndroid) return null;
-      return offers.isEmpty ? null : offers.first;
     }
-    return _pricedProduct(productIdFor(plan));
   }
+
+  bool _catalogHasIntro(String productId) {
+    for (final product in _catalog[productId] ?? const <ProductDetails>[]) {
+      final quote = storefrontPriceFromProduct(product);
+      if (quote == null) continue;
+      if (quote.introductoryPriceIsFree ||
+          (quote.introductoryPriceString?.isNotEmpty ?? false)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  ProductDetails? _productForPurchase(PremiumPlan plan) => storeProductForPlan(
+    _catalog[productIdFor(plan)] ?? const <ProductDetails>[],
+    trialPlan: plan.isThreeMonthTrial,
+    android: !kIsWeb && Platform.isAndroid,
+  );
 
   bool _sameOffer(ProductDetails left, ProductDetails right) {
     if (left is GooglePlayProductDetails && right is GooglePlayProductDetails) {
@@ -108,22 +143,7 @@ class PremiumStore {
     return left.id == right.id;
   }
 
-  bool _isThreeMonthFreeOffer(ProductDetails product) {
-    if (product is! GooglePlayProductDetails) return false;
-    final index = product.subscriptionIndex;
-    final offers = product.productDetails.subscriptionOfferDetails;
-    if (index == null ||
-        offers == null ||
-        index < 0 ||
-        index >= offers.length) {
-      return false;
-    }
-    final phases = offers[index].pricingPhases;
-    if (phases.isEmpty || phases.first.priceAmountMicros != 0) return false;
-    return phases.first.billingPeriod == 'P3M';
-  }
-
-  PurchaseParam _purchaseParam(ProductDetails product) {
+  PurchaseParam _purchaseParam(ProductDetails product, String? accountId) {
     if (!kIsWeb && Platform.isAndroid && product is GooglePlayProductDetails) {
       final index = product.subscriptionIndex;
       final offers = product.productDetails.subscriptionOfferDetails;
@@ -134,12 +154,25 @@ class PremiumStore {
       return GooglePlayPurchaseParam(
         productDetails: product,
         offerToken: token,
+        applicationUserName: accountId,
       );
     }
-    return PurchaseParam(productDetails: product);
+    if (!kIsWeb && Platform.isIOS) {
+      return AppStorePurchaseParam(
+        productDetails: product,
+        applicationUserName: accountId,
+      );
+    }
+    return PurchaseParam(
+      productDetails: product,
+      applicationUserName: accountId,
+    );
   }
 
-  Future<PremiumPurchaseResult> buy(PremiumPlan plan) async {
+  Future<PremiumPurchaseResult> buy(
+    PremiumPlan plan, {
+    String? accountId,
+  }) async {
     if (_pending != null && !_pending!.isCompleted) {
       throw PremiumStoreException('A Plus purchase is already in progress.');
     }
@@ -159,7 +192,7 @@ class PremiumStore {
     }
     _pending = Completer<PremiumPurchaseResult>();
     final started = await _iap.buyNonConsumable(
-      purchaseParam: _purchaseParam(product),
+      purchaseParam: _purchaseParam(product, storeAccountToken(accountId)),
     );
     if (!started) {
       _pending = null;
@@ -170,7 +203,7 @@ class PremiumStore {
 
   /// Restores Pelevo Plus from Google Play or the App Store, the same billing
   /// path used to subscribe. Returns each restored Plus receipt.
-  Future<List<PremiumPurchaseResult>> restore() async {
+  Future<List<PremiumPurchaseResult>> restore({String? accountId}) async {
     if (!_isMobileStore) {
       throw PremiumStoreException(
         'Pelevo Plus is restored through Google Play or the App Store.',
@@ -190,11 +223,11 @@ class PremiumStore {
     final pending = Completer<List<PremiumPurchaseResult>>();
     _restorePending = pending;
     try {
-      await _iap.restorePurchases();
-    } catch (_) {
-      _failRestore(
-        'The store could not restore purchases. Please try again.',
+      await _iap.restorePurchases(
+        applicationUserName: storeAccountToken(accountId),
       );
+    } catch (_) {
+      _failRestore('The store could not restore purchases. Please try again.');
       return pending.future;
     }
     _scheduleRestoreSettle();
@@ -328,6 +361,48 @@ PremiumPlan? planForPlusProduct(Iterable<PremiumPlan> plans, String productId) {
   }
   return trial;
 }
+
+const plusPlayPackageName = 'com.Podemeraldltd.pelevo';
+
+/// Store page where the member turns auto-renew off. Access stays on until
+/// the paid period ends; the store webhook is what changes the entitlement.
+Uri? plusStoreSubscriptionUri({required String provider, String? productId}) {
+  if (provider == 'apple') {
+    return Uri.parse('https://apps.apple.com/account/subscriptions');
+  }
+  if (provider != 'google') return null;
+  final params = <String, String>{'package': plusPlayPackageName};
+  if (productId == PremiumStore.monthlyProductId ||
+      productId == PremiumStore.yearlyProductId) {
+    params['sku'] = productId!;
+  }
+  return Uri.https('play.google.com', '/store/account/subscriptions', params);
+}
+
+/// Apple's app account token is a UUID. Google accepts the same id as the
+/// obfuscated external account id. Anything else is omitted so a purchase
+/// still starts; the signed-in store-purchase call attaches the row.
+String? storeAccountToken(String? userId) {
+  final value = userId?.trim().toLowerCase() ?? '';
+  const uuid =
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+  if (!RegExp(uuid).hasMatch(value)) return null;
+  return value;
+}
+
+/// Loads Play / App Store products for the paywall. Access still comes from
+/// `GET /premium/me`, which the API updates from store webhooks.
+final premiumStoreCatalogProvider = FutureProvider.autoDispose<void>((
+  ref,
+) async {
+  final plans = ref.watch(premiumPlansProvider).asData?.value;
+  if (plans == null || PremiumStore.instance.hasDebugQuotes) return;
+  try {
+    await PremiumStore.instance.prepare(plans);
+  } on Object {
+    // A store outage leaves the paywall on the unlabeled price.
+  }
+});
 
 class PremiumStoreException implements Exception {
   PremiumStoreException(this.message);
