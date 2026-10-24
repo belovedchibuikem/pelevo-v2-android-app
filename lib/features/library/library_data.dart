@@ -198,6 +198,10 @@ class LibraryCollection {
     required this.name,
     required this.version,
     required this.itemCount,
+    this.description,
+    this.artworkUrl,
+    this.isPublic = false,
+    this.isOwner = true,
     this.items = const [],
   });
 
@@ -210,6 +214,10 @@ class LibraryCollection {
     return LibraryCollection(
       id: _text(data, 'id'),
       name: _text(data, 'name'),
+      description: _optionalText(data, 'description'),
+      artworkUrl: _optionalText(data, 'artwork_url'),
+      isPublic: data.containsKey('is_public') ? _flag(data['is_public']) : false,
+      isOwner: data.containsKey('is_owner') ? _flag(data['is_owner']) : true,
       version: _count(data['version']),
       itemCount: _count(data['item_count']),
       items: items,
@@ -217,6 +225,8 @@ class LibraryCollection {
   }
 
   final String id, name;
+  final String? description, artworkUrl;
+  final bool isPublic, isOwner;
   final int version, itemCount;
   final List<LibraryCollectionItem> items;
 
@@ -681,11 +691,98 @@ class LibraryRepository {
     }
   }
 
-  Future<LibraryCollection> createCollection(String name) async {
+  Future<LibraryCollection> createCollection(
+    String name, {
+    String? description,
+    bool isPublic = false,
+  }) async {
     try {
       return LibraryCollection.parse(
         requireApiData(
-          (await _dio.post<Map<String, dynamic>>('/collections', data: {'name': name})).data,
+          (await _dio.post<Map<String, dynamic>>(
+            '/collections',
+            data: {
+              'name': name,
+              'description': description,
+              'is_public': isPublic,
+            },
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<LibraryCollection> updateCollection({
+    required String id,
+    required String name,
+    required int version,
+    String? description,
+    bool isPublic = false,
+  }) async {
+    try {
+      return LibraryCollection.parse(
+        requireApiData(
+          (await _dio.put<Map<String, dynamic>>(
+            '/collections/${Uri.encodeComponent(id)}',
+            data: {
+              'name': name,
+              'description': description,
+              'is_public': isPublic,
+              'version': version,
+            },
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<LibraryCollection> addCollectionItem({
+    required String id,
+    required String type,
+    required String collectableId,
+    required int version,
+  }) async {
+    try {
+      return LibraryCollection.parse(
+        requireApiData(
+          (await _dio.post<Map<String, dynamic>>(
+            '/collections/${Uri.encodeComponent(id)}/items',
+            data: {
+              'collectable_type': type,
+              'collectable_id': collectableId,
+              'version': version,
+            },
+          )).data,
+        ),
+      );
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
+  Future<LibraryCollection> removeCollectionItem({
+    required String id,
+    required String type,
+    required String collectableId,
+    required int version,
+  }) async {
+    try {
+      return LibraryCollection.parse(
+        requireApiData(
+          (await _dio.delete<Map<String, dynamic>>(
+            '/collections/${Uri.encodeComponent(id)}/items/$type/${Uri.encodeComponent(collectableId)}',
+            data: {'version': version},
+          )).data,
         ),
       );
     } on ApiFailure {

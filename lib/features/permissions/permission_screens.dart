@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,59 @@ import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/notifications/firebase_push.dart';
 import 'package:pelevo/features/onboarding/onboarding_progress.dart';
+import 'package:pelevo/features/player/cast/pelevo_cast_permissions.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+/// The access each setup screen is allowed to ask for.
+enum PelevoSetupPermission {
+  notifications,
+  microphone,
+  storage,
+  background,
+  devices,
+}
+
+bool get _canRequestOsPermission =>
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS);
+
+/// Asks for the permission behind a setup screen.
+///
+/// Downloads stay in app-private storage, so that step does not prompt.
+/// Returns true when the system will not show the prompt again.
+Future<bool> requestPelevoSetupPermission(PelevoSetupPermission permission) async {
+  if (!_canRequestOsPermission) return false;
+  try {
+    switch (permission) {
+      case PelevoSetupPermission.notifications:
+        return _permanentlyDenied(await Permission.notification.request());
+      case PelevoSetupPermission.microphone:
+        return _permanentlyDenied(await Permission.microphone.request());
+      case PelevoSetupPermission.storage:
+        return false;
+      case PelevoSetupPermission.background:
+        if (defaultTargetPlatform != TargetPlatform.android) return false;
+        return _permanentlyDenied(
+          await Permission.ignoreBatteryOptimizations.request(),
+        );
+      case PelevoSetupPermission.devices:
+        await ensureCastDiscoveryPermissions();
+        if (defaultTargetPlatform != TargetPlatform.android) return false;
+        final info = await DeviceInfoPlugin().androidInfo;
+        final nearby =
+            info.version.sdkInt >= 33
+                ? Permission.nearbyWifiDevices
+                : Permission.locationWhenInUse;
+        return _permanentlyDenied(await nearby.status);
+    }
+  } on Object {
+    return false;
+  }
+}
+
+bool _permanentlyDenied(PermissionStatus status) =>
+    status.isPermanentlyDenied || status.isRestricted;
 
 class PermissionIntroScreen extends ConsumerWidget {
   const PermissionIntroScreen({super.key});
@@ -75,6 +128,7 @@ class PermissionRequestScreen extends ConsumerStatefulWidget {
     required this.body,
     required this.assetPath,
     required this.allowLabel,
+    required this.permission,
     required this.step,
     required this.previousId,
     required this.nextId,
@@ -85,6 +139,7 @@ class PermissionRequestScreen extends ConsumerStatefulWidget {
   final String body;
   final String assetPath;
   final String allowLabel;
+  final PelevoSetupPermission permission;
   final int step;
   final String previousId;
   final String nextId;
@@ -111,45 +166,35 @@ class _PermissionRequestScreenState
     setState(() => _submitting = true);
     try {
       if (allowed) {
-        final permission = switch (widget.nextId) {
-          'permissions-microphone' => Permission.notification,
-          'permissions-storage' => Permission.microphone,
-          _ => null,
-        };
-        if (permission != null &&
-            !kIsWeb &&
-            (defaultTargetPlatform == TargetPlatform.android ||
-                defaultTargetPlatform == TargetPlatform.iOS)) {
-          final status = await permission.request();
-          if (!mounted) return;
-          if (status.isPermanentlyDenied || status.isRestricted) {
-            await showDialog<void>(
-              context: context,
-              builder:
-                  (dialogContext) => AlertDialog(
-                    title: const Text('Permission unavailable'),
-                    content: const Text(
-                      'You can continue and enable access in Settings when needed.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text('Continue'),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          Navigator.pop(dialogContext);
-                          await openAppSettings();
-                        },
-                        child: const Text('Open Settings'),
-                      ),
-                    ],
-                  ),
-            );
-          }
-        }
-        if (widget.nextId == 'permissions-microphone') {
+        final blocked = await requestPelevoSetupPermission(widget.permission);
+        if (!mounted) return;
+        if (widget.permission == PelevoSetupPermission.notifications) {
           unawaited(ref.read(pelevoFirebasePushProvider).bootstrap());
+        }
+        if (blocked) {
+          await showDialog<void>(
+            context: context,
+            builder:
+                (dialogContext) => AlertDialog(
+                  title: const Text('Permission unavailable'),
+                  content: const Text(
+                    'You can continue and enable access in Settings when needed.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Continue'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext);
+                        await openAppSettings();
+                      },
+                      child: const Text('Open Settings'),
+                    ),
+                  ],
+                ),
+          );
         }
       }
       if (mounted) context.go('/screen/${widget.nextId}');
@@ -269,7 +314,7 @@ class PermissionsCompleteScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: PelevoSpacing.xl),
-            const _ProgressDots(active: 3),
+            const _ProgressDots(active: 4),
           ],
         ),
       ),
@@ -321,11 +366,11 @@ class _ProgressDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Setup progress, step ${active + 1} of 4',
+    label: 'Setup progress, step ${active + 1} of 5',
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        4,
+        5,
         (index) => AnimatedContainer(
           duration: PelevoMotion.fast,
           width: index == active ? 24 : 8,

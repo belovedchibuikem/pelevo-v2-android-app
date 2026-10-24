@@ -762,7 +762,16 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
           Icons.share_outlined,
           'Share Episode',
           null,
-          () => context.go('/screen/episode-share'),
+          item == null
+              ? () => context.showPelevoMessage('Select a download first.')
+              : () {
+                openCatalogEpisode(
+                  context,
+                  episodeId: item.episodeId,
+                  showId: item.showId,
+                );
+                context.go('/screen/episode-share');
+              },
         ),
         _actionRow(
           Icons.info_outline_rounded,

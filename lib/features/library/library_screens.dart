@@ -10,12 +10,14 @@ import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/downloads/download_file_service.dart';
 import 'package:pelevo/features/downloads/download_gate.dart';
+import 'package:pelevo/features/library/collection_picker.dart';
 import 'package:pelevo/features/library/library_data.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/profile/profile_widgets.dart';
 import 'package:pelevo/features/reels/reel_data.dart';
 import 'package:pelevo/features/reels/reels_screens.dart';
+import 'package:pelevo/features/share/pelevo_share_chooser.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 enum _LibraryView {
@@ -149,6 +151,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   bool _shuffle = false;
   bool _busy = false;
   bool _autoSyncStarted = false;
+  bool _collectionDraftApplied = false;
+  bool _collectionPublic = false;
   final _search = TextEditingController();
   final _collectionName = TextEditingController();
   final _collectionDesc = TextEditingController();
@@ -164,7 +168,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           ref.read(selectedPlaylistIdProvider) != id) {
         ref.read(selectedPlaylistIdProvider.notifier).select(id);
       }
-      if (widget.view == _LibraryView.collectionDetails &&
+      if ((widget.view == _LibraryView.collectionDetails ||
+              widget.view == _LibraryView.createCollection) &&
           ref.read(selectedCollectionIdProvider) != id) {
         ref.read(selectedCollectionIdProvider.notifier).select(id);
       }
@@ -189,6 +194,27 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final isHome = widget.view == _LibraryView.home;
+    final editingCollectionId =
+        widget.view == _LibraryView.createCollection
+            ? GoRouterState.of(context).uri.queryParameters['id']
+            : null;
+    if (editingCollectionId != null && editingCollectionId.isNotEmpty) {
+      final current = ref.watch(libraryCollectionProvider).asData?.value;
+      if (!_collectionDraftApplied &&
+          current != null &&
+          current.id == editingCollectionId) {
+        _collectionDraftApplied = true;
+        final name = current.name;
+        final description = current.description ?? '';
+        final isPublic = current.isPublic;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _collectionName.text = name;
+          _collectionDesc.text = description;
+          setState(() => _collectionPublic = isPublic);
+        });
+      }
+    }
     return PelevoPage(
       appBar: AppBar(
         leading:
@@ -201,6 +227,10 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         title: Text(
           isHome
               ? 'Good morning, ${ref.watch(authSessionProvider).displayName}'
+              : widget.view == _LibraryView.createCollection &&
+                  (GoRouterState.of(context).uri.queryParameters['id'] ?? '')
+                      .isNotEmpty
+              ? 'Edit Collection'
               : widget.title,
         ),
         actions: [
@@ -600,8 +630,17 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
             const SizedBox(width: PelevoSpacing.sm),
             IconButton(
               tooltip: 'Share playlist',
-              onPressed:
-                  () => context.pelevoOpen('/screen/share-card-share-options'),
+              onPressed: () => showPelevoShareChooser(
+                context: context,
+                ref: ref,
+                title: playlist.name,
+                subtitle: playlist.description,
+                artworkUrl: coverUrl,
+                link: catalogSharePlaylistLink(playlist.id),
+                subjectType: 'playlist',
+                subjectId: playlist.id,
+                assetPath: 'assets/library/cover_mindset.png',
+              ),
               icon: const Icon(Icons.ios_share_rounded),
             ),
             if (playlist.isOwner)
@@ -1374,7 +1413,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                       children: [
                         Expanded(
                           child: CatalogArtwork(
-                            url: null,
+                            url: item.artworkUrl,
                             width: double.infinity,
                             height: double.infinity,
                             radius: PelevoRadii.medium,
@@ -1384,10 +1423,20 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                         const SizedBox(height: 8),
                         Text(
                           item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
+                        if (item.description != null &&
+                            item.description!.isNotEmpty)
+                          Text(
+                            item.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: context.pelevo.textMuted),
+                          ),
                         Text(
-                          item.countLabel,
+                          '${item.countLabel}${item.isPublic ? ' · Public' : ''}',
                           style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       ],
@@ -1415,20 +1464,28 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       TextField(controller: _collectionDesc, maxLines: 3),
       const SizedBox(height: PelevoSpacing.xs),
       Text(
-        'Descriptions are not stored.',
+        'Optional. Shown on the collection.',
         style: TextStyle(color: context.pelevo.textMuted),
       ),
-      const SizedBox(height: PelevoSpacing.lg),
-      ListTile(
+      SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.add_circle_outline_rounded),
-        title: const Text('Add Episodes'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.pelevoOpen('/screen/library-4'),
+        title: const Text('Public'),
+        subtitle: Text(
+          'Anyone with the link can open this collection.',
+          style: TextStyle(color: context.pelevo.textMuted),
+        ),
+        value: _collectionPublic,
+        activeColor: PelevoColors.green,
+        onChanged:
+            _busy ? null : (value) => setState(() => _collectionPublic = value),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: 'Create Collection',
+        label:
+            (GoRouterState.of(context).uri.queryParameters['id'] ?? '')
+                    .isEmpty
+                ? 'Create Collection'
+                : 'Save Collection',
         color: PelevoColors.green,
         onPressed: _busy ? null : () => _createNamedCollection(context),
       ),
@@ -1455,6 +1512,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     final firstEpisode = collection.items.where(
       (item) => item.type == 'episode',
     );
+    final firstShow = collection.items.where((item) => item.type == 'show');
+    final owner = collection.isOwner;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1479,6 +1538,11 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           collection.countLabel,
           style: TextStyle(color: context.pelevo.textMuted),
         ),
+        if (collection.description != null &&
+            collection.description!.isNotEmpty) ...[
+          const SizedBox(height: PelevoSpacing.xs),
+          Text(collection.description!),
+        ],
         const SizedBox(height: PelevoSpacing.lg),
         Row(
           children: [
@@ -1488,29 +1552,52 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                 color: PelevoColors.green,
                 icon: Icons.play_arrow_rounded,
                 onPressed:
-                    firstEpisode.isEmpty
-                        ? () => context.showPelevoMessage(
+                    firstEpisode.isNotEmpty
+                        ? () => _playCollection(context, collection)
+                        : firstShow.isNotEmpty
+                        ? () {
+                          openCatalogShow(context, firstShow.first.id);
+                          context.push('/screen/podcast-details');
+                        }
+                        : () => context.showPelevoMessage(
                           'This collection has no episodes yet.',
-                        )
-                        : () {
-                          final item = firstEpisode.first;
-                          playCatalogEpisode(
-                            context,
-                            episodeId: item.id,
-                            showId: item.showId,
-                          );
-                        },
+                        ),
               ),
             ),
-            IconButton(
-              tooltip: 'Edit',
-              onPressed: () => context.pelevoOpen('/screen/library-10'),
-              icon: const Icon(Icons.edit_outlined),
-            ),
+            if (owner)
+              IconButton(
+                tooltip: 'Add',
+                onPressed:
+                    _busy
+                        ? null
+                        : () => _addLibraryItems(context, collection),
+                icon: const Icon(Icons.add_rounded),
+              ),
+            if (owner)
+              IconButton(
+                tooltip: 'Edit',
+                onPressed:
+                    () => context.pelevoOpen(
+                      '/screen/library-10?id=${Uri.encodeComponent(collection.id)}',
+                    ),
+                icon: const Icon(Icons.edit_outlined),
+              ),
             IconButton(
               tooltip: 'Share',
-              onPressed:
-                  () => context.pelevoOpen('/screen/share-card-share-options'),
+              onPressed: () => showPelevoShareChooser(
+                context: context,
+                ref: ref,
+                title: collection.name,
+                subtitle: collection.description,
+                artworkUrl: collection.items.isEmpty
+                    ? collection.artworkUrl
+                    : collection.items.first.artworkUrl,
+                link: catalogShareCollectionLink(collection.id),
+                subjectType: 'collection',
+                subjectId: collection.id,
+                assetPath: 'assets/library/cover_sunday.png',
+                shareTitle: collection.name,
+              ),
               icon: const Icon(Icons.ios_share_rounded),
             ),
           ],
@@ -1533,22 +1620,37 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               ),
               title: Text(item.title),
               subtitle: Text(item.subtitle ?? ''),
-              trailing: IconButton(
-                tooltip: 'Play',
-                onPressed:
-                    item.type == 'episode'
-                        ? () {
-                          playCatalogEpisode(
-                            context,
-                            episodeId: item.id,
-                            showId: item.showId,
-                          );
-                        }
-                        : () {
-                          openCatalogShow(context, item.id);
-                          context.push('/screen/podcast-details');
-                        },
-                icon: const Icon(Icons.play_circle_fill_rounded),
+              trailing: PopupMenuButton<String>(
+                tooltip: 'Item options',
+                onSelected: (value) {
+                  if (value == 'remove') {
+                    if (!owner) return;
+                    _removeCollectionItem(context, collection, item);
+                    return;
+                  }
+                  if (item.type == 'episode') {
+                    playCatalogEpisode(
+                      context,
+                      episodeId: item.id,
+                      showId: item.showId,
+                    );
+                  } else {
+                    openCatalogShow(context, item.id);
+                    context.push('/screen/podcast-details');
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      PopupMenuItem(
+                        value: item.type == 'episode' ? 'play' : 'open',
+                        child: Text(item.type == 'episode' ? 'Play' : 'Open'),
+                      ),
+                      if (owner)
+                        const PopupMenuItem(
+                          value: 'remove',
+                          child: Text('Remove'),
+                        ),
+                    ],
               ),
               onTap: () {
                 if (item.type == 'episode') {
@@ -1792,6 +1894,74 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     onTap: onTap,
   );
 
+  Future<void> _playCollection(
+    BuildContext context,
+    LibraryCollection collection,
+  ) async {
+    final episodes =
+        collection.items.where((item) => item.type == 'episode').toList();
+    if (episodes.isEmpty) {
+      context.showPelevoMessage('This collection has no episodes yet.');
+      return;
+    }
+    final repo = ref.read(catalogRepositoryProvider);
+    for (final item in episodes.skip(1)) {
+      try {
+        await repo.enqueueEpisode(item.id);
+      } on Object {
+        // The first episode still starts if a later one cannot be queued.
+      }
+    }
+    if (!context.mounted) return;
+    playCatalogEpisode(
+      context,
+      episodeId: episodes.first.id,
+      showId: episodes.first.showId,
+    );
+  }
+
+  Future<void> _addLibraryItems(
+    BuildContext context,
+    LibraryCollection collection,
+  ) async {
+    final changed = await showCollectionLibraryPicker(
+      context: context,
+      ref: ref,
+      collection: collection,
+    );
+    if (!changed) return;
+    ref.invalidate(libraryCollectionProvider);
+    ref.invalidate(libraryCollectionsProvider);
+    ref.invalidate(libraryOverviewProvider);
+  }
+
+  Future<void> _removeCollectionItem(
+    BuildContext context,
+    LibraryCollection collection,
+    LibraryCollectionItem item,
+  ) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(libraryRepositoryProvider).removeCollectionItem(
+        id: collection.id,
+        type: item.type,
+        collectableId: item.id,
+        version: collection.version,
+      );
+      ref.invalidate(libraryCollectionProvider);
+      ref.invalidate(libraryCollectionsProvider);
+      ref.invalidate(libraryOverviewProvider);
+      if (context.mounted) context.showPelevoMessage('Removed from collection');
+    } catch (error) {
+      if (context.mounted) {
+        context.showPelevoMessage(catalogFailure(error).message);
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _createNamedCollection(BuildContext context) async {
     final name = _collectionName.text.trim();
     if (name.isEmpty) {
@@ -1800,16 +1970,44 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     }
     setState(() => _busy = true);
     try {
-      final created = await ref
-          .read(libraryRepositoryProvider)
-          .createCollection(name);
+      final repo = ref.read(libraryRepositoryProvider);
+      final description = _collectionDesc.text.trim();
+      final editingId = GoRouterState.of(context).uri.queryParameters['id'];
+      final LibraryCollection saved;
+      if (editingId != null && editingId.isNotEmpty) {
+        final current = ref.read(libraryCollectionProvider).asData?.value;
+        if (current == null || current.id != editingId) {
+          if (context.mounted) {
+            context.showPelevoMessage('Collection is still loading.');
+          }
+          return;
+        }
+        saved = await repo.updateCollection(
+          id: editingId,
+          name: name,
+          description: description,
+          isPublic: _collectionPublic,
+          version: current.version,
+        );
+      } else {
+        saved = await repo.createCollection(
+          name,
+          description: description,
+          isPublic: _collectionPublic,
+        );
+      }
       ref.invalidate(libraryCollectionsProvider);
+      ref.invalidate(libraryCollectionProvider);
       ref.invalidate(libraryOverviewProvider);
-      ref.read(selectedCollectionIdProvider.notifier).select(created.id);
+      ref.read(selectedCollectionIdProvider.notifier).select(saved.id);
       if (!context.mounted) return;
-      context.showPelevoMessage('Collection created');
+      context.showPelevoMessage(
+        editingId == null || editingId.isEmpty
+            ? 'Collection created'
+            : 'Collection updated',
+      );
       context.pelevoOpen(
-        '/screen/library-11?id=${Uri.encodeComponent(created.id)}',
+        '/screen/library-11?id=${Uri.encodeComponent(saved.id)}',
       );
     } catch (error) {
       if (context.mounted) {
@@ -2137,7 +2335,19 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                   onTap: () {
                     Navigator.pop(sheetContext);
                     if (widget.view == _LibraryView.collectionDetails) {
-                      context.pelevoOpen('/screen/library-10');
+                      final collection =
+                          ref.read(libraryCollectionProvider).asData?.value;
+                      if (collection != null && !collection.isOwner) {
+                        context.showPelevoMessage(
+                          'Only the owner can edit this collection.',
+                        );
+                        return;
+                      }
+                      context.pelevoOpen(
+                        collection == null
+                            ? '/screen/library-10'
+                            : '/screen/library-10?id=${Uri.encodeComponent(collection.id)}',
+                      );
                       return;
                     }
                     final playlist =
@@ -2160,7 +2370,37 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                   ),
                   onTap: () {
                     Navigator.pop(sheetContext);
-                    context.pelevoOpen('/screen/share-card-preview');
+                    if (widget.view == _LibraryView.collectionDetails) {
+                      final collection =
+                          ref.read(libraryCollectionProvider).asData?.value;
+                      if (collection == null) return;
+                      showPelevoShareChooser(
+                        context: context,
+                        ref: ref,
+                        title: collection.name,
+                        subtitle: collection.description,
+                        artworkUrl: collection.artworkUrl,
+                        link: catalogShareCollectionLink(collection.id),
+                        subjectType: 'collection',
+                        subjectId: collection.id,
+                        assetPath: 'assets/library/cover_sunday.png',
+                      );
+                      return;
+                    }
+                    final playlist =
+                        ref.read(libraryPlaylistProvider).asData?.value;
+                    if (playlist == null) return;
+                    showPelevoShareChooser(
+                      context: context,
+                      ref: ref,
+                      title: playlist.name,
+                      subtitle: playlist.description,
+                      artworkUrl: playlist.artworkUrl,
+                      link: catalogSharePlaylistLink(playlist.id),
+                      subjectType: 'playlist',
+                      subjectId: playlist.id,
+                      assetPath: 'assets/library/cover_mindset.png',
+                    );
                   },
                 ),
                 ListTile(
@@ -2175,6 +2415,16 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                   ),
                   onTap: () {
                     Navigator.pop(sheetContext);
+                    if (widget.view == _LibraryView.collectionDetails) {
+                      final collection =
+                          ref.read(libraryCollectionProvider).asData?.value;
+                      if (collection != null && !collection.isOwner) {
+                        context.showPelevoMessage(
+                          'Only the owner can delete this collection.',
+                        );
+                        return;
+                      }
+                    }
                     _deleteCurrentLibraryItem(context);
                   },
                 ),

@@ -130,8 +130,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       if (welcomeCoins != null) {
         context.showPelevoMessage(welcomeBonusMessage(welcomeCoins));
       }
-      await applyPendingOnboardingDraft(ref);
+      final setup = await resolveSetupDestination(ref);
       if (!mounted) return;
+      if (setup != '/screen/home-feed') {
+        context.go(setup);
+        return;
+      }
       final destination = GoRouterState.of(context).uri.queryParameters['from'];
       final uri = destination == null ? null : Uri.tryParse(destination);
       final path = uri?.path ?? '';
@@ -391,8 +395,8 @@ class _VerifyNumberScreenState extends ConsumerState<VerifyNumberScreen> {
         context.go('/screen/auth-account-created');
         return;
       }
-      await applyPendingOnboardingDraft(ref);
-      if (mounted) context.go('/screen/home-feed');
+      final setup = await resolveSetupDestination(ref);
+      if (mounted) context.go(setup);
     }
   }
 
@@ -479,8 +483,11 @@ class _AccountCreatedScreenState extends ConsumerState<AccountCreatedScreen> {
   Future<void> _continue() async {
     if (_continuing) return;
     setState(() => _continuing = true);
-    await applyPendingOnboardingDraft(ref);
-    if (mounted) context.go('/screen/permissions-intro');
+    final setup = await resolveSetupDestination(ref);
+    if (!mounted) return;
+    context.go(
+      setup == '/screen/home-feed' ? '/screen/permissions-intro' : setup,
+    );
   }
 
   @override
@@ -1011,9 +1018,9 @@ Future<void> _continueWithSocial(
     if (welcomeCoins != null && context.mounted) {
       context.showPelevoMessage(welcomeBonusMessage(welcomeCoins));
     }
-    await applyPendingOnboardingDraft(ref);
+    final setup = await resolveSetupDestination(ref);
     if (!context.mounted) return;
-    context.go('/screen/home-feed');
+    context.go(setup);
   } on ApiFailure catch (failure) {
     if (context.mounted) context.showPelevoMessage(failure.message);
   } on SignInWithAppleAuthorizationException catch (error) {

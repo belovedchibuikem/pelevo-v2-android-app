@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -51,11 +52,15 @@
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/episodes"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/shows"/>
+                <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/playlists"/>
+                <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/collections"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/reels"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/creators"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/episodes"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/shows"/>
+                <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/playlists"/>
+                <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/collections"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/reels"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/creators"/>
                 <data android:scheme="http" android:host="pelevo.com" android:pathPrefix="/s"/>
@@ -68,6 +73,8 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="pelevo" android:host="episode"/>
                 <data android:scheme="pelevo" android:host="show"/>
+                <data android:scheme="pelevo" android:host="playlist"/>
+                <data android:scheme="pelevo" android:host="collection"/>
                 <data android:scheme="pelevo" android:host="reel"/>
                 <data android:scheme="pelevo" android:host="s"/>
                 <data android:scheme="pelevo" android:host="invite"/>

@@ -556,22 +556,27 @@ class _UpgradeProCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.workspace_premium_rounded, color: PelevoColors.purple),
-            SizedBox(width: PelevoSpacing.sm),
-            Expanded(
+            const Icon(Icons.workspace_premium_rounded, color: Colors.white),
+            const SizedBox(width: PelevoSpacing.sm),
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Upgrade to Pro',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
                   ),
                   SizedBox(height: 3),
                   Text(
                     'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.',
                     style: TextStyle(
-                      color: context.pelevo.textMuted,
+                      color: Color(0xF2FFFFFF),
                       fontSize: 12,
+                      height: 1.35,
                     ),
                   ),
                 ],
@@ -584,7 +589,10 @@ class _UpgradeProCard extends StatelessWidget {
           alignment: Alignment.centerRight,
           child: FilledButton(
             onPressed: onPressed,
-            style: FilledButton.styleFrom(backgroundColor: PelevoColors.purple),
+            style: FilledButton.styleFrom(
+              backgroundColor: PelevoColors.purple,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Upgrade Now →'),
           ),
         ),
@@ -607,22 +615,27 @@ class _CreatorStudioCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.analytics_outlined, color: PelevoColors.green),
-            SizedBox(width: PelevoSpacing.sm),
-            Expanded(
+            const Icon(Icons.analytics_outlined, color: Colors.white),
+            const SizedBox(width: PelevoSpacing.sm),
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Creator Studio',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
                   ),
                   SizedBox(height: 3),
                   Text(
                     'Manage your podcasts, reels, audience, analytics and earnings.',
                     style: TextStyle(
-                      color: context.pelevo.textMuted,
+                      color: Color(0xF2FFFFFF),
                       fontSize: 12,
+                      height: 1.35,
                     ),
                   ),
                 ],
@@ -633,7 +646,10 @@ class _CreatorStudioCard extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton(
           onPressed: onPressed,
-          style: FilledButton.styleFrom(backgroundColor: PelevoColors.green),
+          style: FilledButton.styleFrom(
+            backgroundColor: PelevoColors.green,
+            foregroundColor: Colors.white,
+          ),
           child: const Text('Open Creator Studio →'),
         ),
       ],
@@ -653,20 +669,24 @@ class _EarnWalletCard extends ConsumerWidget {
       children: [
         const Icon(
           Icons.account_balance_wallet_outlined,
-          color: PelevoColors.green,
+          color: Colors.white,
         ),
         const SizedBox(width: PelevoSpacing.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Earn Wallet',
-                style: TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
-              Text(
+              const Text(
                 'Available Balance',
-                style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
+                style: TextStyle(color: Color(0xF2FFFFFF), fontSize: 11),
               ),
               ref
                   .watch(earnBalanceProvider)
@@ -675,15 +695,23 @@ class _EarnWalletCard extends ConsumerWidget {
                         (balance) => Text(
                           '${balance.coins} ECN',
                           style: const TextStyle(
+                            color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                    loading: () => const LinearProgressIndicator(),
+                    loading:
+                        () => const LinearProgressIndicator(
+                          color: Colors.white,
+                          backgroundColor: Color(0x33FFFFFF),
+                        ),
                     error:
                         (error, stack) => TextButton(
                           onPressed: () => ref.invalidate(earnBalanceProvider),
-                          child: const Text('Balance unavailable · Retry'),
+                          child: const Text(
+                            'Balance unavailable · Retry',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                   ),
             ],
@@ -692,8 +720,8 @@ class _EarnWalletCard extends ConsumerWidget {
         FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
-            backgroundColor: PelevoColors.green.withValues(alpha: .18),
-            foregroundColor: PelevoColors.green,
+            backgroundColor: PelevoColors.green,
+            foregroundColor: Colors.white,
           ),
           child: const Text('View Wallet →'),
         ),

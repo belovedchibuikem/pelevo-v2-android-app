@@ -8,6 +8,7 @@ import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
+import 'package:pelevo/features/share/pelevo_native_share.dart';
 import 'package:pelevo/features/stats/stats_data.dart';
 
 enum _StatsView {
@@ -226,7 +227,14 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
             ),
           IconButton(
             tooltip: 'Share stats',
-            onPressed: () => context.go('/screen/share-card-home'),
+            onPressed: () {
+              final stats = ref.read(listenerStatsProvider).asData?.value;
+              final text =
+                  stats == null
+                      ? 'My listening on Pelevo'
+                      : 'My Pelevo listening\n${formatStatsDuration(stats.listeningSeconds)} listened\n${stats.episodesCompleted} episodes finished\n${stats.showsFollowed} podcasts followed';
+              _shareText(context, text);
+            },
             icon: const Icon(Icons.ios_share_rounded),
           ),
         ],
@@ -1006,6 +1014,21 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     ],
   );
 
+  Future<void> _shareText(BuildContext context, String text) async {
+    try {
+      await pelevoShare(
+        context: context,
+        text: text,
+        title: 'Pelevo listening',
+        subject: 'Pelevo listening',
+      );
+    } on Object {
+      if (context.mounted) {
+        context.showPelevoMessage('Sharing is not available on this device.');
+      }
+    }
+  }
+
   Widget _compare(BuildContext context, ListenerStats stats) {
     final primary = stats.inRange(_primaryRange.start, _primaryRange.end);
     final comparison = stats.inRange(
@@ -1100,7 +1123,17 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         PelevoButton(
           label: 'Share Comparison',
           color: PelevoColors.green,
-          onPressed: () => context.go('/screen/share-card-home'),
+          onPressed: () {
+            final lines = rows
+                .map((row) {
+                  final delta = row.$3;
+                  return delta == null
+                      ? '${row.$1}: ${row.$2}'
+                      : '${row.$1}: ${row.$2} ($delta)';
+                })
+                .join('\n');
+            _shareText(context, 'Pelevo listening comparison\n$lines');
+          },
         ),
       ],
     );

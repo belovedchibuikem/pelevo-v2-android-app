@@ -57,11 +57,17 @@ Map<String, dynamic> libraryPlaylistFixture({
 Map<String, dynamic> libraryCollectionFixture({
   String id = libraryCollectionId,
   String name = 'Sunday Reset',
+  String? description = 'Quiet episodes for Sunday.',
+  bool isPublic = false,
   int itemCount = 1,
   bool detailed = false,
 }) => {
   'id': id,
   'name': name,
+  'description': description,
+  'is_public': isPublic,
+  'is_owner': true,
+  'artwork_url': null,
   'version': 1,
   'item_count': itemCount,
   if (detailed)

@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/library/library_data.dart';
+import 'package:pelevo/features/library/collection_picker.dart';
 import 'package:pelevo/features/library/playlist_picker.dart';
 import 'package:pelevo/features/player/pelevo_playback.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/share/pelevo_share_chooser.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 enum _PodcastView {
@@ -217,7 +218,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         ((showId == null || showId.isEmpty) ? 'Podcast' : widget.title);
 
     return PelevoPage(
-      appBar: AppBar(
+      appBar: widget.view == _PodcastView.share
+          ? null
+          : AppBar(
         leading: IconButton(
           tooltip: 'Back',
           onPressed: () {
@@ -826,7 +829,14 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             _quickAction(
               Icons.ios_share_rounded,
               'Share',
-              () => context.go('/screen/podcast-loading'),
+              () {
+                openCatalogEpisode(
+                  context,
+                  episodeId: episode.id,
+                  showId: episode.showId,
+                );
+                context.go('/screen/episode-share');
+              },
             ),
             _quickAction(
               Icons.download_outlined,
@@ -925,7 +935,14 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             _quickAction(
               Icons.ios_share_rounded,
               'Share',
-              () => context.go('/screen/podcast-loading'),
+              () {
+                openCatalogEpisode(
+                  context,
+                  episodeId: episode.id,
+                  showId: episode.showId,
+                );
+                context.go('/screen/episode-share');
+              },
             ),
             _quickAction(
               Icons.playlist_add_rounded,
@@ -1232,62 +1249,24 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
     ],
   );
 
-  Widget _sharePodcast(BuildContext context, CatalogShow show) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Card(
-        color: context.pelevo.surface,
-        child: ListTile(
-          leading: _cover(show, 56),
-          title: Text(show.title),
-          subtitle: Text(show.categoryLabel),
+  Widget _sharePodcast(BuildContext context, CatalogShow show) =>
+      PelevoShareChooser(
+        title: show.title,
+        subtitle: show.author ?? show.categoryLabel,
+        artworkUrl: show.artworkUrl,
+        assetPath: 'assets/podcast/honest_bunch_cover.png',
+        link: catalogShareShowLink(show.id),
+        onShareCard: () => openPelevoShareCard(
+          context,
+          ref,
+          type: 'show',
+          id: show.id,
+          title: show.title,
+          subtitle: show.author,
+          artworkUrl: show.artworkUrl,
         ),
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _shareAction(
-            context,
-            'Copy Link',
-            Icons.link_rounded,
-            () => _copyShowLink(show),
-          ),
-          _shareAction(
-            context,
-            'WhatsApp',
-            Icons.chat_rounded,
-            () => context.go('/screen/share-card-preview'),
-          ),
-          _shareAction(
-            context,
-            'Instagram',
-            Icons.camera_alt_outlined,
-            () => context.go('/screen/share-card-preview'),
-          ),
-          _shareAction(
-            context,
-            'Twitter',
-            Icons.alternate_email_rounded,
-            () => context.go('/screen/share-card-preview'),
-          ),
-        ],
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Share via...'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.go('/screen/share-card-preview'),
-      ),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('More Options'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.go('/screen/share-card-home'),
-      ),
-    ],
-  );
+        onCancel: () => context.pelevoBack(fallback: '/screen/podcast-details'),
+      );
 
   Widget _cover(CatalogShow show, double size) => CatalogArtwork(
     url: show.artworkUrl,
@@ -1314,33 +1293,6 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
           ),
         ),
       );
-
-  Widget _shareAction(
-    BuildContext context,
-    String label,
-    IconData icon,
-    VoidCallback onTap,
-  ) => Expanded(
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(PelevoRadii.medium),
-      child: Column(
-        children: [
-          IconButton.filledTonal(
-            tooltip: label,
-            onPressed: onTap,
-            icon: Icon(icon),
-          ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    ),
-  );
 
   List<Widget> _episodeTiles(
     BuildContext context,
@@ -1711,6 +1663,33 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.collections_bookmark_outlined),
+            title: const Text('Add to collection'),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              pickCollectionForItem(
+                context: context,
+                ref: ref,
+                type: 'episode',
+                collectableId: episode.id,
+                label: episode.title,
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.ios_share_rounded),
+            title: const Text('Share episode'),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              openCatalogEpisode(
+                context,
+                episodeId: episode.id,
+                showId: show.id,
+              );
+              context.go('/screen/episode-share');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.info_outline_rounded),
             title: const Text('Episode details'),
             onTap: () {
@@ -1725,14 +1704,6 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _copyShowLink(CatalogShow show) async {
-    await Clipboard.setData(
-      ClipboardData(text: catalogShareShowLink(show.id)),
-    );
-    if (!mounted) return;
-    context.showPelevoMessage('Link copied');
   }
 
   Future<void> _showActions(BuildContext context) {
@@ -1755,10 +1726,10 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             ListTile(
               leading: const Icon(Icons.ios_share_rounded),
               title: const Text('Share podcast'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                context.go('/screen/podcast-loading');
-              },
+            onTap: () {
+              Navigator.pop(sheetContext);
+              context.go('/screen/podcast-loading');
+            },
             ),
             ListTile(
               leading: const Icon(Icons.playlist_add_rounded),

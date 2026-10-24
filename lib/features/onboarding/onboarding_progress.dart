@@ -108,12 +108,56 @@ String startupDestination({
   return '/screen/onboarding-personalized';
 }
 
+/// True only when the account payload explicitly says onboarding is unfinished.
+///
+/// Missing keys stay false so older cached sessions and test fixtures are not
+/// sent back through setup.
+bool sessionNeedsOnboarding(Map<String, dynamic>? user) {
+  if (user == null) return false;
+  if (user['onboarded'] == true) return false;
+  if (user['onboarded'] == false) return true;
+  if (user.containsKey('onboarded_at')) return user['onboarded_at'] == null;
+  return false;
+}
+
+/// Where a signed-in listener goes once a pending draft has been applied.
+String postAuthDestination({
+  required bool onboardingApplied,
+  required bool needsOnboarding,
+  required bool permissionsComplete,
+  String? preferredPath,
+}) {
+  if (!onboardingApplied && needsOnboarding) {
+    return '/screen/onboarding-interests';
+  }
+  if (onboardingApplied && !permissionsComplete) {
+    return '/screen/permissions-intro';
+  }
+  if (preferredPath != null && preferredPath.isNotEmpty) return preferredPath;
+  return '/screen/home-feed';
+}
+
 Future<bool> applyPendingOnboardingDraft(WidgetRef ref) =>
     applyPendingOnboardingDraftFor(
       store: ref.read(onboardingProgressStoreProvider),
       repository: ref.read(onboardingRepositoryProvider),
       userId: ref.read(authSessionProvider).userId,
     );
+
+Future<String> resolveSetupDestination(
+  WidgetRef ref, {
+  String? preferredPath,
+}) async {
+  final applied = await applyPendingOnboardingDraft(ref);
+  final permissionsComplete =
+      await ref.read(onboardingProgressStoreProvider).hasCompletedPermissions();
+  return postAuthDestination(
+    onboardingApplied: applied,
+    needsOnboarding: sessionNeedsOnboarding(ref.read(authSessionProvider).user),
+    permissionsComplete: permissionsComplete,
+    preferredPath: preferredPath,
+  );
+}
 
 Future<bool> applyPendingOnboardingDraftFor({
   required OnboardingProgressStore store,

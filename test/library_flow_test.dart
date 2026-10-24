@@ -265,6 +265,31 @@ void main() {
     expect(find.byTooltip('Play'), findsOneWidget);
   });
 
+  testWidgets('collection details show the description and share in place', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/library-9',
+      adapter: libraryAdapter(),
+    );
+    expect(find.text('Sunday Reset'), findsOneWidget);
+    expect(find.text('Quiet episodes for Sunday.'), findsOneWidget);
+
+    await tester.tap(find.text('Sunday Reset'));
+    await tester.pumpAndSettle();
+    expect(find.text('Play All'), findsOneWidget);
+    expect(find.text('Ep. 124 - The Shift Life'), findsWidgets);
+    expect(find.byTooltip('Add'), findsOneWidget);
+    expect(find.byTooltip('Edit'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+    expect(find.text('Share Card'), findsOneWidget);
+    expect(find.text('Copy Link'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
+  });
+
   testWidgets('saved reels appear in the library', (tester) async {
     await mount(
       tester,

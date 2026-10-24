@@ -40,6 +40,48 @@ void main() {
       );
     });
 
+    test('a new account is sent to podcast and language choices', () {
+      expect(sessionNeedsOnboarding({'onboarded': false}), isTrue);
+      expect(
+        sessionNeedsOnboarding({'onboarded_at': null, 'name': 'Ada'}),
+        isTrue,
+      );
+      expect(
+        postAuthDestination(
+          onboardingApplied: false,
+          needsOnboarding: true,
+          permissionsComplete: false,
+        ),
+        '/screen/onboarding-interests',
+      );
+    });
+
+    test('saved choices continue into permissions before home', () {
+      expect(sessionNeedsOnboarding({'onboarded': true}), isFalse);
+      expect(
+        sessionNeedsOnboarding({'onboarded_at': '2026-10-24T00:00:00Z'}),
+        isFalse,
+      );
+      expect(sessionNeedsOnboarding({'name': 'Listener'}), isFalse);
+      expect(
+        postAuthDestination(
+          onboardingApplied: true,
+          needsOnboarding: false,
+          permissionsComplete: false,
+        ),
+        '/screen/permissions-intro',
+      );
+      expect(
+        postAuthDestination(
+          onboardingApplied: true,
+          needsOnboarding: false,
+          permissionsComplete: true,
+          preferredPath: '/screen/home-feed',
+        ),
+        '/screen/home-feed',
+      );
+    });
+
     test('a rejected stored session goes to sign in', () {
       expect(
         startupDestination(

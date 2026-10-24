@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
@@ -8,6 +7,7 @@ import 'package:pelevo/features/comments/comment_data.dart';
 import 'package:pelevo/features/downloads/download_file_service.dart';
 import 'package:pelevo/features/downloads/download_gate.dart';
 import 'package:pelevo/features/downloads/download_hero.dart';
+import 'package:pelevo/features/library/collection_picker.dart';
 import 'package:pelevo/features/library/playlist_picker.dart';
 import 'package:pelevo/features/player/cast/pelevo_cast.dart';
 import 'package:pelevo/features/player/pelevo_audio_handler.dart';
@@ -16,6 +16,7 @@ import 'package:pelevo/features/player/playback_preferences.dart';
 import 'package:pelevo/features/player/sleep_timer.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/share/pelevo_share_chooser.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 enum _EpisodeView {
@@ -1064,92 +1065,32 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
     ],
   );
 
-  Widget _shareSheet(BuildContext context, CatalogEpisode episode) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Center(
-        child: Container(
-          width: 42,
-          height: 4,
-          decoration: BoxDecoration(
-            color: context.pelevo.border,
-            borderRadius: BorderRadius.circular(99),
-          ),
-        ),
+  Widget _shareSheet(BuildContext context, CatalogEpisode episode) {
+    final seconds = episode.durationSeconds;
+    return PelevoShareChooser(
+      title: episode.title,
+      subtitle: seconds == null || seconds <= 0
+          ? episode.showTitle
+          : formatCatalogDuration(seconds),
+      artworkUrl: episode.artworkUrl,
+      assetPath: 'assets/episode/share_thumb.png',
+      link: catalogShareEpisodeLink(episode.id),
+      shareTitle: episode.showTitle == null || episode.showTitle!.isEmpty
+          ? episode.title
+          : '${episode.title} · ${episode.showTitle}',
+      onShareCard: () => openPelevoShareCard(
+        context,
+        ref,
+        type: 'episode',
+        id: episode.id,
+        title: episode.title,
+        subtitle: episode.subtitle,
+        artworkUrl: episode.artworkUrl,
+        showId: episode.showId,
       ),
-      const SizedBox(height: PelevoSpacing.lg),
-      Card(
-        color: context.pelevo.surface,
-        child: ListTile(
-          leading: CatalogArtwork(
-            url: episode.artworkUrl,
-            width: 52,
-            height: 52,
-            assetPath: 'assets/episode/share_thumb.png',
-          ),
-          title: Text(episode.title),
-          subtitle: Text(episode.showTitle ?? ''),
-        ),
-      ),
-      const SizedBox(height: PelevoSpacing.md),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const CircleAvatar(
-          backgroundColor: PelevoColors.greenDark,
-          child: Text('P', style: TextStyle(fontWeight: FontWeight.w800)),
-        ),
-        title: const Text('Listen on Pelevo'),
-        subtitle: Text(catalogShareEpisodeLink(episode.id)),
-        onTap: () => _copyEpisodeLink(episode),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _shareAction(
-            context,
-            'Copy Link',
-            Icons.link_rounded,
-            PelevoColors.orange,
-            () => _copyEpisodeLink(episode),
-          ),
-          _shareAction(
-            context,
-            'WhatsApp',
-            Icons.chat_rounded,
-            PelevoColors.green,
-            () => context.go('/screen/share-card-preview'),
-          ),
-          _shareAction(
-            context,
-            'Instagram',
-            Icons.camera_alt_outlined,
-            const Color(0xFFC13584),
-            () => context.go('/screen/share-card-preview'),
-          ),
-          _shareAction(
-            context,
-            'Twitter',
-            Icons.alternate_email_rounded,
-            PelevoColors.blue,
-            () => context.go('/screen/share-card-preview'),
-          ),
-        ],
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('More Options'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.go('/screen/share-card-preview'),
-      ),
-      PelevoButton(
-        label: 'Cancel',
-        outlined: true,
-        onPressed: () => context.go('/screen/episode-details'),
-      ),
-    ],
-  );
+      onCancel: () => context.go('/screen/episode-details'),
+    );
+  }
 
   Widget _optionsSheet(BuildContext context, CatalogEpisode episode) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1220,6 +1161,20 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         'Comments',
         'Join the conversation',
         () => context.go('/screen/episode-comments'),
+      ),
+      _optionTile(
+        Icons.collections_bookmark_outlined,
+        'Add to Collection',
+        'Save this episode in a collection',
+        _busy
+            ? () {}
+            : () => pickCollectionForItem(
+              context: context,
+              ref: ref,
+              type: 'episode',
+              collectableId: episode.id,
+              label: episode.title,
+            ),
       ),
       _optionTile(
         Icons.ios_share_rounded,
@@ -1432,40 +1387,6 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
     onTap: onTap,
   );
 
-  Widget _shareAction(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) => Expanded(
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .18),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: .55)),
-            ),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    ),
-  );
-
   Future<void> _selectQueue(CatalogEpisode episode, int value) async {
     setState(() {
       _queueChoice = value;
@@ -1498,14 +1419,6 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _copyEpisodeLink(CatalogEpisode episode) async {
-    await Clipboard.setData(
-      ClipboardData(text: catalogShareEpisodeLink(episode.id)),
-    );
-    if (!mounted) return;
-    context.showPelevoMessage('Link copied');
   }
 
   void _ensureDownloadStatus(String episodeId) {

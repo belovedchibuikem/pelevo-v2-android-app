@@ -18,6 +18,7 @@ import 'package:pelevo/core/theme/pelevo_appearance.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/core/catalog_preview.dart';
 import 'package:pelevo/features/creator/creator_studio_screens.dart';
+import 'package:pelevo/features/library/library_data.dart';
 import 'package:pelevo/features/library/library_utility_screens.dart';
 import 'package:pelevo/features/home/home_see_all_screens.dart';
 import 'package:pelevo/features/onboarding/entry_flow_screens.dart';
@@ -123,6 +124,26 @@ final GoRouter pelevoRouter = GoRouter(
       builder:
           (context, state) =>
               ShareLinkResolverScreen(token: state.pathParameters['token']!),
+    ),
+    GoRoute(
+      path: '/playlists/:id',
+      redirect: (context, state) {
+        final id = state.pathParameters['id']!;
+        ProviderScope.containerOf(
+          context,
+        ).read(selectedPlaylistIdProvider.notifier).select(id);
+        return '/screen/library-3?id=$id';
+      },
+    ),
+    GoRoute(
+      path: '/collections/:id',
+      redirect: (context, state) {
+        final id = state.pathParameters['id']!;
+        ProviderScope.containerOf(
+          context,
+        ).read(selectedCollectionIdProvider.notifier).select(id);
+        return '/screen/library-11?id=$id';
+      },
     ),
     GoRoute(
       path: '/shows/:id',

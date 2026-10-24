@@ -316,7 +316,9 @@ void main() {
     await tester.ensureVisible(find.text('Share'));
     await tester.tap(find.text('Share').first);
     await tester.pumpAndSettle();
-    expect(find.text('Share Podcast'), findsOneWidget);
+    expect(find.text('Copy Link'), findsOneWidget);
+    expect(find.text('Share Card'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
   });
 
   testWidgets('Episode details links play, queue, share, and options', (
@@ -349,10 +351,9 @@ void main() {
     await tester.ensureVisible(find.text('Share'));
     await tester.tap(find.text('Share'));
     await tester.pumpAndSettle();
-    expect(find.text('Listen on Pelevo'), findsOneWidget);
-    await tester.tap(find.text('WhatsApp'));
-    await tester.pumpAndSettle();
+    expect(find.text('Copy Link'), findsOneWidget);
     expect(find.text('Share Card'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
 
     pelevoRouter.go('/screen/episode-unavailable');
     await tester.pumpAndSettle();
@@ -395,6 +396,7 @@ void main() {
     pelevoRouter.go('/screen/player-video');
     await tester.pumpAndSettle();
     expect(find.text('Copy Link'), findsOneWidget);
+    expect(find.text('Share Card'), findsOneWidget);
 
     pelevoRouter.go('/screen/player-offline');
     await tester.pumpAndSettle();

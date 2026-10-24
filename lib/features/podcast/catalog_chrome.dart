@@ -9,6 +9,7 @@ import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/home/home_data.dart';
 import 'package:pelevo/features/library/library_data.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/share/pelevo_native_share.dart';
 
 void openCatalogShow(BuildContext context, String showId) {
   final container = ProviderScope.containerOf(context);
@@ -286,6 +287,68 @@ String catalogShareReelLink(String reelId) =>
 
 String catalogShareCreatorLink(String creatorId) =>
     '${ApiEnvironment.publicWebBase}/creators/${Uri.encodeComponent(creatorId.trim())}';
+
+String catalogSharePlaylistLink(String playlistId) =>
+    '${ApiEnvironment.publicWebBase}/playlists/$playlistId';
+
+String catalogShareCollectionLink(String collectionId) =>
+    '${ApiEnvironment.publicWebBase}/collections/$collectionId';
+
+/// Opens the system share sheet with the collection and each item link.
+Future<void> shareCollection(
+  BuildContext context,
+  LibraryCollection collection,
+) async {
+  final buffer = StringBuffer(collection.name.trim());
+  final description = collection.description?.trim();
+  if (description != null && description.isNotEmpty) {
+    buffer.writeln();
+    buffer.write(description);
+  }
+  if (collection.isPublic) {
+    buffer.writeln();
+    buffer.writeln(catalogShareCollectionLink(collection.id));
+  }
+  for (final item in collection.items) {
+    final link =
+        item.type == 'show'
+            ? catalogShareShowLink(item.id)
+            : catalogShareEpisodeLink(item.id);
+    buffer.writeln();
+    buffer.writeln('${item.title}\n$link');
+  }
+  if (!collection.isPublic && collection.items.isEmpty) {
+    buffer.writeln();
+    buffer.write(catalogShareCollectionLink(collection.id));
+  }
+  try {
+    await pelevoShare(
+      context: context,
+      text: buffer.toString().trim(),
+      title: collection.name,
+      subject: collection.name,
+    );
+  } on Object {
+    if (context.mounted) {
+      context.showPelevoMessage('Sharing is not available on this device.');
+    }
+  }
+}
+
+/// Opens the system share sheet with one link. No extra Pelevo screens.
+Future<void> shareCatalogLink(
+  BuildContext context, {
+  required String url,
+  required String title,
+}) async {
+  try {
+    await pelevoShareEpisodeLink(context: context, url: url, title: title);
+  } on Object {
+    if (context.mounted) {
+      context.showPelevoMessage('Sharing is not available on this device.');
+    }
+  }
+}
 
 List<CatalogReview> sortedCatalogReviews(
   List<CatalogReview> reviews,

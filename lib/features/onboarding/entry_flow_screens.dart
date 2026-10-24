@@ -464,6 +464,7 @@ Widget _buildNotificationsPermission(
       'Turn on notifications to get\nepisode alerts, recommendations,\nand important updates.',
   assetPath: 'assets/permissions/notifications.png',
   allowLabel: 'Allow Notifications',
+  permission: PelevoSetupPermission.notifications,
   step: 0,
   previousId: 'permissions-intro',
   nextId: 'permissions-microphone',
@@ -476,6 +477,7 @@ Widget _buildMicrophonePermission(
       'Allow microphone access to\nsearch for shows, control\nplayback, and more using\nyour voice.',
   assetPath: 'assets/permissions/microphone.png',
   allowLabel: 'Allow Microphone',
+  permission: PelevoSetupPermission.microphone,
   step: 1,
   previousId: 'permissions-notifications',
   nextId: 'permissions-storage',
@@ -488,6 +490,7 @@ Widget _buildStoragePermission(
       'Downloads are stored privately\non this device. No access to\nyour other files is needed.',
   assetPath: 'assets/permissions/storage.png',
   allowLabel: 'Continue',
+  permission: PelevoSetupPermission.storage,
   step: 2,
   previousId: 'permissions-microphone',
   nextId: 'permissions-background',
@@ -499,8 +502,9 @@ Widget _buildBackgroundPermission(
   body:
       'Keep listening while using other\napps or when your screen is\nturned off.',
   assetPath: 'assets/permissions/background.png',
-  allowLabel: 'Continue',
-  step: 2,
+  allowLabel: 'Allow background playback',
+  permission: PelevoSetupPermission.background,
+  step: 3,
   previousId: 'permissions-storage',
   nextId: 'permissions-devices',
 );
@@ -511,8 +515,9 @@ Widget _buildDevicesPermission(
   body:
       'Connect headphones and speakers over Bluetooth, AirPlay, or Chromecast on the same Wi‑Fi. You can also AirDrop episode links from Share.',
   assetPath: 'assets/permissions/devices.png',
-  allowLabel: 'Continue',
-  step: 3,
+  allowLabel: 'Allow nearby devices',
+  permission: PelevoSetupPermission.devices,
+  step: 4,
   previousId: 'permissions-background',
   nextId: 'permissions-complete',
 );
@@ -578,6 +583,15 @@ Widget _buildProfileEmail(BuildContext context) =>
 Widget _buildProfileConnected(BuildContext context) =>
     const ProfileConnectedAccountsScreen();
 
+bool _stillOnSplash(BuildContext context) {
+  try {
+    final path = GoRouterState.of(context).uri.path;
+    return path == '/screen/splash' || path == '/';
+  } on Object {
+    return false;
+  }
+}
+
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -600,27 +614,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         await ref.read(authSessionProvider.notifier).bootstrap();
     if (!mounted) return;
     if (authenticated) {
-      await applyPendingOnboardingDraft(ref);
-      if (!mounted) return;
+      final destination = await resolveSetupDestination(ref);
+      if (!mounted || !_stillOnSplash(context)) return;
       await ref.read(appConfigProvider.notifier).refresh();
       unawaited(ref.read(pelevoFirebasePushProvider).bootstrap());
-      if (mounted) {
-        final pending = PelevoNotificationRouter.consumePending();
-        context.go(
-          pending ??
-              startupDestination(
-                hadStoredSession: session.authenticated,
-                authenticated: true,
-                introductionSeen: true,
-              ),
-        );
-      }
+      if (!mounted || !_stillOnSplash(context)) return;
+      final pending = PelevoNotificationRouter.consumePending();
+      context.go(
+        destination == '/screen/home-feed' && pending != null
+            ? pending
+            : destination,
+      );
       return;
     }
 
     final introductionSeen =
         await ref.read(onboardingProgressStoreProvider).hasSeenIntroduction();
-    if (!mounted) return;
+    if (!mounted || !_stillOnSplash(context)) return;
     context.go(
       startupDestination(
         hadStoredSession: session.authenticated,
@@ -864,7 +874,7 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
             ),
             const SizedBox(height: PelevoSpacing.xs),
             Text(
-              'Select all that apply',
+              'Choose the podcast types you want. Select all that apply.',
               style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.lg),
@@ -876,14 +886,30 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
                     children:
                         onboardingInterestCatalog.map((interest) {
                           final selected = _selected.contains(interest);
+                          final ink =
+                              selected ? Colors.white : context.pelevo.text;
                           return FilterChip(
-                            avatar: Icon(_interestIcons[interest], size: 18),
-                            label: Text(interest),
-                            selected: selected,
-                            selectedColor: PelevoColors.red.withValues(
-                              alpha: .3,
+                            avatar: Icon(
+                              _interestIcons[interest],
+                              size: 18,
+                              color: ink,
                             ),
-                            checkmarkColor: context.pelevo.text,
+                            label: Text(interest),
+                            labelStyle: TextStyle(
+                              color: ink,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            selected: selected,
+                            showCheckmark: false,
+                            backgroundColor: context.pelevo.surface,
+                            selectedColor: PelevoColors.red,
+                            side: BorderSide(
+                              color:
+                                  selected
+                                      ? PelevoColors.red
+                                      : context.pelevo.text,
+                              width: 1.2,
+                            ),
                             onSelected:
                                 _continuing
                                     ? null
@@ -903,16 +929,28 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
             ),
             const SizedBox(height: PelevoSpacing.xs),
             DropdownButtonFormField<String>(
+              key: ValueKey(_language),
               value: _language,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.language_rounded),
+              dropdownColor: context.pelevo.surface,
+              style: TextStyle(
+                color: context.pelevo.text,
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: InputDecoration(
+                prefixIcon: Icon(
+                  Icons.language_rounded,
+                  color: context.pelevo.text,
+                ),
               ),
               items:
                   onboardingLanguageCatalog.values
                       .map(
                         (language) => DropdownMenuItem(
                           value: language,
-                          child: Text(language),
+                          child: Text(
+                            language,
+                            style: TextStyle(color: context.pelevo.text),
+                          ),
                         ),
                       )
                       .toList(),

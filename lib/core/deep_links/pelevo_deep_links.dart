@@ -66,6 +66,8 @@ abstract final class PelevoDeepLinks {
     return switch (kind) {
       'episode' => '/episodes/$id',
       'show' => '/shows/$id',
+      'playlist' => '/playlists/$id',
+      'collection' => '/collections/$id',
       'reel' => '/reels/$id',
       'creator' => '/creators/$id',
       'invite' => '/screen/auth-sign-in?invite=$id',
@@ -85,6 +87,8 @@ abstract final class PelevoDeepLinks {
       if (!uri.path.startsWith('/s/') &&
           !uri.path.startsWith('/episodes/') &&
           !uri.path.startsWith('/shows/') &&
+          !uri.path.startsWith('/playlists/') &&
+          !uri.path.startsWith('/collections/') &&
           !uri.path.startsWith('/reels/') &&
           !uri.path.startsWith('/creator/') &&
           !uri.path.startsWith('/creators/')) {
@@ -103,6 +107,8 @@ abstract final class PelevoDeepLinks {
         const {
           'episodes',
           'shows',
+          'playlists',
+          'collections',
           'reels',
         }.contains(segments.first)) {
       return '/${segments[0]}/${segments[1]}';

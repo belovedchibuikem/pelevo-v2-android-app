@@ -25,7 +25,7 @@ import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/queue/queue_reorder_list.dart';
 import 'package:pelevo/features/search/search_data.dart';
-import 'package:pelevo/features/share/pelevo_native_share.dart';
+import 'package:pelevo/features/share/pelevo_share_chooser.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
 enum _PlayerView {
@@ -311,7 +311,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
         retry: () => context.go('/screen/podcast-episodes'),
       );
       return _isFullPlayer
-          ? Scaffold(backgroundColor: context.pelevo.background, body: page)
+          ? _darkPlayer(
+            Scaffold(backgroundColor: PelevoColors.background, body: page),
+          )
           : PelevoPage(appBar: AppBar(title: Text(widget.title)), child: page);
     }
     final live = ref.watch(nowPlayingEpisodeProvider);
@@ -325,7 +327,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           retry: () => ref.invalidate(catalogEpisodeByIdProvider(episodeId)),
         );
         return _isFullPlayer
-            ? Scaffold(backgroundColor: context.pelevo.background, body: error)
+            ? _darkPlayer(
+              Scaffold(backgroundColor: PelevoColors.background, body: error),
+            )
             : PelevoPage(
               appBar: AppBar(title: Text(widget.title)),
               child: error,
@@ -333,9 +337,11 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
       }
       const loading = CatalogStatusBody();
       return _isFullPlayer
-          ? Scaffold(
-            backgroundColor: context.pelevo.background,
-            body: loading,
+          ? _darkPlayer(
+            const Scaffold(
+              backgroundColor: PelevoColors.background,
+              body: loading,
+            ),
           )
           : PelevoPage(
             appBar: AppBar(title: Text(widget.title)),
@@ -367,7 +373,11 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     });
 
     if (_isFullPlayer) {
-      return _fullPlayerScaffold(context, episode, playback);
+      return _darkPlayer(
+        Builder(
+          builder: (context) => _fullPlayerScaffold(context, episode, playback),
+        ),
+      );
     }
 
     return PelevoPage(
@@ -440,13 +450,13 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             : _progress;
 
     return Scaffold(
-      backgroundColor: context.pelevo.background,
+      backgroundColor: PelevoColors.background,
       body: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF2A0E12), context.pelevo.background],
+            colors: [Color(0xFF2A0E12), PelevoColors.background],
           ),
         ),
         child: SafeArea(
@@ -1103,79 +1113,41 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     );
   }
 
-  Widget _shareSheet(BuildContext context, CatalogEpisode episode) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Center(
-        child: Container(
-          width: 42,
-          height: 4,
-          decoration: BoxDecoration(
-            color: context.pelevo.border,
-            borderRadius: BorderRadius.circular(99),
-          ),
-        ),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      Card(
-        color: context.pelevo.surface,
-        child: ListTile(
-          leading: CatalogArtwork(
-            url: episode.artworkUrl,
-            width: 52,
-            height: 52,
-            assetPath: 'assets/player/player_thumb.png',
-          ),
-          title: Text(episode.title),
-          subtitle: Text(
-            episode.subtitle.isEmpty
-                ? episode.showTitle ?? ''
-                : episode.subtitle,
-          ),
-        ),
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      Wrap(
-        spacing: PelevoSpacing.md,
-        runSpacing: PelevoSpacing.lg,
-        alignment: WrapAlignment.spaceAround,
-        children: [
-          for (final item in [
-            (
-              pelevoAirDropAvailable ? 'AirDrop' : 'Share',
-              pelevoAirDropAvailable
-                  ? Icons.ios_share_rounded
-                  : Icons.share_rounded,
-              PelevoColors.blue,
-            ),
-            ('Copy Link', Icons.link_rounded, PelevoColors.orange),
-            ('Share Card', Icons.image_outlined, PelevoColors.purple),
-            ('WhatsApp', Icons.chat_rounded, PelevoColors.green),
-            ('Messages', Icons.sms_rounded, PelevoColors.yellow),
-            ('More', Icons.more_horiz_rounded, context.pelevo.textMuted),
-          ])
-            SizedBox(
-              width: 72,
-              child: _shareAction(context, item.$1, item.$2, item.$3, () {
-                if (item.$1 == 'Copy Link') {
-                  _copyLink(episode);
-                } else if (item.$1 == 'Share Card') {
-                  context.go('/screen/share-card-preview');
-                } else {
-                  _shareEpisode(context, episode);
-                }
-              }),
-            ),
-        ],
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      PelevoButton(
-        label: 'Cancel',
-        outlined: true,
-        onPressed: () => context.go('/screen/player-now-playing'),
-      ),
-    ],
+  Widget _darkPlayer(Widget child) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: SystemUiOverlayStyle.light.copyWith(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: PelevoColors.background,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+    child: Theme(data: PelevoTheme.dark, child: child),
   );
+
+  Widget _shareSheet(BuildContext context, CatalogEpisode episode) {
+    final seconds = episode.durationSeconds;
+    return PelevoShareChooser(
+      title: episode.title,
+      subtitle: seconds == null || seconds <= 0
+          ? episode.showTitle
+          : formatCatalogDuration(seconds),
+      artworkUrl: episode.artworkUrl,
+      assetPath: 'assets/player/player_thumb.png',
+      link: catalogShareEpisodeLink(episode.id),
+      shareTitle: episode.showTitle == null || episode.showTitle!.isEmpty
+          ? episode.title
+          : '${episode.title} · ${episode.showTitle}',
+      onShareCard: () => openPelevoShareCard(
+        context,
+        ref,
+        type: 'episode',
+        id: episode.id,
+        title: episode.title,
+        subtitle: episode.subtitle,
+        artworkUrl: episode.artworkUrl,
+        showId: episode.showId,
+      ),
+      onCancel: () => context.go('/screen/player-now-playing'),
+    );
+  }
 
   Widget _downloadView(BuildContext context, CatalogEpisode episode) {
     _ensureDownloadStatus(episode.id);
@@ -1429,39 +1401,6 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     onTap: onTap,
   );
 
-  Widget _shareAction(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .18),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: .55)),
-          ),
-          child: Icon(icon, color: color),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    ),
-  );
-
   Future<void> _togglePlay(CatalogEpisode episode) async {
     try {
       await ref.read(pelevoPlaybackControllerProvider).toggle(episode);
@@ -1648,35 +1587,6 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
       context.showPelevoMessage(catalogFailure(error).message);
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _copyLink(CatalogEpisode episode) async {
-    await Clipboard.setData(
-      ClipboardData(text: catalogShareEpisodeLink(episode.id)),
-    );
-    if (!mounted) return;
-    context.showPelevoMessage('Link copied');
-  }
-
-  Future<void> _shareEpisode(
-    BuildContext originContext,
-    CatalogEpisode episode,
-  ) async {
-    final url = catalogShareEpisodeLink(episode.id);
-    final title =
-        episode.showTitle == null || episode.showTitle!.isEmpty
-            ? episode.title
-            : '${episode.title} · ${episode.showTitle}';
-    try {
-      await pelevoShareEpisodeLink(
-        context: originContext,
-        url: url,
-        title: title,
-      );
-    } on Object {
-      if (!mounted) return;
-      context.showPelevoMessage('Sharing is not available on this device.');
     }
   }
 

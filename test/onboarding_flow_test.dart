@@ -115,7 +115,7 @@ void main() {
 
       expect(find.text('What do you love\nlistening to?'), findsOneWidget);
       expect(
-        find.textContaining('You appear to be offline'),
+        find.textContaining('Could not reach Pelevo'),
         findsOneWidget,
       );
       expect(await store.readDraft(), isNotNull);
