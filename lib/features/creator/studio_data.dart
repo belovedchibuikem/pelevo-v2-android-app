@@ -1072,7 +1072,11 @@ class StudioPayoutMethod {
     if (value != null && value.isNotEmpty) {
       return value;
     }
-    return kind == 'paypal' ? 'PayPal' : 'Bank transfer';
+    return switch (provider) {
+      'paypal' => 'PayPal',
+      'flutterwave' => 'Flutterwave',
+      _ => kind == 'paypal' ? 'PayPal' : 'Bank transfer',
+    };
   }
 
   String get subtitle {
@@ -1417,15 +1421,13 @@ class StudioRepository {
       queryParameters: {'limit': 12},
     );
     final shows = _maps(showsResponse.data).map(StudioShow.fromJson).toList();
-    final target = (showId != null && showId.isNotEmpty)
-        ? showId
-        : (shows.isEmpty ? null : shows.first.id);
+    final target =
+        (showId != null && showId.isNotEmpty)
+            ? showId
+            : (shows.isEmpty ? null : shows.first.id);
     final episodesResponse = await _dio.get<Map<String, dynamic>>(
       '/studio/episodes',
-      queryParameters: {
-        'limit': 3,
-        if (target != null) 'show_id': target,
-      },
+      queryParameters: {'limit': 3, if (target != null) 'show_id': target},
     );
     final audience = StudioAudience.fromApi(
       requireApiData(

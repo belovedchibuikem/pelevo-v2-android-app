@@ -315,17 +315,17 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
     return [
       const UtilitySection('This Device'),
       if (active.isEmpty)
-        const Text(
+        Text(
           'No registered devices yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         _deviceRow(active.first, true),
       const UtilitySection('Other Devices'),
       if (active.length <= 1)
-        const Text(
+        Text(
           'No other devices.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         for (final item in active.skip(1)) _deviceRow(item, item.active),
@@ -364,7 +364,7 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
     const SizedBox(height: PelevoSpacing.md),
     PelevoButton(
       label: 'Get pairing code',
-      color: PelevoColors.surfaceHigh,
+      color: context.pelevo.surfaceHigh,
       onPressed: _busy
           ? null
           : () => _run(() async {
@@ -467,7 +467,7 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
         pull.isLoading || conflicts.isLoading
             ? 'Reading account changes…'
             : 'Transfer percent is not reported.',
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       if (pull.hasError)
         CatalogStatusBody(
@@ -707,9 +707,9 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
         color: PelevoColors.yellow,
       ),
       if (items.isEmpty)
-        const Text(
+        Text(
           'No open conflicts.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         for (final item in items) ...[
@@ -769,10 +769,10 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
     }
     device ??= list.isEmpty ? null : list.first;
     if (device == null) {
-      return const [
+      return [
         Text(
           'Select a device first.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ];
     }
@@ -792,7 +792,7 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
         trailing: Icon(
           Icons.circle,
           size: 10,
-          color: current.active ? PelevoColors.green : PelevoColors.textDim,
+          color: current.active ? PelevoColors.green : context.pelevo.textDim,
         ),
       ),
       PelevoButton(
@@ -866,7 +866,7 @@ class _DeviceSyncBasicScreenState extends ConsumerState<DeviceSyncBasicScreen> {
     trailing: Icon(
       Icons.circle,
       size: 10,
-      color: online ? PelevoColors.green : PelevoColors.textDim,
+      color: online ? PelevoColors.green : context.pelevo.textDim,
     ),
     onTap: () {
       ref.read(selectedDeviceIdProvider.notifier).select(device.id);

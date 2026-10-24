@@ -24,9 +24,9 @@ class ReelUploadProgressBar extends StatelessWidget {
             Expanded(
               child: Text(
                 stage,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: PelevoColors.textMuted,
+                  color: context.pelevo.textMuted,
                 ),
               ),
             ),
@@ -46,7 +46,7 @@ class ReelUploadProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: value,
             minHeight: 8,
-            backgroundColor: PelevoColors.border,
+            backgroundColor: context.pelevo.border,
             color: PelevoColors.green,
           ),
         ),

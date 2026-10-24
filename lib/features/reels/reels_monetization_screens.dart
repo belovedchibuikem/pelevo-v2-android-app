@@ -136,7 +136,7 @@ PreferredSizeWidget _monetizationAppBar(BuildContext context) => AppBar(
           () => showPelevoSheet<void>(
             context: context,
             builder:
-                (context) => const Padding(
+                (context) => Padding(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 28),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -152,12 +152,12 @@ PreferredSizeWidget _monetizationAppBar(BuildContext context) => AppBar(
                       SizedBox(height: 12),
                       Text(
                         'Earn Wallet: you request a payout after you hit the coin threshold.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                       SizedBox(height: 8),
                       Text(
                         'Reels monetization: once active, payouts run from the creator program. Timing is shown when the server provides it.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ),
@@ -200,9 +200,9 @@ class _ProgressingMonetizationView extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Meet the creator requirements, opt in, and earn from your Pelevo Reels with automatic monthly payouts.',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       ],
                     ),
@@ -248,16 +248,16 @@ class _ProgressingMonetizationView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(PelevoSpacing.md),
                 decoration: BoxDecoration(
-                  color: PelevoColors.surface,
+                  color: context.pelevo.surface,
                   borderRadius: BorderRadius.circular(PelevoRadii.large),
-                  border: Border.all(color: PelevoColors.border),
+                  border: Border.all(color: context.pelevo.border),
                 ),
                 child: Text(
                   minFollowers == 0 || minViews == 0
                       ? 'Eligibility thresholds are shown when the server provides them.'
                       : 'You need $minFollowers followers and $minViews reel views to be eligible for monetization.',
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     height: 1.4,
                   ),
                 ),
@@ -300,9 +300,9 @@ class _ProgressingMonetizationView extends StatelessWidget {
                     color: PelevoColors.purple.withValues(alpha: 0.35),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Unlike Earn Wallet, reels payouts are automatic once you are monetized. No manual withdrawal request.',
-                  style: TextStyle(color: PelevoColors.textMuted, height: 1.4),
+                  style: TextStyle(color: context.pelevo.textMuted, height: 1.4),
                 ),
               ),
               const SizedBox(height: PelevoSpacing.lg),
@@ -377,9 +377,9 @@ class _EligibleMonetizationView extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'You met the creator requirements. Opt in to start earning from your reels with automatic monthly payouts.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ),
@@ -392,7 +392,7 @@ class _EligibleMonetizationView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(PelevoSpacing.md),
               decoration: BoxDecoration(
-                color: PelevoColors.surface,
+                color: context.pelevo.surface,
                 borderRadius: BorderRadius.circular(PelevoRadii.large),
                 border: Border.all(
                   color: PelevoColors.green.withValues(alpha: 0.55),
@@ -453,10 +453,10 @@ class _EligibleMonetizationView extends StatelessWidget {
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Opt in to the program. Payouts send automatically when the program pays out — no manual request.',
                               style: TextStyle(
-                                color: PelevoColors.textMuted,
+                                color: context.pelevo.textMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -542,9 +542,9 @@ class _MonetizedDashboardView extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Your reels are earning. Eligible balances pay out automatically each month.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ),
@@ -556,9 +556,9 @@ class _MonetizedDashboardView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(PelevoSpacing.md),
               decoration: BoxDecoration(
-                color: PelevoColors.surface,
+                color: context.pelevo.surface,
                 borderRadius: BorderRadius.circular(PelevoRadii.large),
-                border: Border.all(color: PelevoColors.border),
+                border: Border.all(color: context.pelevo.border),
               ),
               child: Row(
                 children: [
@@ -607,9 +607,9 @@ class _MonetizedDashboardView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(PelevoSpacing.md),
               decoration: BoxDecoration(
-                color: PelevoColors.surface,
+                color: context.pelevo.surface,
                 borderRadius: BorderRadius.circular(PelevoRadii.large),
-                border: Border.all(color: PelevoColors.border),
+                border: Border.all(color: context.pelevo.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,9 +630,9 @@ class _MonetizedDashboardView extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: PelevoColors.surfaceHigh,
+                          color: context.pelevo.surfaceHigh,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: PelevoColors.border),
+                          border: Border.all(color: context.pelevo.border),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -651,9 +651,9 @@ class _MonetizedDashboardView extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Qualified reel views',
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -694,9 +694,9 @@ class _MonetizedDashboardView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(PelevoSpacing.md),
               decoration: BoxDecoration(
-                color: PelevoColors.surface,
+                color: context.pelevo.surface,
                 borderRadius: BorderRadius.circular(PelevoRadii.large),
-                border: Border.all(color: PelevoColors.border),
+                border: Border.all(color: context.pelevo.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -718,7 +718,7 @@ class _MonetizedDashboardView extends StatelessWidget {
                     label: 'Tips & Support',
                     value: 'Not available',
                   ),
-                  const Divider(color: PelevoColors.border),
+                  Divider(color: context.pelevo.border),
                   const _BreakdownRow(
                     label: 'Total Earnings',
                     value: 'Not available',
@@ -797,9 +797,9 @@ class _MonetizedDashboardView extends StatelessWidget {
                   color: PelevoColors.green.withValues(alpha: 0.4),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Reels payouts are automatic. Earn Wallet still requires you to request a withdrawal after reaching its coin threshold.',
-                style: TextStyle(color: PelevoColors.textMuted, height: 1.4),
+                style: TextStyle(color: context.pelevo.textMuted, height: 1.4),
               ),
             ),
           ],
@@ -875,7 +875,7 @@ class _ProgressMetric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surfaceHigh,
+      color: context.pelevo.surfaceHigh,
       borderRadius: BorderRadius.circular(PelevoRadii.large),
     ),
     child: Column(
@@ -899,8 +899,8 @@ class _ProgressMetric extends StatelessWidget {
                   ),
                   Text(
                     detail,
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -913,7 +913,7 @@ class _ProgressMetric extends StatelessWidget {
                 textAlign: TextAlign.end,
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: complete ? PelevoColors.green : PelevoColors.text,
+                  color: complete ? PelevoColors.green : context.pelevo.text,
                 ),
               ),
             ),
@@ -933,7 +933,7 @@ class _ProgressMetric extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 8,
-            backgroundColor: PelevoColors.border,
+            backgroundColor: context.pelevo.border,
             color: barColor,
           ),
         ),
@@ -965,7 +965,7 @@ class _BenefitTile extends StatelessWidget {
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text(
       subtitle,
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     ),
   );
 }
@@ -1040,7 +1040,7 @@ class _MiniStat extends StatelessWidget {
       Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
       ),
     ],
   );
@@ -1067,7 +1067,7 @@ class _BreakdownRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontWeight: emphasize ? FontWeight.w800 : FontWeight.w500,
-              color: emphasize ? PelevoColors.green : PelevoColors.text,
+              color: emphasize ? PelevoColors.green : context.pelevo.text,
             ),
           ),
         ),
@@ -1075,7 +1075,7 @@ class _BreakdownRow extends StatelessWidget {
           value,
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            color: emphasize ? PelevoColors.green : PelevoColors.text,
+            color: emphasize ? PelevoColors.green : context.pelevo.text,
           ),
         ),
       ],
@@ -1100,13 +1100,13 @@ class _ToolTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
     leading: CircleAvatar(
-      backgroundColor: PelevoColors.surfaceHigh,
-      child: Icon(icon, color: PelevoColors.textMuted, size: 20),
+      backgroundColor: context.pelevo.surfaceHigh,
+      child: Icon(icon, color: context.pelevo.textMuted, size: 20),
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text(
       subtitle,
-      style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+      style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
     ),
     trailing: const Icon(Icons.chevron_right_rounded),
     onTap: onTap,

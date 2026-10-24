@@ -13,7 +13,10 @@ import 'package:pelevo/features/home/home_data.dart';
 import 'package:pelevo/features/library/library_data.dart';
 import 'package:pelevo/features/player/cast/pelevo_cast.dart';
 import 'package:pelevo/features/player/pelevo_audio_handler.dart';
+import 'package:pelevo/features/player/playback_preferences.dart';
+import 'package:pelevo/features/player/sleep_timer.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/profile/preferences_data.dart';
 
 final pelevoAudioHandlerProvider = FutureProvider<PelevoAudioHandler>((
   ref,
@@ -200,6 +203,7 @@ class PelevoPlaybackController {
       );
     }
     final handler = await _handler;
+    handler.skipSeconds = _ref.read(playbackPreferencesProvider).skipSeconds;
     final headers = _mediaHeaders(audioUri: audio, isLocal: local != null);
     try {
       await handler.loadEpisode(
@@ -388,6 +392,7 @@ class PelevoPlaybackController {
   }
 
   Future<void> setSpeed(CatalogEpisode episode, double speed) async {
+    _ref.read(playbackPreferencesProvider.notifier).setSpeed(speed);
     final cast = _ref.read(pelevoCastControllerProvider);
     if (cast.isConnected) {
       await cast.setSpeed(speed);
@@ -399,6 +404,32 @@ class PelevoPlaybackController {
       return;
     }
     final handler = await _handler;
+    await handler.setSpeed(speed);
+    await _syncSession(
+      episodeId: episode.id,
+      playing: handler.playing,
+      rate: speed,
+    );
+  }
+
+  /// Stores a speed and applies it when audio is already loaded.
+  /// Does not start the audio engine just to remember the preference.
+  Future<void> applyPlaybackSpeed(double speed) async {
+    _ref.read(playbackPreferencesProvider.notifier).setSpeed(speed);
+    final episode = _ref.read(nowPlayingEpisodeProvider);
+    if (episode == null) return;
+    final cast = _ref.read(pelevoCastControllerProvider);
+    if (cast.isConnected) {
+      await cast.setSpeed(speed);
+      await _syncSession(
+        episodeId: episode.id,
+        playing: cast.isPlaying,
+        rate: speed,
+      );
+      return;
+    }
+    final handler = pelevoAudioHandler;
+    if (handler == null) return;
     await handler.setSpeed(speed);
     await _syncSession(
       episodeId: episode.id,
@@ -469,6 +500,13 @@ class PelevoPlaybackController {
     }
     final remaining = durationSeconds - seconds;
     if (remaining <= 1) {
+      if (!_shouldContinueAfterEpisode()) {
+        if (_ref.read(sleepTimerProvider).endOfEpisode) {
+          _ref.read(sleepTimerProvider.notifier).complete();
+        }
+        unawaited(_stopAtEnd());
+        return;
+      }
       final audio = pelevoAudioHandler;
       if (audio != null && audio.hasUpcoming) {
         return;
@@ -477,9 +515,19 @@ class PelevoPlaybackController {
     }
   }
 
+  bool _shouldContinueAfterEpisode() {
+    if (_ref.read(sleepTimerProvider).endOfEpisode) return false;
+    final local = _ref.read(playbackPreferencesProvider).autoplay;
+    if (local != null) return local;
+    final remote = _ref.read(preferencesProvider).asData?.value;
+    if (remote == null) return true;
+    return remote.flag('autoplay');
+  }
+
   Future<void> _advanceQueue({String? finishedId}) async {
     final handler = pelevoAudioHandler;
-    if (handler != null && handler.hasUpcoming) {
+    final continuePlayback = _shouldContinueAfterEpisode();
+    if (continuePlayback && handler != null && handler.hasUpcoming) {
       return;
     }
     final finishedEpisodeId = finishedId ?? _activeEpisode?.id;
@@ -526,6 +574,14 @@ class PelevoPlaybackController {
       ];
       if (finishedEpisodeId != null) {
         await _removeFromQueue(repo, finishedEpisodeId);
+      }
+      if (!continuePlayback) {
+        if (_ref.read(sleepTimerProvider).endOfEpisode) {
+          _ref.read(sleepTimerProvider.notifier).complete();
+        }
+        _ref.invalidate(catalogQueueProvider);
+        await _stopAtEnd();
+        return;
       }
       if (upcoming.isEmpty) {
         _ref.invalidate(catalogQueueProvider);
@@ -936,6 +992,8 @@ class PelevoPlaybackController {
   }
 
   Future<double> _playbackRate() async {
+    final chosen = _ref.read(playbackPreferencesProvider).speed;
+    if (chosen != null && chosen > 0) return chosen;
     final cached = _ref.read(catalogPlayerSessionProvider).asData?.value;
     if (cached != null) return cached.playbackRate;
     try {

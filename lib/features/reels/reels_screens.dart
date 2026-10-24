@@ -381,7 +381,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                         width: 42,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: PelevoColors.border,
+                          color: context.pelevo.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -392,9 +392,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Record a short clip, upload from your library, or continue a draft.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                     const SizedBox(height: 16),
                     _SheetAction(
@@ -984,7 +984,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
           });
         }
         if (feed.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
               padding: EdgeInsets.all(PelevoSpacing.xl),
               child: Column(
@@ -1004,7 +1004,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                   Text(
                     'Try another creator, topic, or clear your filter.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ],
               ),
@@ -1179,7 +1179,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                             onTap: () => _openCreator(reel.creatorProfileId),
                             child: CircleAvatar(
                               radius: 16,
-                              backgroundColor: PelevoColors.surfaceHigh,
+                              backgroundColor: context.pelevo.surfaceHigh,
                               backgroundImage:
                                   reel.creatorImageUrl == null
                                       ? null
@@ -1504,7 +1504,7 @@ class _LinkedEpisodeCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: PelevoColors.surfaceHigh.withValues(alpha: 0.92),
+                color: context.pelevo.surfaceHigh.withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(PelevoRadii.large),
                 border: Border.all(color: Colors.white12),
               ),
@@ -1548,8 +1548,8 @@ class _LinkedEpisodeCard extends StatelessWidget {
                           reel.linkedChipLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: PelevoColors.textMuted,
+                          style: TextStyle(
+                            color: context.pelevo.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -1616,8 +1616,8 @@ class _LinkedArtworkFallback extends StatelessWidget {
   const _LinkedArtworkFallback();
 
   @override
-  Widget build(BuildContext context) => const ColoredBox(
-    color: PelevoColors.surface,
+  Widget build(BuildContext context) => ColoredBox(
+    color: context.pelevo.surface,
     child: Center(
       child: Icon(Icons.mic_rounded, color: PelevoColors.purple, size: 22),
     ),
@@ -1765,7 +1765,7 @@ class _SheetAction extends StatelessWidget {
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text(
       subtitle,
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     ),
     onTap: onTap,
   );

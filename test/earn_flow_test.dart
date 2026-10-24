@@ -41,10 +41,6 @@ void main() {
           builder: (_, _) => const WithdrawHomeScreen(),
         ),
         GoRoute(
-          path: '/screen/withdraw-setup-paystack',
-          builder: (_, _) => const WithdrawSetupPaystackScreen(),
-        ),
-        GoRoute(
           path: '/screen/withdraw-setup-flutterwave',
           builder: (_, _) => const WithdrawSetupFlutterwaveScreen(),
         ),
@@ -144,25 +140,24 @@ void main() {
     expect(find.text('Earn Playback'), findsOneWidget);
   });
 
-  testWidgets('flutterwave setup cannot invent a linked destination', (
+  testWidgets('flutterwave setup collects a Nigerian bank account', (
     tester,
   ) async {
+    var posted = false;
     await mount(
       tester,
       location: '/screen/withdraw-setup-flutterwave',
       adapter: ApiAdapter((request) {
-        if (request.path == '/payout-methods') {
-          fail('Flutterwave must not post a payout method');
-        }
+        if (request.path == '/payout-methods') posted = true;
         return jsonResponse(earnWalletFixture());
       }),
     );
+    expect(find.text('Set up Flutterwave'), findsOneWidget);
+    expect(find.text('Account number'), findsOneWidget);
+    expect(find.textContaining('not offered by the payout API'), findsNothing);
     await tester.tap(find.text('Verify & Link Flutterwave'));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Flutterwave is not offered by the payout API'),
-      findsOneWidget,
-    );
+    expect(posted, isFalse);
   });
 
   testWidgets('confirmed withdrawal shows the server receipt only', (

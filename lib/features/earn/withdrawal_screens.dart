@@ -8,43 +8,42 @@ import 'package:pelevo/features/compliance/age_majority_gate.dart';
 import 'package:pelevo/features/earn/earn_wallet_data.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 
-enum PayoutGateway { paystack, paypal, flutterwave }
+enum PayoutGateway { paypal, flutterwave }
 
 extension PayoutGatewayX on PayoutGateway {
   String get label => switch (this) {
-    PayoutGateway.paystack => 'Paystack',
     PayoutGateway.paypal => 'PayPal',
     PayoutGateway.flutterwave => 'Flutterwave',
   };
 
   String get subtitle => switch (this) {
-    PayoutGateway.paystack => 'Nigerian banks & mobile money',
     PayoutGateway.paypal => 'Global PayPal balance payouts',
-    PayoutGateway.flutterwave => 'Cards, banks & African wallets',
+    PayoutGateway.flutterwave => 'Nigerian banks & mobile money',
   };
 
   Color get color => switch (this) {
-    PayoutGateway.paystack => const Color(0xFF00C3F7),
     PayoutGateway.paypal => const Color(0xFF003087),
     PayoutGateway.flutterwave => const Color(0xFFF5A623),
   };
 
   IconData get icon => switch (this) {
-    PayoutGateway.paystack => Icons.account_balance_rounded,
     PayoutGateway.paypal => Icons.payments_outlined,
-    PayoutGateway.flutterwave => Icons.bolt_rounded,
+    PayoutGateway.flutterwave => Icons.account_balance_rounded,
   };
 
   String get setupRoute => switch (this) {
-    PayoutGateway.paystack => '/screen/withdraw-setup-paystack',
     PayoutGateway.paypal => '/screen/withdraw-setup-paypal',
     PayoutGateway.flutterwave => '/screen/withdraw-setup-flutterwave',
   };
 
   String get provider => name;
-
-  bool get supported => this != PayoutGateway.flutterwave;
 }
+
+String payoutProviderLabel(String provider) => switch (provider) {
+  'paypal' => 'PayPal',
+  'flutterwave' => 'Flutterwave',
+  _ => provider,
+};
 
 class PayoutMethodConfig {
   const PayoutMethodConfig({
@@ -191,12 +190,15 @@ class WithdrawHomeScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: PelevoSpacing.sm),
-              const Text(
-                'Earn coins are separate from gift coins. PayPal is the only way to withdraw Earn coins.',
-                style: TextStyle(color: PelevoColors.textMuted, height: 1.35),
+              Text(
+                'Earn coins are separate from gift coins. Withdraw to a Nigerian bank with Flutterwave, or to PayPal in USD.',
+                style: TextStyle(color: context.pelevo.textMuted, height: 1.35),
               ),
               const SizedBox(height: PelevoSpacing.sm),
-              for (final gateway in [PayoutGateway.paypal])
+              for (final gateway in [
+                PayoutGateway.flutterwave,
+                PayoutGateway.paypal,
+              ])
                 _GatewayTile(
                   gateway: gateway,
                   method: _verifiedMethod(payouts, gateway),
@@ -212,9 +214,9 @@ class WithdrawHomeScreen extends ConsumerWidget {
                   onSetup: () => context.push(gateway.setupRoute),
                 ),
               const SizedBox(height: PelevoSpacing.lg),
-              const Text(
+              Text(
                 'Withdrawals are reviewed and paid monthly between the 1st and 5th. Linked accounts must be verified before payout.',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 13),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 13),
               ),
               const SizedBox(height: PelevoSpacing.lg),
               PelevoButton(
@@ -255,16 +257,16 @@ class WithdrawHomeScreen extends ConsumerWidget {
   }
 }
 
-class WithdrawSetupPaystackScreen extends ConsumerStatefulWidget {
-  const WithdrawSetupPaystackScreen({super.key});
+class WithdrawSetupFlutterwaveScreen extends ConsumerStatefulWidget {
+  const WithdrawSetupFlutterwaveScreen({super.key});
 
   @override
-  ConsumerState<WithdrawSetupPaystackScreen> createState() =>
-      _WithdrawSetupPaystackScreenState();
+  ConsumerState<WithdrawSetupFlutterwaveScreen> createState() =>
+      _WithdrawSetupFlutterwaveScreenState();
 }
 
-class _WithdrawSetupPaystackScreenState
-    extends ConsumerState<WithdrawSetupPaystackScreen> {
+class _WithdrawSetupFlutterwaveScreenState
+    extends ConsumerState<WithdrawSetupFlutterwaveScreen> {
   final _name = TextEditingController();
   final _account = TextEditingController();
   String? _bank;
@@ -308,7 +310,7 @@ class _WithdrawSetupPaystackScreenState
     if (_saving || !_ageConfirmed) return;
     if (_accountType != 'NUBAN') {
       context.showPelevoMessage(
-        'Paystack setup in this app supports NUBAN bank accounts only.',
+        'Flutterwave setup in this app supports NUBAN bank accounts only.',
       );
       return;
     }
@@ -334,7 +336,7 @@ class _WithdrawSetupPaystackScreenState
               ? await ref
                   .read(earnWalletRepositoryProvider)
                   .createPayoutMethod(
-                    provider: 'paystack',
+                    provider: 'flutterwave',
                     kind: 'bank',
                     destination: {
                       'account_number': _account.text.trim(),
@@ -367,12 +369,12 @@ class _WithdrawSetupPaystackScreenState
 
   @override
   Widget build(BuildContext context) => _SetupScaffold(
-    title: 'Set up Paystack',
-    gateway: PayoutGateway.paystack,
+    title: 'Set up Flutterwave',
+    gateway: PayoutGateway.flutterwave,
     children: [
-      const Text(
-        'Paystack pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
-        style: TextStyle(color: PelevoColors.textMuted),
+      Text(
+        'Flutterwave pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       TextField(
@@ -423,8 +425,8 @@ class _WithdrawSetupPaystackScreenState
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: _saving ? 'Uploading…' : 'Verify & Link Paystack',
-        color: PayoutGateway.paystack.color,
+        label: _saving ? 'Uploading…' : 'Verify & Link Flutterwave',
+        color: PayoutGateway.flutterwave.color,
         onPressed: _saving || !_ageConfirmed ? null : _save,
       ),
     ],
@@ -495,9 +497,9 @@ class _WithdrawSetupPaypalScreenState
     title: 'Set up PayPal',
     gateway: PayoutGateway.paypal,
     children: [
-      const Text(
+      Text(
         'PayPal payouts are sent in USD to your verified PayPal email. Confirm the address carefully.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       TextField(
@@ -524,57 +526,6 @@ class _WithdrawSetupPaypalScreenState
         label: _saving ? 'Verifying…' : 'Verify & Link PayPal',
         color: PayoutGateway.paypal.color,
         onPressed: _saving || !_ageConfirmed ? null : _save,
-      ),
-    ],
-  );
-}
-
-class WithdrawSetupFlutterwaveScreen extends StatelessWidget {
-  const WithdrawSetupFlutterwaveScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => _SetupScaffold(
-    title: 'Set up Flutterwave',
-    gateway: PayoutGateway.flutterwave,
-    children: [
-      const Text(
-        'Flutterwave supports bank transfers and mobile wallets across Africa. Choose your preferred payout channel.',
-        style: TextStyle(color: PelevoColors.textMuted),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      const TextField(
-        enabled: false,
-        decoration: InputDecoration(labelText: 'Beneficiary name'),
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      DropdownButtonFormField<String>(
-        value: 'Bank Transfer',
-        decoration: const InputDecoration(labelText: 'Payout channel'),
-        items: const [
-          DropdownMenuItem(
-            value: 'Bank Transfer',
-            child: Text('Bank Transfer'),
-          ),
-          DropdownMenuItem(value: 'Mobile Money', child: Text('Mobile Money')),
-          DropdownMenuItem(value: 'Barter', child: Text('Barter')),
-        ],
-        onChanged: null,
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      const TextField(
-        enabled: false,
-        decoration: InputDecoration(
-          labelText: 'Phone / wallet ID',
-          hintText: '+234…',
-        ),
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      PelevoButton(
-        label: 'Verify & Link Flutterwave',
-        color: PayoutGateway.flutterwave.color,
-        onPressed: () => context.showPelevoMessage(
-          'Flutterwave is not offered by the payout API. No destination has been saved.',
-        ),
       ),
     ],
   );
@@ -610,9 +561,8 @@ class _WithdrawAmountScreenState extends ConsumerState<WithdrawAmountScreen> {
     return wallet.when(
       skipLoadingOnRefresh: false,
       loading:
-          () => EarnWalletStatus(
-            retry: () => ref.invalidate(earnWalletProvider),
-          ),
+          () =>
+              EarnWalletStatus(retry: () => ref.invalidate(earnWalletProvider)),
       error:
           (error, stack) => EarnWalletStatus(
             error: error,
@@ -647,7 +597,7 @@ class _WithdrawAmountScreenState extends ConsumerState<WithdrawAmountScreen> {
                 children: [
                   Text(
                     'Available ${balance.balance} coins',
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: PelevoSpacing.md),
                   TextField(
@@ -687,11 +637,10 @@ class _WithdrawAmountScreenState extends ConsumerState<WithdrawAmountScreen> {
                   const SizedBox(height: PelevoSpacing.xl),
                   _AmountSummary(
                     coins: coins,
-                    gateway: draft.method == null
-                        ? '—'
-                        : (draft.method!.provider == 'paypal'
-                            ? 'PayPal'
-                            : 'Paystack'),
+                    gateway:
+                        draft.method == null
+                            ? '—'
+                            : payoutProviderLabel(draft.method!.provider),
                   ),
                   const SizedBox(height: PelevoSpacing.xl),
                   PelevoButton(
@@ -802,9 +751,8 @@ class _WithdrawReviewScreenState extends ConsumerState<WithdrawReviewScreen> {
             children: [
               _ReviewRow(
                 label: 'Gateway',
-                value: method == null
-                    ? '—'
-                    : (method.provider == 'paypal' ? 'PayPal' : 'Paystack'),
+                value:
+                    method == null ? '—' : payoutProviderLabel(method.provider),
               ),
               _ReviewRow(
                 label: 'Destination',
@@ -820,9 +768,9 @@ class _WithdrawReviewScreenState extends ConsumerState<WithdrawReviewScreen> {
                 value: EarnWalletService.processingWindow,
               ),
               const SizedBox(height: PelevoSpacing.lg),
-              const Text(
+              Text(
                 'By confirming, you queue this payout for the next monthly settlement cycle. Coins are reserved immediately and cannot be spent while pending.',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 13),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 13),
               ),
               const SizedBox(height: PelevoSpacing.md),
               AgeMajorityCheckbox(
@@ -878,7 +826,7 @@ class WithdrawSuccessScreen extends ConsumerWidget {
                     ? 'No server-confirmed payout request is available. Check your withdrawal history for actual requests.'
                     : '${latest.coins} coins will process ${EarnWalletService.processingWindow.toLowerCase()}.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: PelevoSpacing.xxl),
               PelevoButton(
@@ -944,7 +892,7 @@ class _SetupScaffold extends StatelessWidget {
                 Expanded(
                   child: Text(
                     gateway.subtitle,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ),
               ],
@@ -977,13 +925,10 @@ class _BalanceBanner extends StatelessWidget {
       children: [
         const Text('Withdrawable balance'),
         const SizedBox(height: 6),
+        Text('$coins coins', style: Theme.of(context).textTheme.headlineMedium),
         Text(
-          '$coins coins',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const Text(
           'ECN · quoted by the payout service',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     ),
@@ -1010,9 +955,9 @@ class _ThresholdCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(PelevoSpacing.md),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: BorderRadius.circular(PelevoRadii.large),
-        border: Border.all(color: PelevoColors.border),
+        border: Border.all(color: context.pelevo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1040,7 +985,7 @@ class _ThresholdCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Minimum $minimum coins.',
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 13),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 10),
           ClipRRect(
@@ -1048,7 +993,7 @@ class _ThresholdCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: PelevoColors.border,
+              backgroundColor: context.pelevo.border,
               color: meetsThreshold ? PelevoColors.green : PelevoColors.yellow,
             ),
           ),
@@ -1081,7 +1026,7 @@ class _GatewayTile extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(PelevoRadii.large),
         side: BorderSide(
-          color: selected ? gateway.color : PelevoColors.border,
+          color: selected ? gateway.color : context.pelevo.border,
           width: selected ? 1.4 : 1,
         ),
       ),
@@ -1097,13 +1042,15 @@ class _GatewayTile extends StatelessWidget {
         ),
         subtitle: Text(
           linked ? method!.destinationLabel : gateway.subtitle,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         trailing:
             linked
                 ? Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                  color: selected ? gateway.color : PelevoColors.textDim,
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: selected ? gateway.color : context.pelevo.textDim,
                 )
                 : TextButton(onPressed: onSetup, child: const Text('Set up')),
       ),
@@ -1121,9 +1068,9 @@ class _AmountSummary extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: BorderRadius.circular(PelevoRadii.large),
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Column(
       children: [
@@ -1146,10 +1093,7 @@ class _ReviewRow extends StatelessWidget {
     child: Row(
       children: [
         Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(color: PelevoColors.textMuted),
-          ),
+          child: Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         ),
         Flexible(
           child: Text(

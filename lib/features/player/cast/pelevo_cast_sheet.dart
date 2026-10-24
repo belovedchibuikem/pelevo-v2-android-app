@@ -62,7 +62,7 @@ Future<void> showPelevoCastSheet(
                       : showAirPlay
                       ? 'Choose AirPlay, or a Chromecast on the same Wi‑Fi.'
                       : 'Choose a Chromecast or Cast-enabled speaker on your Wi‑Fi.',
-                  style: const TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
                 if (showAirPlay) ...[
                   const SizedBox(height: 12),
@@ -118,11 +118,11 @@ Future<void> showPelevoCastSheet(
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (cast.permissionDenied)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text(
                       'Nearby-device access is needed to find Chromecast speakers.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   )
                 else if (cast.devices.isEmpty)
@@ -131,7 +131,7 @@ Future<void> showPelevoCastSheet(
                     child: Text(
                       cast.statusMessage ??
                           'No Cast devices found. Power on your speaker and stay on the same Wi‑Fi.',
-                      style: const TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   )
                 else

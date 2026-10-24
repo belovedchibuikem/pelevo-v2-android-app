@@ -381,7 +381,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                   const SizedBox(height: PelevoSpacing.xxs),
                   Text(
                     show.categoryLabel,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: PelevoSpacing.xs),
                   InkWell(
@@ -403,7 +403,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             show.description == null || show.description!.isEmpty
                 ? 'No description is available.'
                 : show.description!,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
         const SizedBox(height: PelevoSpacing.lg),
@@ -422,10 +422,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
               child: PelevoButton(
                 label: show.following ? 'Following' : 'Follow',
                 outlined: true,
-                color:
-                    show.following ? PelevoColors.green : PelevoColors.textMuted,
-                foregroundColor:
-                    show.following ? PelevoColors.green : Colors.white,
+                color: PelevoColors.green,
                 icon:
                     show.following
                         ? Icons.check_circle_rounded
@@ -483,7 +480,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             children: [
               Text(
                 show.emptyEpisodesMessage,
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               if (show.episodesSyncing) ...[
                 const SizedBox(height: PelevoSpacing.sm),
@@ -524,15 +521,15 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         show.description == null || show.description!.isEmpty
             ? 'No description is available.'
             : show.description!,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       const Text('Categories', style: TextStyle(fontWeight: FontWeight.w700)),
       const SizedBox(height: PelevoSpacing.xs),
       if (show.categories.isEmpty)
-        const Text(
+        Text(
           'No categories are listed.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         Wrap(
@@ -654,9 +651,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         if (show.episodesSyncing && episodes.isNotEmpty) ...[
           const LinearProgressIndicator(minHeight: 2),
           const SizedBox(height: PelevoSpacing.sm),
-          const Text(
+          Text(
             'Syncing more episodes in the background…',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
         ],
@@ -678,7 +675,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                 query.isEmpty
                     ? show.emptyEpisodesMessage
                     : 'No episodes match “$query”.',
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               if (show.episodesSyncing && query.isEmpty) ...[
                 const SizedBox(height: PelevoSpacing.sm),
@@ -761,7 +758,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         const SizedBox(height: PelevoSpacing.xs),
         Text(
           show.title,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         Slider(
@@ -774,11 +771,11 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
           children: [
             Text(
               formatCatalogClock((_progress * duration).round()),
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             Text(
               duration == 0 ? '—' : formatCatalogClock(duration),
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           ],
         ),
@@ -886,7 +883,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                   const SizedBox(height: 4),
                   Text(
                     episode.subtitle.isEmpty ? show.title : episode.subtitle,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ],
               ),
@@ -898,7 +895,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
           episode.description == null || episode.description!.isEmpty
               ? 'No description is available.'
               : episode.description!,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         PelevoButton(
@@ -955,9 +952,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             retry: () => ref.invalidate(catalogChaptersProvider),
           )
         else if (chaptersAsync.requireValue.isEmpty)
-          const Text(
+          Text(
             'No chapters are available.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final chapter in chaptersAsync.requireValue.take(3))
@@ -1000,9 +997,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         Text('Chapters', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: PelevoSpacing.md),
         if (chapters.isEmpty)
-          const Text(
+          Text(
             'No chapters are available.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final chapter in chapters)
@@ -1057,7 +1054,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                   ),
                   Text(
                     '${show.ratingCount} ratings',
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ],
               ),
@@ -1080,7 +1077,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(8),
                       color: PelevoColors.green,
-                      backgroundColor: PelevoColors.surfaceHigh,
+                      backgroundColor: context.pelevo.surfaceHigh,
                     ),
                   ),
                 ],
@@ -1124,9 +1121,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             retry: () => ref.invalidate(catalogReviewsProvider),
           )
         else if (reviewsAsync.requireValue.isEmpty)
-          const Text(
+          Text(
             'No reviews are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final review in sortedCatalogReviews(
@@ -1134,7 +1131,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
             _reviewFilter,
           ))
             Card(
-              color: PelevoColors.surface,
+              color: context.pelevo.surface,
               margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
               child: ListTile(
                 title: Text(
@@ -1170,9 +1167,9 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (related.isEmpty)
-          const Text(
+          Text(
             'No related shows are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in related)
@@ -1189,8 +1186,8 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
               trailing: OutlinedButton(
                 onPressed: _busy ? null : () => _followRelated(item),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: PelevoColors.yellow,
-                  side: const BorderSide(color: PelevoColors.yellow),
+                  foregroundColor: PelevoColors.green,
+                  side: const BorderSide(color: PelevoColors.green, width: 1.5),
                 ),
                 child: const Text('Follow'),
               ),
@@ -1239,7 +1236,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Card(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         child: ListTile(
           leading: _cover(show, 56),
           title: Text(show.title),
@@ -1308,8 +1305,8 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
           child: Column(
             children: [
               CircleAvatar(
-                backgroundColor: PelevoColors.surfaceHigh,
-                child: Icon(icon, color: PelevoColors.text),
+                backgroundColor: context.pelevo.surfaceHigh,
+                child: Icon(icon, color: context.pelevo.text),
               ),
               const SizedBox(height: 4),
               Text(label, style: Theme.of(context).textTheme.bodySmall),
@@ -1409,7 +1406,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                                     currentId == episode.id && listening
                                         ? PelevoColors.green
                                         : episode.completed
-                                        ? PelevoColors.textMuted
+                                        ? context.pelevo.textMuted
                                         : null,
                               ),
                             ),
@@ -1427,7 +1424,7 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
                                 color:
                                     currentId == episode.id && listening
                                         ? PelevoColors.green
-                                        : PelevoColors.textMuted,
+                                        : context.pelevo.textMuted,
                                 fontWeight:
                                     currentId == episode.id
                                         ? FontWeight.w600
@@ -1884,7 +1881,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
     ),
     child: Column(

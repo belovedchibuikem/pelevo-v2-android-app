@@ -338,7 +338,7 @@ class _CreatorTransactionHistoryScreenState
                               color:
                                   _filter == _filters[i]
                                       ? PelevoColors.green
-                                      : PelevoColors.textMuted,
+                                      : context.pelevo.textMuted,
                             ),
                           ),
                         ),
@@ -371,12 +371,12 @@ class _CreatorTransactionHistoryScreenState
               ),
               const SizedBox(height: 18),
               if (value.items.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No transactions in this period.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 )
               else
@@ -508,8 +508,8 @@ class CreatorTransactionDetailsScreen extends ConsumerWidget {
                           const SizedBox(height: 5),
                           Text(
                             item.reference,
-                            style: const TextStyle(
-                              color: PelevoColors.textMuted,
+                            style: TextStyle(
+                              color: context.pelevo.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -592,9 +592,9 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Available Balance',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                     Text(
                       balance?.balanceLabel ?? '0',
@@ -608,8 +608,8 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                       Text(
                         'Minimum payout: $minimum ${balance?.unit ?? ''}'
                             .trim(),
-                        style: const TextStyle(
-                          color: PelevoColors.textMuted,
+                        style: TextStyle(
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -646,10 +646,10 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                                 ),
                               )
                             else if (method.proofStatus == 'pending')
-                              const Text(
+                              Text(
                                 'Pending review',
                                 style: TextStyle(
-                                  color: PelevoColors.textMuted,
+                                  color: context.pelevo.textMuted,
                                   fontSize: 11,
                                 ),
                               )
@@ -780,14 +780,17 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const _SettingsSection(
+              _SettingsSection(
                 title: 'Important Information',
                 child: Text(
                   '• Payouts are processed within 1–3 business days.\n'
                   '• Ensure your bank details are accurate to avoid delays.\n'
                   '• You can update your payout method anytime.\n'
                   '• For any payout issues, contact our support team.',
-                  style: TextStyle(color: PelevoColors.textMuted, height: 1.5),
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
+                    height: 1.5,
+                  ),
                 ),
               ),
             ],
@@ -876,13 +879,12 @@ class _CreatorAddPayoutMethodScreenState
         final methodId =
             _pendingMethodId ??
             (await ref
-                    .read(studioRepositoryProvider)
-                    .createPayoutMethod(
-                      provider: 'paystack',
-                      kind: 'bank',
-                      destination: {'account_number': number, 'bank_code': bank},
-                    ))
-                .id;
+                .read(studioRepositoryProvider)
+                .createPayoutMethod(
+                  provider: 'flutterwave',
+                  kind: 'bank',
+                  destination: {'account_number': number, 'bank_code': bank},
+                )).id;
         _pendingMethodId = methodId;
         await ref
             .read(studioRepositoryProvider)
@@ -958,8 +960,9 @@ class _CreatorAddPayoutMethodScreenState
         _PayoutMethodCard(
           selected: _method == 0,
           icon: Icons.account_balance_rounded,
-          title: 'Bank Transfer',
-          subtitle: 'Receive your earnings directly\nto your bank account',
+          title: 'Flutterwave',
+          subtitle:
+              'Receive your earnings directly\nto a Nigerian bank account',
           onTap:
               () => setState(() {
                 _method = 0;
@@ -980,10 +983,10 @@ class _CreatorAddPayoutMethodScreenState
         ),
         const SizedBox(height: 16),
         _SettingsSection(
-          title: _method == 0 ? 'Bank Details' : 'PayPal Details',
+          title: _method == 0 ? 'Flutterwave bank details' : 'PayPal Details',
           subtitle:
               _method == 0
-                  ? 'Enter your bank account details'
+                  ? 'Enter the Nigerian bank account Flutterwave should pay'
                   : 'Enter your PayPal account details',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1026,15 +1029,15 @@ class _CreatorAddPayoutMethodScreenState
                   ),
                 ),
                 const SizedBox(height: 5),
-                const Text(
+                Text(
                   'Must match the name on your bank account',
-                  style: TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
                 const SizedBox(height: 18),
-                AccountProofUpload(
-                  fileName: _proofName,
-                  onPick: _pickProof,
-                ),
+                AccountProofUpload(fileName: _proofName, onPick: _pickProof),
               ] else ...[
                 const Text('PayPal Email'),
                 const SizedBox(height: 6),
@@ -1075,13 +1078,13 @@ class _CreatorAddPayoutMethodScreenState
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.lock_outline_rounded, size: 14),
             SizedBox(width: 6),
             Flexible(
               child: Text(
                 'Your information is secure and encrypted',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
               ),
             ),
           ],
@@ -1185,7 +1188,7 @@ class _PodcastHeader extends StatelessWidget {
       height: 54,
       color: const Color(0xFF111016),
       alignment: Alignment.center,
-      child: const Icon(Icons.podcasts_rounded, color: PelevoColors.textMuted),
+      child: Icon(Icons.podcasts_rounded, color: context.pelevo.textMuted),
     );
     final episodes = show?.episodeCount;
     final updated = show?.updatedAt;
@@ -1242,8 +1245,8 @@ class _PodcastHeader extends StatelessWidget {
                   if (subtitle.isNotEmpty)
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -1297,7 +1300,7 @@ class _CreatorTabs extends StatelessWidget {
                   'Monetization',
                 ][i],
                 style: TextStyle(
-                  color: i == 4 ? PelevoColors.green : PelevoColors.textMuted,
+                  color: i == 4 ? PelevoColors.green : context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -1330,9 +1333,9 @@ class _EarningsChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Reels Ad Earnings',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1358,7 +1361,12 @@ class _EarningsChart extends StatelessWidget {
                         child: const Text('Earnings could not load. Retry'),
                       ),
                     )
-                    : CustomPaint(painter: _EarningsPainter(series)),
+                    : CustomPaint(
+                      painter: _EarningsPainter(
+                        series,
+                        gridColor: context.pelevo.border.withValues(alpha: .45),
+                      ),
+                    ),
           ),
           if (labels.isNotEmpty) ...[
             const SizedBox(height: 6),
@@ -1368,8 +1376,8 @@ class _EarningsChart extends StatelessWidget {
                 for (final label in labels)
                   Text(
                     label,
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontSize: 10,
                     ),
                   ),
@@ -1386,9 +1394,9 @@ class _EarningsChart extends StatelessWidget {
           ),
           if (value != null && !value.hasActivity) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'No earnings recorded in this period yet.',
-              style: TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+              style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
             ),
           ],
         ],
@@ -1424,7 +1432,7 @@ class _ChartKey extends StatelessWidget {
       const SizedBox(width: 6),
       Text(
         label,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
       ),
     ],
   );
@@ -1432,15 +1440,16 @@ class _ChartKey extends StatelessWidget {
 
 /// Gift coins and ad USD are different units, so each is scaled to its own peak.
 class _EarningsPainter extends CustomPainter {
-  const _EarningsPainter(this.series);
+  const _EarningsPainter(this.series, {required this.gridColor});
 
   final List<StudioEarningsPoint> series;
+  final Color gridColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final grid =
         Paint()
-          ..color = PelevoColors.border.withValues(alpha: .45)
+          ..color = gridColor
           ..strokeWidth = 1;
     for (var i = 1; i < 4; i++) {
       final y = size.height * i / 4;
@@ -1523,7 +1532,8 @@ class _EarningsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EarningsPainter oldDelegate) =>
-      !identical(oldDelegate.series, series);
+      !identical(oldDelegate.series, series) ||
+      oldDelegate.gridColor != gridColor;
 }
 
 class _MoneyMetric extends StatelessWidget {
@@ -1552,7 +1562,7 @@ class _MoneyMetric extends StatelessWidget {
         if (caption != null && caption!.isNotEmpty)
           Text(
             caption!,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
           ),
       ],
     ),
@@ -1611,7 +1621,10 @@ class _BreakdownCard extends StatelessWidget {
                 width: 126,
                 height: 126,
                 child: CustomPaint(
-                  painter: _DonutPainter(segments: segments),
+                  painter: _DonutPainter(
+                    segments: segments,
+                    trackColor: context.pelevo.border,
+                  ),
                   child: Center(
                     child: Text(
                       '${formatUsdMicros(total)}\nthis period',
@@ -1626,9 +1639,9 @@ class _BreakdownCard extends StatelessWidget {
                 child: Column(
                   children: [
                     if (entries.isEmpty)
-                      const Text(
+                      Text(
                         'No ad earnings in this period yet.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       )
                     else
                       for (final entry in entries) ...[
@@ -1661,9 +1674,10 @@ class _BreakdownCard extends StatelessWidget {
 }
 
 class _DonutPainter extends CustomPainter {
-  const _DonutPainter({required this.segments});
+  const _DonutPainter({required this.segments, required this.trackColor});
 
   final List<({Color color, double share})> segments;
+  final Color trackColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1675,7 +1689,7 @@ class _DonutPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 18
           ..strokeCap = StrokeCap.butt;
-    paint.color = PelevoColors.border;
+    paint.color = trackColor;
     canvas.drawArc(rect, -math.pi / 2, math.pi * 2, false, paint);
     var start = -math.pi / 2;
     for (final segment in segments) {
@@ -1689,7 +1703,7 @@ class _DonutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
-      oldDelegate.segments != segments;
+      oldDelegate.segments != segments || oldDelegate.trackColor != trackColor;
 }
 
 class _Legend extends StatelessWidget {
@@ -1722,7 +1736,7 @@ class _Legend extends StatelessWidget {
           Text(percent, style: const TextStyle(fontWeight: FontWeight.w800)),
           Text(
             amount,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 10),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 10),
           ),
         ],
       ),
@@ -1760,11 +1774,11 @@ class _SupportersCard extends StatelessWidget {
             ],
           ),
           if (items.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No supporters yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             )
           else
@@ -1774,7 +1788,7 @@ class _SupportersCard extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
                   radius: 18,
-                  backgroundColor: PelevoColors.surfaceHigh,
+                  backgroundColor: context.pelevo.surfaceHigh,
                   child: Text('${i + 1}'),
                 ),
                 title: Text(items[i].name),
@@ -1801,7 +1815,7 @@ class _NavigationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    tileColor: PelevoColors.surface,
+    tileColor: context.pelevo.surface,
     shape: RoundedRectangleBorder(borderRadius: PelevoRadii.card),
     leading: Icon(icon),
     title: Text(label),
@@ -1866,7 +1880,7 @@ class _SummaryValue extends StatelessWidget {
     children: [
       Text(
         label,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 10),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 10),
       ),
       const SizedBox(height: 4),
       Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800)),
@@ -1890,7 +1904,7 @@ class _TransactionTile extends StatelessWidget {
             : Icons.account_balance_outlined;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      tileColor: PelevoColors.surface,
+      tileColor: context.pelevo.surface,
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: .15),
         child: Icon(icon, color: color),
@@ -1934,12 +1948,12 @@ class _DetailRow extends StatelessWidget {
       decoration: BoxDecoration(
         border:
             divider
-                ? const Border(bottom: BorderSide(color: PelevoColors.border))
+                ? Border(bottom: BorderSide(color: context.pelevo.border))
                 : null,
       ),
       child: Row(
         children: [
-          Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+          Text(label, style: TextStyle(color: context.pelevo.textMuted)),
           const Spacer(),
           Text(
             value,
@@ -1971,7 +1985,7 @@ class _SettingsSection extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             subtitle!,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
           ),
         ],
         const SizedBox(height: 8),
@@ -2002,10 +2016,10 @@ class _PayoutMethodCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: PelevoRadii.card,
         border: Border.all(
-          color: selected ? PelevoColors.green : PelevoColors.border,
+          color: selected ? PelevoColors.green : context.pelevo.border,
         ),
       ),
       child: Row(
@@ -2014,11 +2028,11 @@ class _PayoutMethodCard extends StatelessWidget {
             selected
                 ? Icons.radio_button_checked_rounded
                 : Icons.radio_button_off_rounded,
-            color: selected ? PelevoColors.green : PelevoColors.textMuted,
+            color: selected ? PelevoColors.green : context.pelevo.textMuted,
           ),
           const SizedBox(width: 12),
           CircleAvatar(
-            backgroundColor: PelevoColors.surfaceHigh,
+            backgroundColor: context.pelevo.surfaceHigh,
             child: Icon(icon),
           ),
           const SizedBox(width: 12),
@@ -2032,8 +2046,8 @@ class _PayoutMethodCard extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -2054,9 +2068,9 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: child,
   );

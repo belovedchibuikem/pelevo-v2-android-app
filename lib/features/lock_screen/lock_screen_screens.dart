@@ -642,7 +642,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
           preferences.data['delivery_status'] == 'in_app_policy_enabled'
               ? 'Push preference is saved to your account. Enable Lock Screen Alerts below to register this device with FCM and mirror remote/live alerts onto the lock screen.'
               : 'These preferences are saved to your account. Enable OS notifications below for lock-visible local alerts.',
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         PelevoButton(
           label: 'Enable Lock Screen Alerts',
@@ -868,9 +868,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _notificationStyle(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Style choices are local chrome. The OS lock-screen layout is not controlled by Pelevo yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       for (var i = 0; i < 3; i++)
         RadioListTile<int>(
@@ -1080,7 +1080,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
         if (_saving) const LinearProgressIndicator(),
         Text(
           'Quiet hours use ${preferences.data['timezone']}. Day chips below are visual only; the API stores a start/end pair, not per-day quiet windows.',
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         if (_error != null)
           Text(
@@ -1175,9 +1175,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _soundVibration(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Pelevo creates Android notification channels. Exact sounds and vibration patterns are finalized in system settings.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       _switch(
         'Play Sound',
@@ -1233,10 +1233,10 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.headlineMedium,
       ),
-      const Text(
+      Text(
         'Do Not Disturb is controlled by the OS. Pelevo cannot change system DND from this screen.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const _Section('Allow Notifications'),
       for (final item in const ['From Favorites', 'Live Shows', 'Downloads'])
@@ -1276,15 +1276,15 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Review stored inbox history. This is not an OS lock-screen log.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
           if (state.items.isEmpty)
-            const Text(
+            Text(
               'No notification history yet.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             )
           else
             for (final item in state.items)
@@ -1366,9 +1366,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _snooze(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Schedule a local reminder that can appear on the lock screen.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final item in const [
@@ -1413,9 +1413,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _rules(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Conditional If/Then delivery rules are not offered. Privacy uses /notification-lock-rules.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       const TextField(
@@ -1449,9 +1449,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
     children: [
       _miniPlayer(context),
       const SizedBox(height: PelevoSpacing.xl),
-      const Text(
+      Text(
         'Widget Size',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       _choiceChips(
         const ['Small', 'Medium', 'Large'],
@@ -1470,9 +1470,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _focus(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Focus modes are owned by the OS. Pelevo cannot change them from this screen.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final item in const [
@@ -1505,9 +1505,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
         Icons.bar_chart_rounded,
       ),
       const SizedBox(height: PelevoSpacing.lg),
-      const Text(
+      Text(
         'Notification open, dismiss and snooze rates are not available from the API.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       PelevoButton(
@@ -1520,9 +1520,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Widget _advanced(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'Artwork and publisher detail toggles are local chrome until lock presentation APIs exist.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.md),
       for (final item in const [
@@ -1635,7 +1635,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
           end: Alignment.bottomRight,
           colors: [color.withValues(alpha: .28), const Color(0xFF070807)],
         ),
-        border: Border.all(color: PelevoColors.border),
+        border: Border.all(color: context.pelevo.border),
       ),
       child: Column(
         children: [
@@ -1645,11 +1645,11 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
           ),
           Text(
             _lockDate(now),
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.xl),
           Material(
-            color: PelevoColors.surfaceHigh.withValues(alpha: .92),
+            color: context.pelevo.surfaceHigh.withValues(alpha: .92),
             borderRadius: PelevoRadii.card,
             child: InkWell(
               borderRadius: PelevoRadii.card,
@@ -1687,8 +1687,8 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
                             subtitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: PelevoColors.textMuted,
+                            style: TextStyle(
+                              color: context.pelevo.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -1702,13 +1702,13 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
             ),
           ),
           const SizedBox(height: 120),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Icon(Icons.flashlight_on_outlined),
               Text(
                 'Swipe up to unlock',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
               ),
               Icon(Icons.camera_alt_outlined),
             ],
@@ -1725,7 +1725,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
             ? async.requireValue.first
             : null;
     return Card(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       child: Padding(
         padding: const EdgeInsets.all(PelevoSpacing.sm),
         child: Column(
@@ -1750,7 +1750,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
                       ),
                       Text(
                         item?.showTitle ?? 'No recent episode',
-                        style: const TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ),
@@ -1876,9 +1876,9 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   ) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.lg),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Row(
       children: [
@@ -1888,7 +1888,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+            Text(label, style: TextStyle(color: context.pelevo.textMuted)),
           ],
         ),
       ],

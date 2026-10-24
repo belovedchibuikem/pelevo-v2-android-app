@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
+import 'package:pelevo/core/theme/pelevo_appearance.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/profile/profile_widgets.dart';
+import 'package:pelevo/features/player/pelevo_playback.dart';
+import 'package:pelevo/features/player/playback_preferences.dart';
+import 'package:pelevo/features/player/sleep_timer.dart';
 import 'package:pelevo/features/profile/preferences_data.dart';
 import 'package:pelevo/features/profile/preferences_panel.dart';
 
@@ -159,7 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           user.handle == null
                               ? 'No username set'
                               : '@${user.handle}',
-                          style: const TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                         const SizedBox(height: 6),
                         InkWell(
@@ -192,9 +196,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: PelevoColors.surface,
+                  color: context.pelevo.surface,
                   borderRadius: PelevoRadii.card,
-                  border: Border.all(color: PelevoColors.border),
+                  border: Border.all(color: context.pelevo.border),
                 ),
                 child: IntrinsicHeight(
                   child: Row(
@@ -209,9 +213,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                       ),
-                      const VerticalDivider(
+                      VerticalDivider(
                         width: 1,
-                        color: PelevoColors.border,
+                        color: context.pelevo.border,
                       ),
                       Expanded(
                         child: _Stat(
@@ -219,9 +223,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           label: 'Followers',
                         ),
                       ),
-                      const VerticalDivider(
+                      VerticalDivider(
                         width: 1,
-                        color: PelevoColors.border,
+                        color: context.pelevo.border,
                       ),
                       Expanded(
                         child: InkWell(
@@ -314,7 +318,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   _MenuTile(
                     icon: Icons.settings_outlined,
-                    color: PelevoColors.textMuted,
+                    color: context.pelevo.textMuted,
                     title: 'Settings',
                     subtitle: 'App settings & preferences',
                     onTap: () => context.push('/screen/settings-account'),
@@ -325,7 +329,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 'Support & More',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: PelevoColors.textDim,
+                  color: context.pelevo.textDim,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -420,16 +424,11 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                   _SettingsTile(
                     icon: Icons.link_rounded,
                     title: 'Connected Accounts',
-                    subtitle: 'Google, Apple, Facebook',
+                    subtitle: 'Google and Apple',
                     onTap: () => context.push('/screen/profile-connected'),
                   ),
-                  const _SectionLabel('Admin'),
-                  _SettingsTile(
-                    icon: Icons.currency_exchange_rounded,
-                    title: 'Exchange rates',
-                    subtitle: 'USD rates used by the app',
-                    onTap: () => context.push('/screen/admin-fx-rates'),
-                  ),
+                  const _SectionLabel('Appearance'),
+                  const _AppearanceTile(),
                   const _SectionLabel('Playback'),
                   _SettingsTile(
                     icon: Icons.graphic_eq_rounded,
@@ -464,10 +463,10 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                               }
                             },
                   ),
-                  _SettingsTile(
-                    icon: Icons.play_circle_outline_rounded,
-                    title: 'Playback Settings',
-                    onTap: () => context.push('/screen/player-now-playing'),
+                  _PlaybackSettingsTile(
+                    preferences: preferences,
+                    saving: saving,
+                    save: save,
                   ),
                   _SettingsTile(
                     icon: Icons.data_saver_off_outlined,
@@ -482,39 +481,7 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                               : (value) => save({'data_saver': value}),
                     ),
                   ),
-                  _SettingsTile(
-                    icon: Icons.timer_outlined,
-                    title: 'Sleep Timer',
-                    trailingText: 'Unavailable',
-                    onTap: () async {
-                      final choice = await showDialog<String>(
-                        context: context,
-                        builder:
-                            (context) => SimpleDialog(
-                              title: const Text('Sleep Timer'),
-                              children: [
-                                for (final option in [
-                                  'Off',
-                                  '15 min',
-                                  '30 min',
-                                  '1 hour',
-                                  'End of episode',
-                                ])
-                                  SimpleDialogOption(
-                                    onPressed:
-                                        () => Navigator.pop(context, option),
-                                    child: Text(option),
-                                  ),
-                              ],
-                            ),
-                      );
-                      if (choice != null && context.mounted) {
-                        context.showPelevoMessage(
-                          'Sleep timer is unavailable until playback integration is complete. No timer was started.',
-                        );
-                      }
-                    },
-                  ),
+                  const _SleepTimerTile(),
                   const _SectionLabel('Notifications'),
                   _SettingsTile(
                     icon: Icons.notifications_none_rounded,
@@ -533,16 +500,6 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                     title: 'Recommendations',
                     trailingText: 'Manage',
                     onTap: () => context.push('/screen/notifications-7'),
-                  ),
-                  const _SectionLabel('Appearance'),
-                  _SettingsTile(
-                    icon: Icons.dark_mode_outlined,
-                    title: 'Dark Mode',
-                    trailingText: 'On',
-                    onTap:
-                        () => context.showPelevoMessage(
-                          'This app currently supports the supplied dark theme only.',
-                        ),
                   ),
                 ],
               ),
@@ -596,7 +553,7 @@ class _UpgradeProCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.workspace_premium_rounded, color: PelevoColors.purple),
@@ -613,7 +570,7 @@ class _UpgradeProCard extends StatelessWidget {
                   Text(
                     'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -647,7 +604,7 @@ class _CreatorStudioCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.analytics_outlined, color: PelevoColors.green),
@@ -664,7 +621,7 @@ class _CreatorStudioCard extends StatelessWidget {
                   Text(
                     'Manage your podcasts, reels, audience, analytics and earnings.',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -709,7 +666,7 @@ class _EarnWalletCard extends ConsumerWidget {
               ),
               Text(
                 'Available Balance',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
               ),
               ref
                   .watch(earnBalanceProvider)
@@ -754,9 +711,9 @@ class _ProfileMenuPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Column(children: children),
   );
@@ -789,7 +746,7 @@ class _MenuTile extends StatelessWidget {
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text(
       subtitle,
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     ),
     trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
     onTap: onTap,
@@ -810,7 +767,7 @@ class _SectionLabel extends StatelessWidget {
     child: Text(
       label,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: PelevoColors.textDim,
+        color: context.pelevo.textDim,
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -837,14 +794,14 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: PelevoColors.textMuted),
+    leading: Icon(icon, color: context.pelevo.textMuted),
     title: Text(title),
     subtitle:
         subtitle == null
             ? null
             : Text(
               subtitle!,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
     trailing:
         trailing ??
@@ -864,4 +821,241 @@ class _SettingsTile extends StatelessWidget {
         ),
     onTap: onTap,
   );
+}
+
+class _AppearanceTile extends ConsumerWidget {
+  const _AppearanceTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(pelevoThemeModeProvider);
+    final label = switch (mode) {
+      ThemeMode.light => 'Light',
+      ThemeMode.dark => 'Dark',
+      ThemeMode.system => 'Match device',
+    };
+    return _SettingsTile(
+      icon: Icons.light_mode_outlined,
+      title: 'Appearance',
+      subtitle: 'Light, dark, or match this device',
+      trailingText: label,
+      onTap: () async {
+        final choice = await showDialog<ThemeMode>(
+          context: context,
+          builder:
+              (context) => SimpleDialog(
+                title: const Text('Appearance'),
+                children: [
+                  for (final option in const [
+                    (ThemeMode.light, 'Light'),
+                    (ThemeMode.dark, 'Dark'),
+                    (ThemeMode.system, 'Match device'),
+                  ])
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, option.$1),
+                      child: Text(option.$2),
+                    ),
+                ],
+              ),
+        );
+        if (choice == null) return;
+        await ref.read(pelevoThemeModeProvider.notifier).select(choice);
+      },
+    );
+  }
+}
+
+class _SleepTimerTile extends ConsumerWidget {
+  const _SleepTimerTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    return _SettingsTile(
+      icon: Icons.timer_outlined,
+      title: 'Sleep Timer',
+      subtitle:
+          timer.active
+              ? 'Playback pauses when this timer ends'
+              : 'Pause playback after a set time',
+      trailingText: timer.label,
+      onTap: () async {
+        final choice = await showDialog<String>(
+          context: context,
+          builder:
+              (context) => SimpleDialog(
+                title: const Text('Sleep Timer'),
+                children: [
+                  for (final option in const [
+                    'Off',
+                    '15 min',
+                    '30 min',
+                    '1 hour',
+                    'End of episode',
+                  ])
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, option),
+                      child: Text(option),
+                    ),
+                ],
+              ),
+        );
+        if (choice == null || !context.mounted) return;
+        ref.read(sleepTimerProvider.notifier).select(choice);
+        context.showPelevoMessage(
+          choice == 'Off'
+              ? 'Sleep timer is off.'
+              : 'Sleep timer set. Playback will pause when it ends.',
+        );
+      },
+    );
+  }
+}
+
+class _PlaybackSettingsTile extends ConsumerWidget {
+  const _PlaybackSettingsTile({
+    required this.preferences,
+    required this.saving,
+    required this.save,
+  });
+
+  final AccountPreferences preferences;
+  final bool saving;
+  final Future<void> Function(Map<String, dynamic> changes) save;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playback = ref.watch(playbackPreferencesProvider);
+    final speed = playback.speed ?? 1;
+    final autoplay = playback.autoplay ?? preferences.flag('autoplay');
+    return _SettingsTile(
+      icon: Icons.play_circle_outline_rounded,
+      title: 'Playback Settings',
+      subtitle: 'Speed, skip interval, and autoplay',
+      trailingText:
+          '${playbackSpeedLabel(speed)} · ${playback.skipSeconds}s',
+      onTap:
+          () => showModalBottomSheet<void>(
+            context: context,
+            showDragHandle: true,
+            builder:
+                (sheetContext) => _PlaybackSettingsSheet(
+                  saving: saving,
+                  autoplay: autoplay,
+                  onSpeed: (value) async {
+                    await ref
+                        .read(pelevoPlaybackControllerProvider)
+                        .applyPlaybackSpeed(value);
+                  },
+                  onSkip:
+                      (seconds) => ref
+                          .read(playbackPreferencesProvider.notifier)
+                          .setSkip(seconds),
+                  onAutoplay: (value) async {
+                    ref
+                        .read(playbackPreferencesProvider.notifier)
+                        .setAutoplay(value);
+                    await save({'autoplay': value});
+                  },
+                ),
+          ),
+    );
+  }
+}
+
+class _PlaybackSettingsSheet extends ConsumerWidget {
+  const _PlaybackSettingsSheet({
+    required this.saving,
+    required this.autoplay,
+    required this.onSpeed,
+    required this.onSkip,
+    required this.onAutoplay,
+  });
+
+  final bool saving;
+  final bool autoplay;
+  final Future<void> Function(double speed) onSpeed;
+  final void Function(int seconds) onSkip;
+  final Future<void> Function(bool enabled) onAutoplay;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playback = ref.watch(playbackPreferencesProvider);
+    final speed = playback.speed ?? 1;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          PelevoSpacing.page,
+          0,
+          PelevoSpacing.page,
+          PelevoSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Playback Settings',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: PelevoSpacing.md),
+            Text(
+              'Playback speed',
+              style: TextStyle(
+                color: context.pelevo.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: PelevoSpacing.xs),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final option in playbackSpeedChoices)
+                  ChoiceChip(
+                    label: Text(playbackSpeedLabel(option)),
+                    selected: (speed - option).abs() < 0.01,
+                    selectedColor: PelevoColors.green.withValues(alpha: .22),
+                    onSelected: (_) => onSpeed(option),
+                  ),
+              ],
+            ),
+            const SizedBox(height: PelevoSpacing.md),
+            Text(
+              'Skip interval',
+              style: TextStyle(
+                color: context.pelevo.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: PelevoSpacing.xs),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final option in playbackSkipChoices)
+                  ChoiceChip(
+                    label: Text('${option}s'),
+                    selected: playback.skipSeconds == option,
+                    selectedColor: PelevoColors.green.withValues(alpha: .22),
+                    onSelected: (_) => onSkip(option),
+                  ),
+              ],
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Autoplay'),
+              subtitle: Text(
+                'Play the next queued episode when this one ends',
+                style: TextStyle(color: context.pelevo.textMuted),
+              ),
+              value: playback.autoplay ?? autoplay,
+              activeColor: PelevoColors.green,
+              onChanged: saving ? null : (value) => onAutoplay(value),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

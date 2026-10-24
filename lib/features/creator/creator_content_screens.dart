@@ -194,9 +194,9 @@ class CreatorEpisodesScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             if (page.items.isEmpty)
-              const Text(
+              Text(
                 'No episodes are available yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               )
             else
               for (final episode in page.items)
@@ -287,7 +287,7 @@ class _CreatorReelsScreenState extends ConsumerState<CreatorReelsScreen> {
                   borderRadius: PelevoRadii.card,
                   border: Border.all(color: PelevoColors.green),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
                     CircleAvatar(
                       backgroundColor: PelevoColors.green,
@@ -305,7 +305,7 @@ class _CreatorReelsScreenState extends ConsumerState<CreatorReelsScreen> {
                           Text(
                             'Turn your best moments into reels and grow your audience.',
                             style: TextStyle(
-                              color: PelevoColors.textMuted,
+                              color: context.pelevo.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -342,9 +342,9 @@ class _CreatorReelsScreenState extends ConsumerState<CreatorReelsScreen> {
             if (page.items.isEmpty)
               _filter == StudioReelFilter.drafts
                   ? const _EmptyDrafts()
-                  : const Text(
+                  : Text(
                     'No reels are available yet.',
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   )
             else
               for (final reel in page.items)
@@ -555,8 +555,8 @@ class _DetailCommentsScreenState extends State<_DetailCommentsScreen> {
                       const SizedBox(height: 6),
                       Text(
                         widget.metadata,
-                        style: const TextStyle(
-                          color: PelevoColors.textMuted,
+                        style: TextStyle(
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -875,9 +875,9 @@ class _CreatorCreateReelScreenState
                 if (_source == 0) ...[
                   const SizedBox(height: 12),
                   if (page.items.isEmpty)
-                    const Text(
+                    Text(
                       'No episodes are available yet.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     )
                   else
                     ListTile(
@@ -1046,7 +1046,7 @@ Future<StudioEpisode?> showStudioEpisodePicker(
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: PelevoColors.border,
+                    color: context.pelevo.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -1057,9 +1057,9 @@ Future<StudioEpisode?> showStudioEpisodePicker(
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Choose the podcast episode this reel should open.',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -1074,13 +1074,13 @@ Future<StudioEpisode?> showStudioEpisodePicker(
                           child: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: PelevoColors.surface,
+                              color: context.pelevo.surface,
                               borderRadius: PelevoRadii.card,
                               border: Border.all(
                                 color:
                                     episode.id == selectedId
                                         ? PelevoColors.green
-                                        : PelevoColors.border,
+                                        : context.pelevo.border,
                               ),
                             ),
                             child: Row(
@@ -1113,8 +1113,8 @@ Future<StudioEpisode?> showStudioEpisodePicker(
                                           if (episode.subtitle.isNotEmpty)
                                             episode.subtitle,
                                         ].join(' · '),
-                                        style: const TextStyle(
-                                          color: PelevoColors.textMuted,
+                                        style: TextStyle(
+                                          color: context.pelevo.textMuted,
                                           fontSize: 11,
                                         ),
                                       ),
@@ -1200,7 +1200,7 @@ class _MediaImage extends StatelessWidget {
     final fallback = Container(
       width: width,
       height: height,
-      color: PelevoColors.surfaceHigh,
+      color: context.pelevo.surfaceHigh,
       alignment: Alignment.center,
       child: Icon(
         reelCover ? Icons.movie_rounded : Icons.podcasts_rounded,
@@ -1288,9 +1288,9 @@ class _PodcastHeader extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           borderRadius: PelevoRadii.card,
-          border: Border.all(color: PelevoColors.border),
+          border: Border.all(color: context.pelevo.border),
         ),
         child: Row(
           children: [
@@ -1331,8 +1331,8 @@ class _PodcastHeader extends ConsumerWidget {
                   if (episodeCount != null)
                     Text(
                       '$episodeCount ${episodeCount == 1 ? 'Episode' : 'Episodes'}',
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -1404,7 +1404,7 @@ class _StudioTabs extends StatelessWidget {
                   color:
                       selected == i
                           ? PelevoColors.green
-                          : PelevoColors.textMuted,
+                          : context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -1435,7 +1435,7 @@ class _CreatorMediaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     margin: const EdgeInsets.only(bottom: 10),
     child: InkWell(
       onTap: onTap,
@@ -1468,8 +1468,8 @@ class _CreatorMediaTile extends StatelessWidget {
                     subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontSize: 11,
                     ),
                   ),
@@ -1514,9 +1514,9 @@ class _Metric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Row(
       children: [
@@ -1531,8 +1531,8 @@ class _Metric extends StatelessWidget {
             ),
             Text(
               label,
-              style: const TextStyle(
-                color: PelevoColors.textMuted,
+              style: TextStyle(
+                color: context.pelevo.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1563,7 +1563,7 @@ class _StepTitle extends StatelessWidget {
       ),
       Text(
         subtitle,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
       ),
     ],
   );
@@ -1590,10 +1590,10 @@ class _SourceCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: PelevoRadii.card,
         border: Border.all(
-          color: selected ? PelevoColors.green : PelevoColors.border,
+          color: selected ? PelevoColors.green : context.pelevo.border,
         ),
       ),
       child: Row(
@@ -1602,7 +1602,7 @@ class _SourceCard extends StatelessWidget {
             backgroundColor:
                 selected
                     ? PelevoColors.green.withValues(alpha: .2)
-                    : PelevoColors.surfaceHigh,
+                    : context.pelevo.surfaceHigh,
             child: Icon(icon, color: selected ? PelevoColors.green : null),
           ),
           const SizedBox(width: 12),
@@ -1616,8 +1616,8 @@ class _SourceCard extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 11,
                   ),
                 ),
@@ -1636,11 +1636,11 @@ class _EmptyDrafts extends StatelessWidget {
   const _EmptyDrafts();
 
   @override
-  Widget build(BuildContext context) => const Padding(
+  Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.symmetric(vertical: 50),
     child: Column(
       children: [
-        Icon(Icons.drafts_outlined, size: 48, color: PelevoColors.textDim),
+        Icon(Icons.drafts_outlined, size: 48, color: context.pelevo.textDim),
         SizedBox(height: 10),
         Text('No creator drafts yet'),
       ],

@@ -54,11 +54,11 @@ Future<bool> pickPlaylistForEpisode({
               onTap: () => Navigator.pop(sheetContext, const _CreatePlaylistRequest()),
             ),
             if (playlists.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'You do not have a playlist yet. Create one to save this episode.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
               )
             else

@@ -20,8 +20,8 @@ void main() {
         ])}',
       );
     }
-    expect(pelevoScreens, hasLength(343));
-    expect(pelevoScreens.map((screen) => screen.id).toSet(), hasLength(343));
+    expect(pelevoScreens, hasLength(352));
+    expect(pelevoScreens.map((screen) => screen.id).toSet(), hasLength(352));
   });
 
   test('every literal screen route targets a registered screen', () {
@@ -856,7 +856,9 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Settings & Account'), findsOneWidget);
-    expect(find.text('Dark Mode'), findsOneWidget);
+    expect(find.text('Dark Mode'), findsNothing);
+    expect(find.text('Appearance'), findsWidgets);
+    expect(find.text('Sleep Timer'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Connected Accounts'));
     await tester.tap(find.text('Connected Accounts'));
@@ -988,14 +990,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Payout Gateways'), findsOneWidget);
     expect(find.text('PayPal'), findsOneWidget);
+    expect(find.text('Flutterwave'), findsOneWidget);
     expect(find.text('Paystack'), findsNothing);
-    expect(find.text('Flutterwave'), findsNothing);
 
-    await tester.tap(find.text('Set up'));
+    final paypalTile = find.widgetWithText(ListTile, 'PayPal');
+    await tester.ensureVisible(paypalTile);
+    await tester.tap(
+      find.descendant(of: paypalTile, matching: find.text('Set up')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Set up PayPal'), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), 'earn@example.com');
     await tester.enterText(find.byType(TextField).at(1), 'earn@example.com');
+    await tester.ensureVisible(find.byType(Checkbox));
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Verify & Link PayPal'));
     await tester.pumpAndSettle();
     expect(find.text('Withdraw Earnings'), findsOneWidget);
@@ -1010,6 +1019,9 @@ void main() {
     await tester.tap(find.text('Review Withdrawal'));
     await tester.pumpAndSettle();
     expect(find.text('Review & Confirm'), findsOneWidget);
+    await tester.ensureVisible(find.byType(Checkbox));
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Confirm Withdrawal'));
     await tester.pumpAndSettle();
     expect(find.text('Withdrawal queued'), findsOneWidget);

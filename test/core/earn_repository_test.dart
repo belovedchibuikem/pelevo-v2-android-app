@@ -96,11 +96,11 @@ void main() {
       expect(methods.single.verified, isTrue);
       expect(methods.single.destinationLabel, '•••• 6789');
       final created = await repository.createPayoutMethod(
-        provider: 'paystack',
+        provider: 'flutterwave',
         kind: 'bank',
         destination: {'account_number': '0123456789', 'bank_code': '058'},
       );
-      expect(created.provider, 'paystack');
+      expect(created.provider, 'flutterwave');
       final receipt = await repository.submitWithdrawal(
         payoutMethodId: created.id,
         coins: BigInt.from(1250),
@@ -112,7 +112,7 @@ void main() {
       expect(
         () => EarnPayoutMethod.parse({
           'id': 'method-1',
-          'provider': 'paystack',
+          'provider': 'flutterwave',
           'destination_encrypted': 'secret',
         }),
         throwsA(isA<ApiFailure>()),

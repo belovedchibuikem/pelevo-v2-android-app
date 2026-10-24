@@ -1,9 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pelevo/features/store/country_currency.dart';
 import 'package:pelevo/features/store/fx_rates.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
-import '../support/api_adapter.dart';
 
 void main() {
   test('listener country prefers the profile', () {
@@ -71,33 +69,4 @@ void main() {
     expect(merged.source, 'mixed');
   });
 
-  test('admin save sends reviewed USD rates', () async {
-    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
-    addTearDown(() => dio.close(force: true));
-    late RequestOptions seen;
-    dio.httpClientAdapter = ApiAdapter((request) {
-      seen = request;
-      return jsonResponse({
-        'base': 'USD',
-        'source': 'reviewed',
-        'reviewed': ['NGN'],
-        'rates': {'NGN': '1600'},
-      });
-    });
-    final repository = FxRateRepository(
-      dio,
-      adminFxUri: Uri.parse('https://api.invalid/api/admin/v1/settings/fx'),
-    );
-
-    final saved = await repository.saveReviewed({'ngn': 1600});
-
-    expect(seen.method, 'PUT');
-    expect(seen.uri.path, '/api/admin/v1/settings/fx');
-    expect(seen.data['base'], 'USD');
-    expect(seen.data['source'], 'reviewed');
-    expect(seen.data['reviewed'], ['NGN']);
-    expect(seen.data['rates'], {'NGN': '1600'});
-    expect(saved.rateFor('NGN'), 1600);
-    expect(saved.reviewed, {'NGN'});
-  });
 }

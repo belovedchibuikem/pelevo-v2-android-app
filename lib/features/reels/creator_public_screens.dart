@@ -208,8 +208,8 @@ class _PublicCreatorProfileScreenState
                         if (profile.handleLabel.isNotEmpty)
                           Text(
                             profile.handleLabel,
-                            style: const TextStyle(
-                              color: PelevoColors.textMuted,
+                            style: TextStyle(
+                              color: context.pelevo.textMuted,
                             ),
                           ),
                       ],
@@ -237,9 +237,19 @@ class _PublicCreatorProfileScreenState
                               style: FilledButton.styleFrom(
                                 backgroundColor:
                                     following
-                                        ? PelevoColors.surfaceHigh
+                                        ? context.pelevo.surface
                                         : PelevoColors.purple,
-                                foregroundColor: Colors.white,
+                                foregroundColor:
+                                    following
+                                        ? context.pelevo.text
+                                        : Colors.white,
+                                side:
+                                    following
+                                        ? BorderSide(
+                                          color: context.pelevo.text,
+                                          width: 1.5,
+                                        )
+                                        : null,
                               ),
                               child: Text(following ? 'Following' : 'Follow'),
                             ),
@@ -273,9 +283,9 @@ class _PublicCreatorProfileScreenState
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: PelevoColors.surface,
+                  color: context.pelevo.surface,
                   borderRadius: PelevoRadii.card,
-                  border: Border.all(color: PelevoColors.border),
+                  border: Border.all(color: context.pelevo.border),
                 ),
                 child: IntrinsicHeight(
                   child: Row(
@@ -286,9 +296,9 @@ class _PublicCreatorProfileScreenState
                           label: 'Reels',
                         ),
                       ),
-                      const VerticalDivider(
+                      VerticalDivider(
                         width: 1,
-                        color: PelevoColors.border,
+                        color: context.pelevo.border,
                       ),
                       Expanded(
                         child: _Stat(
@@ -296,9 +306,9 @@ class _PublicCreatorProfileScreenState
                           label: 'Followers',
                         ),
                       ),
-                      const VerticalDivider(
+                      VerticalDivider(
                         width: 1,
-                        color: PelevoColors.border,
+                        color: context.pelevo.border,
                       ),
                       Expanded(
                         child: _Stat(
@@ -343,8 +353,8 @@ class _PublicCreatorProfileScreenState
                                   child:
                                       show.artworkUrl == null ||
                                               show.artworkUrl!.isEmpty
-                                          ? const ColoredBox(
-                                            color: PelevoColors.surfaceHigh,
+                                          ? ColoredBox(
+                                            color: context.pelevo.surfaceHigh,
                                             child: Icon(Icons.podcasts_rounded),
                                           )
                                           : CachedNetworkImage(
@@ -389,11 +399,11 @@ class _PublicCreatorProfileScreenState
                     ),
                 data: (reels) {
                   if (reels.isEmpty) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.symmetric(vertical: 28),
                       child: Text(
                         'No published reels yet.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     );
                   }
@@ -422,8 +432,8 @@ class _PublicCreatorProfileScreenState
                                   borderRadius: BorderRadius.circular(4),
                                   child:
                                       reel.imageUrl == null
-                                          ? const ColoredBox(
-                                            color: PelevoColors.surfaceHigh,
+                                          ? ColoredBox(
+                                            color: context.pelevo.surfaceHigh,
                                             child: Center(
                                               child: Icon(
                                                 Icons.play_arrow_rounded,
@@ -436,9 +446,9 @@ class _PublicCreatorProfileScreenState
                                             height: cellH,
                                             fit: BoxFit.cover,
                                             errorWidget:
-                                                (_, _, _) => const ColoredBox(
+                                                (_, _, _) => ColoredBox(
                                                   color:
-                                                      PelevoColors.surfaceHigh,
+                                                      context.pelevo.surfaceHigh,
                                                   child: Center(
                                                     child: Icon(
                                                       Icons.play_arrow_rounded,
@@ -474,7 +484,7 @@ class _Stat extends StatelessWidget {
       Text(value, style: Theme.of(context).textTheme.titleMedium),
       Text(
         label,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
       ),
     ],
   );

@@ -185,12 +185,15 @@ void main() {
     expect(EarnWalletService.instance.submitDraft(), isNull);
     expect(EarnWalletService.instance.history, isEmpty);
     const method = PayoutMethodConfig(
-      gateway: PayoutGateway.paystack,
+      gateway: PayoutGateway.flutterwave,
       destination: 'test destination',
       accountName: 'Test',
     );
     EarnWalletService.instance.linkMethod(method);
-    expect(EarnWalletService.instance.isLinked(PayoutGateway.paystack), false);
+    expect(
+      EarnWalletService.instance.isLinked(PayoutGateway.flutterwave),
+      false,
+    );
   });
 
   testWidgets('direct success route does not invent a confirmed withdrawal', (

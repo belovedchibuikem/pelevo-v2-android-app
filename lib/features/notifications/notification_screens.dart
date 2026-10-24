@@ -306,7 +306,7 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
                       item.read
                           ? Icons.notifications_none_rounded
                           : Icons.notifications_active_rounded,
-                      item.read ? PelevoColors.textMuted : PelevoColors.green,
+                      item.read ? context.pelevo.textMuted : PelevoColors.green,
                       item.title,
                       item.body,
                       _notificationDate(item.createdAt),
@@ -524,7 +524,7 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
           Text(
             item.body,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -591,7 +591,7 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
               ? 'No authorized downloads yet.'
               : '${download.title} is authorized on your account.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         ListTile(
@@ -671,17 +671,17 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
               ? 'No current listening streak.'
               : 'You’re on a $streak-day streak. Keep it going with a quick session.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         if (recent == null)
-          const Text(
+          Text(
             'Nothing in recents.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             child: ListTile(
               leading: CatalogArtwork(
                 url: recent.artworkUrl,
@@ -758,16 +758,16 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
       );
     }
     if (state.items.isEmpty) {
-      return const Text(
+      return Text(
         'No promotion broadcasts yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
       children: [
         for (final item in state.items)
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.md),
             child: Padding(
               padding: const EdgeInsets.all(PelevoSpacing.md),
@@ -795,7 +795,7 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
                   const SizedBox(height: PelevoSpacing.sm),
                   Text(
                     item.body,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   TextButton(
                     onPressed: () => context.go('/screen/home-feed'),
@@ -839,10 +839,10 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'This will remove every current notification from your inbox. They remain available in notification history.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       PelevoButton(
@@ -913,8 +913,8 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 13,
                   ),
                 ),
@@ -924,7 +924,7 @@ class _NotifScreenState extends ConsumerState<_NotifScreen> {
           const SizedBox(width: PelevoSpacing.sm),
           Text(
             time,
-            style: const TextStyle(color: PelevoColors.textDim, fontSize: 12),
+            style: TextStyle(color: context.pelevo.textDim, fontSize: 12),
           ),
         ],
       ),

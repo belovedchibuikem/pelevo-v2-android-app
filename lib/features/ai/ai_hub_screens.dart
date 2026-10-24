@@ -232,7 +232,7 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(PelevoRadii.large),
           gradient: LinearGradient(
-            colors: [_purple.withValues(alpha: .35), PelevoColors.surface],
+            colors: [_purple.withValues(alpha: .35), context.pelevo.surface],
           ),
           border: Border.all(color: _purple.withValues(alpha: .45)),
         ),
@@ -287,10 +287,10 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Get personalized podcast recommendations based on what you already love.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Align(
@@ -333,20 +333,20 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Based on your listening habits.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (items.isEmpty)
-          const Text(
+          Text(
             'No recommendations are available yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in items)
             Card(
-              color: PelevoColors.surface,
+              color: context.pelevo.surface,
               margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
               child: ListTile(
                 leading: CatalogArtwork(
@@ -382,10 +382,10 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
       const SizedBox(height: PelevoSpacing.lg),
       Text('Smart Summary', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Turn a long episode into a clear summary you can skim in minutes.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Align(
@@ -467,9 +467,9 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
             ],
           )
         else
-          const Text(
+          Text(
             'Topics are not returned as tags.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         const SizedBox(height: PelevoSpacing.lg),
         PelevoButton(
@@ -495,10 +495,10 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Automatically create chapter markers so you can jump to the moments that matter.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Align(
@@ -576,10 +576,10 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Find the most useful moments from this episode in seconds.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Align(
@@ -631,9 +631,9 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         const SizedBox(height: PelevoSpacing.md),
         if (notice != null) Text(notice),
         if (jobAsync == null && notice == null)
-          const Text(
+          Text(
             'Find highlights from the selected episode.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (jobAsync != null && jobAsync.isLoading)
           const CatalogStatusBody()
@@ -667,10 +667,10 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         ),
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Describe what you want to hear. Pelevo recommends shows from your interests, listening history, and the context of your request.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Text(
@@ -778,13 +778,13 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
               const SizedBox(height: PelevoSpacing.sm),
               Text(
                 lineup.intro,
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: PelevoSpacing.lg),
               if (lineup.items.isEmpty)
-                const Text(
+                Text(
                   'Your lineup will appear after you listen to a few shows.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 )
               else
                 for (final item in lineup.items) _pickTile(context, item),
@@ -804,16 +804,16 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(PelevoSpacing.md),
         decoration: BoxDecoration(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           borderRadius: BorderRadius.circular(PelevoRadii.large),
         ),
         child: Text(reply),
       ),
       const SizedBox(height: PelevoSpacing.md),
       if (items.isEmpty)
-        const Text(
+        Text(
           'No matching shows yet. Try describing a topic or mood.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         for (final item in items) _pickTile(context, item),
@@ -821,7 +821,7 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
   );
 
   Widget _pickTile(BuildContext context, AiPick item) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
     child: ListTile(
       leading: CatalogArtwork(url: item.artworkUrl, width: 52, height: 52),
@@ -915,7 +915,7 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
                     .whereType<String>()
                     .where((part) => part.isNotEmpty)
                     .join(' · '),
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             ],
           ),
@@ -928,20 +928,20 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
     if (job.state == 'failed' || job.state == 'safety_review') {
       return Text(
         job.outputText ?? 'This ${job.type} could not be generated.',
-        style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+        style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
       );
     }
     if (job.queued) {
       return Text(
         'This ${job.type} job is ${job.state}.',
-        style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+        style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
       );
     }
     if (takeaways) {
       if (job.takeaways.isEmpty) {
-        return const Text(
+        return Text(
           'Key takeaways are not returned as a list.',
-          style: TextStyle(color: PelevoColors.textMuted, height: 1.45),
+          style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
         );
       }
       return Column(
@@ -958,12 +958,12 @@ class _AiHubScreenState extends ConsumerState<_AiHubScreen> {
     if (!job.completed || job.outputText == null || job.outputText!.isEmpty) {
       return Text(
         'No ${job.type} text is available yet.',
-        style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+        style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
       );
     }
     return Text(
       job.outputText!,
-      style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+      style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
     );
   }
 

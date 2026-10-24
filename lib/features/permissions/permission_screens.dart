@@ -38,10 +38,10 @@ class PermissionIntroScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: PelevoSpacing.lg),
-            const Text(
+            Text(
               'Pelevo needs a few permissions\nto work properly and improve\nyour experience.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: PelevoColors.textMuted, height: 1.5),
+              style: TextStyle(color: context.pelevo.textMuted, height: 1.5),
             ),
             const SizedBox(height: 44),
             PelevoButton(
@@ -196,8 +196,8 @@ class _PermissionRequestScreenState
             Text(
               widget.body,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: PelevoColors.textMuted,
+              style: TextStyle(
+                color: context.pelevo.textMuted,
                 height: 1.45,
               ),
             ),
@@ -212,7 +212,7 @@ class _PermissionRequestScreenState
               label: 'Not Now',
               outlined: true,
               color: PelevoColors.yellow,
-              foregroundColor: PelevoColors.text,
+              foregroundColor: context.pelevo.text,
               onPressed: _submitting ? null : () => _complete(false),
             ),
             const SizedBox(height: 36),
@@ -251,10 +251,10 @@ class PermissionsCompleteScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: PelevoSpacing.lg),
-            const Text(
+            Text(
               'You can change these\npermissions anytime in\nSettings.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: PelevoColors.textMuted, height: 1.5),
+              style: TextStyle(color: context.pelevo.textMuted, height: 1.5),
             ),
             const SizedBox(height: 44),
             PelevoButton(
@@ -332,7 +332,7 @@ class _ProgressDots extends StatelessWidget {
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: index == active ? PelevoColors.red : PelevoColors.border,
+            color: index == active ? PelevoColors.red : context.pelevo.border,
             borderRadius: BorderRadius.circular(4),
           ),
         ),

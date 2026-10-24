@@ -279,9 +279,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
           style: Theme.of(context).textTheme.displaySmall,
         ),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
+        Text(
           'Fresh voices, essential stories and conversations selected for you.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoSectionHeader(
@@ -358,9 +358,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
           data: () {
             final music = _resolve(categories.requireValue, music: true);
             if (music == null) {
-              return const Text(
+              return Text(
                 'No music category is published yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               );
             }
             return _categoryShows(music.slug);
@@ -374,9 +374,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
           data: () {
             final music = _resolve(categories.requireValue, music: true);
             if (music == null) {
-              return const Text(
+              return Text(
                 'No music shows are published yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               );
             }
             return _categoryShows(music.slug);
@@ -396,9 +396,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
       data: () {
         final category = _resolve(categories.requireValue, slug: slug);
         if (category == null) {
-          return const Text(
+          return Text(
             'No categories are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           );
         }
         final page = ref.watch(browseCategoryProvider(category.slug));
@@ -434,9 +434,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
               ),
             ),
             if (chart == 1 && !category.isMusic)
-              const Text(
+              Text(
                 'Music tracks are not listed for this category.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               )
             else
               _status(
@@ -470,9 +470,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
       data: () {
         final category = _resolve(categories.requireValue, slug: slug);
         if (category == null) {
-          return const Text(
+          return Text(
             'No categories are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           );
         }
         return _bannerList(
@@ -500,16 +500,16 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
           data: () {
             final items = following.requireValue;
             if (items.isEmpty) {
-              return const Text(
+              return Text(
                 'You are not following any shows yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               );
             }
             return Column(
               children: [
                 for (final show in items)
                   Card(
-                    color: PelevoColors.surface,
+                    color: context.pelevo.surface,
                     margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(PelevoSpacing.md),
@@ -647,9 +647,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
             decoration: InputDecoration(hintText: 'All Categories'),
           ),
           const SizedBox(height: PelevoSpacing.md),
-          const Text(
+          Text(
             'Collection filters stay on this screen until browse accepts type query parameters.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.xl),
           PelevoButton(
@@ -689,9 +689,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
     bool compact = false,
   }) {
     if (categories.isEmpty) {
-      return const Text(
+      return Text(
         'No categories are published yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     var visible = categories;
@@ -747,9 +747,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
 
   Widget _featureCard(BuildContext context, List<BrowseCategory> categories) {
     if (categories.isEmpty) {
-      return const Text(
+      return Text(
         'No featured collections are published yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     final featured = categories.first;
@@ -869,11 +869,11 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
                   if (eyebrow != null) ...[
                     Text(
                       eyebrow,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
                         fontSize: 12,
-                        color: PelevoColors.textMuted,
+                        color: context.pelevo.textMuted,
                       ),
                     ),
                     const SizedBox(height: PelevoSpacing.xs),
@@ -888,7 +888,7 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
                         (count == 0
                             ? 'Curated collection'
                             : '$count ${count == 1 ? 'show' : 'shows'} · Curated collection'),
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ],
               ),
@@ -995,9 +995,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
     void Function(BrowseShow show)? onTapCategory,
   }) {
     if (shows.isEmpty) {
-      return const Text(
+      return Text(
         'No shows in this collection yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
@@ -1040,9 +1040,9 @@ class _BrowseScreenState extends ConsumerState<_BrowseScreen> {
         var items = discover.requireValue.newEpisodes;
         if (limit != null) items = items.take(limit).toList(growable: false);
         if (items.isEmpty) {
-          return const Text(
+          return Text(
             'No new episodes are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           );
         }
         return Column(

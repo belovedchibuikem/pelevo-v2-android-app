@@ -646,15 +646,15 @@ class _EpisodeSeeAll extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(subtitle, style: const TextStyle(color: PelevoColors.textMuted)),
+      Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
       const SizedBox(height: PelevoSpacing.md),
       if (bannerTitle != null) ...[
         Container(
           padding: const EdgeInsets.all(PelevoSpacing.sm),
           decoration: BoxDecoration(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             borderRadius: PelevoRadii.card,
-            border: Border.all(color: PelevoColors.border),
+            border: Border.all(color: context.pelevo.border),
           ),
           child: Row(
             children: [
@@ -724,7 +724,7 @@ class _FilteredEpisodeSeeAll extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(subtitle, style: const TextStyle(color: PelevoColors.textMuted)),
+      Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
       const SizedBox(height: PelevoSpacing.sm),
       Wrap(
         spacing: 8,
@@ -799,7 +799,7 @@ class _TryNewSeeAll extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(subtitle, style: const TextStyle(color: PelevoColors.textMuted)),
+      Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
       const SizedBox(height: PelevoSpacing.md),
       GridView.count(
         crossAxisCount: 3,
@@ -979,7 +979,7 @@ class _TopicsSeeAll extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(subtitle, style: const TextStyle(color: PelevoColors.textMuted)),
+      Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
       const SizedBox(height: PelevoSpacing.sm),
       Wrap(
         spacing: 8,

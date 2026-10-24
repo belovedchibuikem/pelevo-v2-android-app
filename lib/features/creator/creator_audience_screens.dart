@@ -117,9 +117,9 @@ class _CreatorAudienceScreenState extends ConsumerState<CreatorAudienceScreen> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Understand who listens and what keeps them engaged.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: 10),
               Align(
@@ -192,10 +192,10 @@ class _CreatorAudienceScreenState extends ConsumerState<CreatorAudienceScreen> {
                 _AudiencePanel(
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Audience insights could not load.',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       ),
                       TextButton(
@@ -247,11 +247,11 @@ class _CreatorAudienceScreenState extends ConsumerState<CreatorAudienceScreen> {
                         child: Center(child: CircularProgressIndicator()),
                       )
                     else if (topListeners.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
                         child: Text(
                           'No listeners in this period yet.',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       )
                     else
@@ -353,12 +353,12 @@ class _CreatorAudienceFollowersScreenState
               ),
               const SizedBox(height: 8),
               if (filtered.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No followers yet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 )
               else
@@ -366,7 +366,7 @@ class _CreatorAudienceFollowersScreenState
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
-                      backgroundColor: PelevoColors.surfaceHigh,
+                      backgroundColor: context.pelevo.surfaceHigh,
                       child: Text(listener.name.characters.first),
                     ),
                     title: Text(listener.name),
@@ -429,32 +429,32 @@ class CreatorAudienceSupportersScreen extends ConsumerWidget {
                       Text(
                         '${page.coinsReceived} coins received from ${page.supportersCount} supporters.',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 18),
                 if (page.items.isEmpty)
-                  const Text(
+                  Text(
                     'No supporters yet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   )
                 else
                   for (var i = 0; i < page.items.length; i++)
                     Card(
-                      color: PelevoColors.surface,
+                      color: context.pelevo.surface,
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor:
                               i < 3
                                   ? [
                                     PelevoColors.yellow,
-                                    PelevoColors.textMuted,
+                                    context.pelevo.textMuted,
                                     PelevoColors.orange,
                                   ][i]
-                                  : PelevoColors.surfaceHigh,
+                                  : context.pelevo.surfaceHigh,
                           child: Text('${i + 1}'),
                         ),
                         title: Text(page.items[i].name),
@@ -677,9 +677,9 @@ class _CreatorNewEpisodeScreenState
                         width: 106,
                         height: 106,
                         decoration: BoxDecoration(
-                          color: PelevoColors.surface,
+                          color: context.pelevo.surface,
                           borderRadius: PelevoRadii.card,
-                          border: Border.all(color: PelevoColors.border),
+                          border: Border.all(color: context.pelevo.border),
                         ),
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -716,10 +716,10 @@ class _CreatorNewEpisodeScreenState
                                     : _audioName!,
                                 textAlign: TextAlign.center,
                               ),
-                              const Text(
+                              Text(
                                 'MP3, M4A or WAV · Max 500MB',
                                 style: TextStyle(
-                                  color: PelevoColors.textMuted,
+                                  color: context.pelevo.textMuted,
                                   fontSize: 10,
                                 ),
                               ),
@@ -893,7 +893,7 @@ class _CreatorGoLiveScreenState extends ConsumerState<CreatorGoLiveScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _AudiencePanel(
+              _AudiencePanel(
                 child: Column(
                   children: [
                     CircleAvatar(
@@ -916,7 +916,7 @@ class _CreatorGoLiveScreenState extends ConsumerState<CreatorGoLiveScreen> {
                     Text(
                       'Broadcast to your followers and engage in real time.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   ],
                 ),
@@ -934,9 +934,9 @@ class _CreatorGoLiveScreenState extends ConsumerState<CreatorGoLiveScreen> {
               const Text('Topic'),
               const SizedBox(height: 6),
               if (shows.isEmpty)
-                const Text(
+                Text(
                   'A claimed show is required to go live.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 )
               else
                 DropdownButtonFormField<String>(
@@ -986,7 +986,7 @@ class _CreatorGoLiveScreenState extends ConsumerState<CreatorGoLiveScreen> {
                 Text(
                   _live!.muxMessage ??
                       'Use OBS or Streamlabs with the RTMP URL and stream key below.',
-                  style: const TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
                 if (_live!.ingestUrl != null && _live!.ingestUrl!.isNotEmpty)
                   ListTile(
@@ -1142,7 +1142,7 @@ class _CreatorTaxInformationScreenState
             (_) => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _AudiencePanel(
+                _AudiencePanel(
                   child: Row(
                     children: [
                       Icon(Icons.shield_outlined, color: PelevoColors.green),
@@ -1150,7 +1150,7 @@ class _CreatorTaxInformationScreenState
                       Expanded(
                         child: Text(
                           'Your tax information is encrypted and used only for payout compliance.',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       ),
                     ],
@@ -1292,9 +1292,9 @@ class _CreatorPayoutCurrencyScreenState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Choose USD or Nigerian naira for future creator payouts. Existing balances stay in their current currency.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: 14),
               for (final item in _currencies)
@@ -1471,7 +1471,7 @@ class _PodcastHeader extends ConsumerWidget {
       height: 54,
       color: const Color(0xFF111016),
       alignment: Alignment.center,
-      child: const Icon(Icons.podcasts_rounded, color: PelevoColors.textMuted),
+      child: Icon(Icons.podcasts_rounded, color: context.pelevo.textMuted),
     );
     final subtitle = [
       if (show?.episodeCount != null) '${show!.episodeCount} Episodes',
@@ -1526,8 +1526,8 @@ class _PodcastHeader extends ConsumerWidget {
                   if (subtitle.isNotEmpty)
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -1581,7 +1581,7 @@ class _AudienceTabs extends StatelessWidget {
                   'Monetization',
                 ][i],
                 style: TextStyle(
-                  color: i == 3 ? PelevoColors.green : PelevoColors.textMuted,
+                  color: i == 3 ? PelevoColors.green : context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -1622,7 +1622,7 @@ class _AudienceMetric extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 10),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 10),
           ),
         ],
       ),
@@ -1660,7 +1660,7 @@ class _InsightCard extends StatelessWidget {
         else if (empty)
           Text(
             emptyText,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
           )
         else
           builder(context),
@@ -1700,8 +1700,8 @@ class _ShareBar extends StatelessWidget {
             ),
             Text(
               trailing,
-              style: const TextStyle(
-                color: PelevoColors.textMuted,
+              style: TextStyle(
+                color: context.pelevo.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1714,7 +1714,7 @@ class _ShareBar extends StatelessWidget {
             value: share.clamp(0.0, 1.0),
             minHeight: 6,
             color: color,
-            backgroundColor: PelevoColors.border,
+            backgroundColor: context.pelevo.border,
           ),
         ),
       ],
@@ -1767,7 +1767,12 @@ class _GrowthCard extends StatelessWidget {
               SizedBox(
                 height: 150,
                 width: double.infinity,
-                child: CustomPaint(painter: _AudienceGrowthPainter(growth)),
+                child: CustomPaint(
+                  painter: _AudienceGrowthPainter(
+                    growth,
+                    gridColor: context.pelevo.border.withValues(alpha: .5),
+                  ),
+                ),
               ),
               const SizedBox(height: 6),
               Row(
@@ -1776,22 +1781,22 @@ class _GrowthCard extends StatelessWidget {
                   for (final label in labels)
                     Text(
                       label,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 10,
                       ),
                     ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 children: [
                   _Dot(color: PelevoColors.green),
                   SizedBox(width: 6),
                   Text(
                     'Total followers',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 11,
                     ),
                   ),
@@ -1801,7 +1806,7 @@ class _GrowthCard extends StatelessWidget {
                   Text(
                     'Active listeners',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 11,
                     ),
                   ),
@@ -1826,15 +1831,16 @@ class _Dot extends StatelessWidget {
 }
 
 class _AudienceGrowthPainter extends CustomPainter {
-  const _AudienceGrowthPainter(this.growth);
+  const _AudienceGrowthPainter(this.growth, {required this.gridColor});
 
   final List<StudioGrowthPoint> growth;
+  final Color gridColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final grid =
         Paint()
-          ..color = PelevoColors.border.withValues(alpha: .5)
+          ..color = gridColor
           ..strokeWidth = 1;
     for (var i = 1; i < 4; i++) {
       canvas.drawLine(
@@ -1895,7 +1901,8 @@ class _AudienceGrowthPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AudienceGrowthPainter oldDelegate) =>
-      !identical(oldDelegate.growth, growth);
+      !identical(oldDelegate.growth, growth) ||
+      oldDelegate.gridColor != gridColor;
 }
 
 class _DemographicsCard extends StatelessWidget {
@@ -1932,10 +1939,10 @@ class _DemographicsCard extends StatelessWidget {
               ),
               if (value.platforms.isNotEmpty) ...[
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Listening platform',
                   style: TextStyle(
-                    color: PelevoColors.textMuted,
+                    color: context.pelevo.textMuted,
                     fontSize: 11,
                   ),
                 ),
@@ -2029,8 +2036,8 @@ class _ListeningTimesCard extends StatelessWidget {
           children: [
             Text(
               'Most listening happens in the ${busiest.$1.toLowerCase()} (listener local time).',
-              style: const TextStyle(
-                color: PelevoColors.textMuted,
+              style: TextStyle(
+                color: context.pelevo.textMuted,
                 fontSize: 12,
               ),
             ),
@@ -2072,8 +2079,8 @@ class _ListeningTimesCard extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               _weekdayLabels[i],
-                              style: const TextStyle(
-                                color: PelevoColors.textMuted,
+                              style: TextStyle(
+                                color: context.pelevo.textMuted,
                                 fontSize: 10,
                               ),
                             ),
@@ -2105,7 +2112,7 @@ class _SmallStat extends StatelessWidget {
       ),
       Text(
         label,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 10),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 10),
       ),
     ],
   );
@@ -2119,9 +2126,9 @@ class _AudiencePanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: child,
   );

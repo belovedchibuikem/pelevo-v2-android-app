@@ -146,7 +146,7 @@ class CommentThreadPage extends ConsumerWidget {
               if (resolvedSubtitle != null && resolvedSubtitle.isNotEmpty)
                 Text(
                   resolvedSubtitle,
-                  style: const TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
               const SizedBox(height: 10),
               Expanded(child: CommentThreadPanel(target: target)),
@@ -303,7 +303,7 @@ class _CommentThreadPanelState extends ConsumerState<CommentThreadPanel> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: PelevoColors.border,
+                  color: context.pelevo.border,
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
@@ -419,7 +419,7 @@ class _CommentThreadPanelState extends ConsumerState<CommentThreadPanel> {
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Material(
-                color: PelevoColors.surfaceHigh,
+                color: context.pelevo.surfaceHigh,
                 borderRadius: PelevoRadii.card,
                 child: ListTile(
                   dense: true,
@@ -631,7 +631,7 @@ class CommentTile extends ConsumerWidget {
           backgroundColor:
               comment.isCreator
                   ? PelevoColors.green.withValues(alpha: .2)
-                  : PelevoColors.surfaceHigh,
+                  : context.pelevo.surfaceHigh,
           child: Text(comment.initials, style: const TextStyle(fontSize: 12)),
         ),
         const SizedBox(width: 10),
@@ -678,10 +678,10 @@ class CommentTile extends ConsumerWidget {
                   ],
                   if (comment.hidden) ...[
                     const SizedBox(width: 5),
-                    const Text(
+                    Text(
                       'Hidden',
                       style: TextStyle(
-                        color: PelevoColors.textDim,
+                        color: context.pelevo.textDim,
                         fontSize: 10,
                       ),
                     ),
@@ -689,8 +689,8 @@ class CommentTile extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     comment.relativeTime,
-                    style: const TextStyle(
-                      color: PelevoColors.textDim,
+                    style: TextStyle(
+                      color: context.pelevo.textDim,
                       fontSize: 10,
                     ),
                   ),
@@ -743,7 +743,7 @@ class CommentTile extends ConsumerWidget {
                           color:
                               comment.likedByMe
                                   ? PelevoColors.red
-                                  : PelevoColors.textMuted,
+                                  : context.pelevo.textMuted,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -831,7 +831,7 @@ class _CommentReportScreenState extends ConsumerState<CommentReportScreen> {
                 comment == null
                     ? 'Choose why you are reporting this comment.'
                     : 'Reporting ${comment.handleLabel.isEmpty ? comment.authorName : comment.handleLabel}',
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: 16),
               for (final reason in const [
@@ -868,20 +868,20 @@ class _EmptyComments extends StatelessWidget {
   const _EmptyComments();
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           Icons.chat_bubble_outline_rounded,
           size: 42,
-          color: PelevoColors.textDim,
+          color: context.pelevo.textDim,
         ),
         SizedBox(height: 10),
         Text('Be the first to comment'),
         Text(
           'Share what this made you think or feel.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     ),

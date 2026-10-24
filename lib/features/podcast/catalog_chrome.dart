@@ -247,9 +247,9 @@ class CatalogArtwork extends StatelessWidget {
     final fallback = Container(
       width: width,
       height: height,
-      color: PelevoColors.surfaceHigh,
+      color: context.pelevo.surfaceHigh,
       alignment: Alignment.center,
-      child: const Icon(Icons.podcasts_rounded, color: PelevoColors.textMuted),
+      child: Icon(Icons.podcasts_rounded, color: context.pelevo.textMuted),
     );
     final image =
         safeUrl == null

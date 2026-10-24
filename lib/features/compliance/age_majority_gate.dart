@@ -104,7 +104,7 @@ class AccountProofUpload extends StatelessWidget {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              border: Border.all(color: PelevoColors.border),
+              border: Border.all(color: context.pelevo.border),
               borderRadius: PelevoRadii.card,
             ),
             child: Column(
@@ -113,9 +113,9 @@ class AccountProofUpload extends StatelessWidget {
                 const Icon(Icons.upload_outlined),
                 const SizedBox(height: 7),
                 Text(fileName ?? 'Tap to upload'),
-                const Text(
+                Text(
                   'PNG, JPG or PDF (Max 4MB)',
-                  style: TextStyle(color: PelevoColors.textMuted, fontSize: 10),
+                  style: TextStyle(color: context.pelevo.textMuted, fontSize: 10),
                 ),
               ],
             ),

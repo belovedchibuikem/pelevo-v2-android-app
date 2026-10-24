@@ -35,84 +35,91 @@ void main() {
     expect(seen.path, '/studios');
   });
 
-  test('monetization, transactions, payouts and audience lists parse server fields only', () async {
-    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
-    addTearDown(() => dio.close(force: true));
-    late RequestOptions seen;
-    dio.httpClientAdapter = ApiAdapter((request) {
-      seen = request;
-      return jsonResponse(switch (request.path) {
-        '/studio/monetization' => studioMonetizationFixture(),
-        '/studio/transactions' => [studioTransactionFixture()],
-        '/studio/transactions/txn-1' => studioTransactionFixture(),
-        '/studio/payout-settings' => studioPayoutSettingsFixture(),
-        '/payout-methods' => [studioPayoutMethodFixture()],
-        '/studio/audience/followers' => [studioFollowerFixture()],
-        '/studio/audience/supporters' => [studioSupporterFixture()],
-        _ => throw StateError(request.path),
-      }, meta: request.path == '/studio/audience/supporters'
-          ? {'supporters_count': 1, 'coins_received': 100}
-          : const {});
-    });
-    final repository = StudioRepository(dio);
+  test(
+    'monetization, transactions, payouts and audience lists parse server fields only',
+    () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
+      addTearDown(() => dio.close(force: true));
+      late RequestOptions seen;
+      dio.httpClientAdapter = ApiAdapter((request) {
+        seen = request;
+        return jsonResponse(
+          switch (request.path) {
+            '/studio/monetization' => studioMonetizationFixture(),
+            '/studio/transactions' => [studioTransactionFixture()],
+            '/studio/transactions/txn-1' => studioTransactionFixture(),
+            '/studio/payout-settings' => studioPayoutSettingsFixture(),
+            '/payout-methods' => [studioPayoutMethodFixture()],
+            '/studio/audience/followers' => [studioFollowerFixture()],
+            '/studio/audience/supporters' => [studioSupporterFixture()],
+            _ => throw StateError(request.path),
+          },
+          meta:
+              request.path == '/studio/audience/supporters'
+                  ? {'supporters_count': 1, 'coins_received': 100}
+                  : const {},
+        );
+      });
+      final repository = StudioRepository(dio);
 
-    final money = await repository.monetization();
-    expect(money.giftsReceived, 1);
-    expect(money.payoutsCount, 0);
-    expect(money.primaryBalance?.balance, 90);
-    expect(money.taxProfiles.single.countryCode, 'NG');
+      final money = await repository.monetization();
+      expect(money.giftsReceived, 1);
+      expect(money.payoutsCount, 0);
+      expect(money.primaryBalance?.balance, 90);
+      expect(money.taxProfiles.single.countryCode, 'NG');
 
-    final page = await repository.transactions(
-      filter: StudioTransactionFilter.gifts,
-    );
-    expect(page.items.single.title, 'Gift from Listener Ada');
-    expect(page.items.single.amountLabel, '+90 PCN');
-    expect(seen.queryParameters['kind'], 'gifts');
+      final page = await repository.transactions(
+        filter: StudioTransactionFilter.gifts,
+      );
+      expect(page.items.single.title, 'Gift from Listener Ada');
+      expect(page.items.single.amountLabel, '+90 PCN');
+      expect(seen.queryParameters['kind'], 'gifts');
 
-    final detail = await repository.transaction('txn-1');
-    expect(detail.message, 'Thank you');
-    expect(seen.path, '/studio/transactions/txn-1');
+      final detail = await repository.transaction('txn-1');
+      expect(detail.message, 'Thank you');
+      expect(seen.path, '/studio/transactions/txn-1');
 
-    final payout = await repository.payoutWorkspace();
-    expect(payout.config.currency, 'NGN');
-    expect(payout.selectedMethod?.label, 'Access Bank');
-    expect(payout.taxProfile?.countryCode, 'NG');
+      final payout = await repository.payoutWorkspace();
+      expect(payout.config.currency, 'NGN');
+      expect(payout.selectedMethod?.label, 'Access Bank');
+      expect(payout.taxProfile?.countryCode, 'NG');
 
-    final followers = await repository.followers();
-    expect(followers.items.single.name, 'Listener Ada');
-    expect(followers.items.single.handleLabel, '@ada_listener');
+      final followers = await repository.followers();
+      expect(followers.items.single.name, 'Listener Ada');
+      expect(followers.items.single.handleLabel, '@ada_listener');
 
-    final supporters = await repository.supporters();
-    expect(supporters.items.single.subtitle, '100 coins · 1 gifts');
-    expect(supporters.coinsReceived, 100);
-  });
+      final supporters = await repository.supporters();
+      expect(supporters.items.single.subtitle, '100 coins · 1 gifts');
+      expect(supporters.coinsReceived, 100);
+    },
+  );
 
-  test('payout method post sends provider destination without inventing success', () async {
-    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
-    addTearDown(() => dio.close(force: true));
-    late RequestOptions seen;
-    dio.httpClientAdapter = ApiAdapter((request) {
-      seen = request;
-      return jsonResponse(studioPayoutMethodFixture(), status: 201);
-    });
+  test(
+    'payout method post sends provider destination without inventing success',
+    () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
+      addTearDown(() => dio.close(force: true));
+      late RequestOptions seen;
+      dio.httpClientAdapter = ApiAdapter((request) {
+        seen = request;
+        return jsonResponse(studioPayoutMethodFixture(), status: 201);
+      });
 
-    final method = await StudioRepository(dio).createPayoutMethod(
-      provider: 'paystack',
-      kind: 'bank',
-      destination: {'account_number': '0123456789', 'bank_code': '044'},
-    );
-    expect(method.id, 'method-1');
-    expect(seen.path, '/payout-methods');
-    expect(seen.method, 'POST');
-    expect(seen.data, {
-      'provider': 'paystack',
-      'kind': 'bank',
-      'destination': {
-        'account_number': '0123456789',
-        'bank_code': '044',
-      },
-    });
-  });
+      final method = await StudioRepository(dio).createPayoutMethod(
+        provider: 'flutterwave',
+        kind: 'bank',
+        destination: {'account_number': '0123456789', 'bank_code': '044'},
+      );
+      expect(method.id, 'method-1');
+      expect(seen.path, '/payout-methods');
+      expect(seen.method, 'POST');
+      expect(seen.data, {
+        'provider': 'flutterwave',
+        'kind': 'bank',
+        'destination': {'account_number': '0123456789', 'bank_code': '044'},
+      });
+    },
+  );
 
   test('workspace rejects invented profile and list shapes', () {
     expect(
@@ -143,9 +150,7 @@ void main() {
       throwsA(isA<ApiFailure>()),
     );
     expect(
-      () => StudioReel.fromJson({
-        'caption': 'I can’t believe she said this!',
-      }),
+      () => StudioReel.fromJson({'caption': 'I can’t believe she said this!'}),
       throwsA(isA<ApiFailure>()),
     );
   });
@@ -218,14 +223,15 @@ void main() {
     late RequestOptions seen;
     dio.httpClientAdapter = ApiAdapter((request) {
       seen = request;
-      return jsonResponse(studioReelDraftFixture(caption: 'Draft reel'), status: 201);
+      return jsonResponse(
+        studioReelDraftFixture(caption: 'Draft reel'),
+        status: 201,
+      );
     });
 
-    final draft = await StudioRepository(dio).saveReelDraft(
-      caption: 'Draft reel',
-      episodeId: 'ep-1',
-      showId: 'show-1',
-    );
+    final draft = await StudioRepository(
+      dio,
+    ).saveReelDraft(caption: 'Draft reel', episodeId: 'ep-1', showId: 'show-1');
     expect(draft.id, 'draft-1');
     expect(draft.state, 'draft');
     expect(seen.path, '/reels/drafts');
@@ -251,73 +257,83 @@ void main() {
     await expectLater(
       StudioRepository(dio).workspace(),
       throwsA(
-        isA<ApiFailure>().having((error) => error.code, 'code', 'CLAIM_REQUIRED'),
+        isA<ApiFailure>().having(
+          (error) => error.code,
+          'code',
+          'CLAIM_REQUIRED',
+        ),
       ),
     );
   });
 
-  test('episode draft, live start and payout slices post server fields only', () async {
-    final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
-    addTearDown(() => dio.close(force: true));
-    final seen = <RequestOptions>[];
-    dio.httpClientAdapter = ApiAdapter((request) {
-      seen.add(request);
-      if (request.path == '/studio/episodes') {
-        return jsonResponse(studioEpisodeDraftFixture(), status: 201);
-      }
-      if (request.path == '/studio/live') {
-        return jsonResponse(studioLiveFixture(state: 'scheduled'), status: 201);
-      }
-      if (request.path == '/studio/live/live-1') {
-        return jsonResponse(studioLiveFixture());
-      }
-      if (request.path == '/studio/payout-settings') {
-        if (request.method == 'PUT') {
+  test(
+    'episode draft, live start and payout slices post server fields only',
+    () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.invalid/api/v1'));
+      addTearDown(() => dio.close(force: true));
+      final seen = <RequestOptions>[];
+      dio.httpClientAdapter = ApiAdapter((request) {
+        seen.add(request);
+        if (request.path == '/studio/episodes') {
+          return jsonResponse(studioEpisodeDraftFixture(), status: 201);
+        }
+        if (request.path == '/studio/live') {
+          return jsonResponse(
+            studioLiveFixture(state: 'scheduled'),
+            status: 201,
+          );
+        }
+        if (request.path == '/studio/live/live-1') {
+          return jsonResponse(studioLiveFixture());
+        }
+        if (request.path == '/studio/payout-settings') {
+          if (request.method == 'PUT') {
+            return jsonResponse(studioPayoutSettingsFixture());
+          }
           return jsonResponse(studioPayoutSettingsFixture());
         }
-        return jsonResponse(studioPayoutSettingsFixture());
-      }
-      if (request.path == '/payout-methods') {
-        return jsonResponse([studioPayoutMethodFixture()]);
-      }
-      if (request.path == '/studio/monetization') {
-        return jsonResponse(studioMonetizationFixture());
-      }
-      throw StateError('${request.method} ${request.path}');
-    });
-    final repository = StudioRepository(dio);
+        if (request.path == '/payout-methods') {
+          return jsonResponse([studioPayoutMethodFixture()]);
+        }
+        if (request.path == '/studio/monetization') {
+          return jsonResponse(studioMonetizationFixture());
+        }
+        throw StateError('${request.method} ${request.path}');
+      });
+      final repository = StudioRepository(dio);
 
-    final draft = await repository.createEpisodeDraft(
-      showId: 'show-1',
-      title: 'Studio draft',
-      description: 'Draft notes',
-    );
-    expect(draft.availability, 'draft');
-    expect(draft.statusLabel, 'Draft');
-    expect(seen.first.path, '/studio/episodes');
-    expect(seen.first.data['title'], 'Studio draft');
+      final draft = await repository.createEpisodeDraft(
+        showId: 'show-1',
+        title: 'Studio draft',
+        description: 'Draft notes',
+      );
+      expect(draft.availability, 'draft');
+      expect(draft.statusLabel, 'Draft');
+      expect(seen.first.path, '/studio/episodes');
+      expect(seen.first.data['title'], 'Studio draft');
 
-    final live = await repository.startLive(
-      title: 'Studio live',
-      showId: 'show-1',
-    );
-    expect(live.state, 'live');
-    expect(seen[1].path, '/studio/live');
-    expect(seen[1].data['title'], 'Studio live');
-    expect(seen[2].path, '/studio/live/live-1');
-    expect(seen[2].method, 'PATCH');
+      final live = await repository.startLive(
+        title: 'Studio live',
+        showId: 'show-1',
+      );
+      expect(live.state, 'live');
+      expect(seen[1].path, '/studio/live');
+      expect(seen[1].data['title'], 'Studio live');
+      expect(seen[2].path, '/studio/live/live-1');
+      expect(seen[2].method, 'PATCH');
 
-    final payout = await repository.updatePayoutSettings(
-      currency: 'USD',
-      schedule: 'weekly',
-      minimumAmount: 5000,
-    );
-    expect(payout.config.currency, 'NGN');
-    expect(seen[3].method, 'PUT');
-    expect(seen[3].data, {
-      'currency': 'USD',
-      'schedule': 'weekly',
-      'minimum_amount': 5000,
-    });
-  });
+      final payout = await repository.updatePayoutSettings(
+        currency: 'USD',
+        schedule: 'weekly',
+        minimumAmount: 5000,
+      );
+      expect(payout.config.currency, 'NGN');
+      expect(seen[3].method, 'PUT');
+      expect(seen[3].data, {
+        'currency': 'USD',
+        'schedule': 'weekly',
+        'minimum_amount': 5000,
+      });
+    },
+  );
 }

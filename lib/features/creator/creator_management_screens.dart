@@ -65,15 +65,15 @@ class CreatorStudiosScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Manage the podcasts connected to your creator profile.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: 18),
               if (value.shows.isEmpty)
-                const Text(
+                Text(
                   'No claimed shows are available yet.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 )
               else
                 for (var i = 0; i < value.shows.length; i++) ...[
@@ -197,7 +197,7 @@ class _CreatorAddStudioScreenState
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _ManagementPanel(
+        _ManagementPanel(
           child: Column(
             children: [
               CircleAvatar(
@@ -217,7 +217,7 @@ class _CreatorAddStudioScreenState
               Text(
                 'Add a show by RSS feed or search the Pelevo catalog.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             ],
           ),
@@ -259,7 +259,7 @@ class _CreatorAddStudioScreenState
           },
         ),
         const SizedBox(height: 14),
-        const _ManagementPanel(
+        _ManagementPanel(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -268,7 +268,7 @@ class _CreatorAddStudioScreenState
               Expanded(
                 child: Text(
                   'You’ll verify ownership before management, analytics, and monetization tools are enabled.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
               ),
             ],
@@ -384,9 +384,9 @@ class _CreatorPayoutScheduleScreenState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Choose when your creator earnings are transferred.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: 16),
               for (var i = 0; i < 3; i++)
@@ -432,10 +432,10 @@ class _CreatorPayoutScheduleScreenState
                       label: '${threshold.round()} $unit',
                       onChanged: (value) => setState(() => _threshold = value),
                     ),
-                    const Text(
+                    Text(
                       'Payouts are sent only when your available balance reaches this amount.',
                       style: TextStyle(
-                        color: PelevoColors.textMuted,
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -486,10 +486,10 @@ class _StudioCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: PelevoRadii.card,
         border: Border.all(
-          color: selected ? PelevoColors.green : PelevoColors.border,
+          color: selected ? PelevoColors.green : context.pelevo.border,
         ),
       ),
       child: Row(
@@ -506,8 +506,8 @@ class _StudioCard extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -607,9 +607,9 @@ class _ManagementPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: child,
   );

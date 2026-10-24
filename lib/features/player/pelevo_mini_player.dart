@@ -108,8 +108,8 @@ class _MiniPlayerBar extends ConsumerWidget {
                       show,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -266,7 +266,7 @@ class _MiniPlayerDismissGestureState extends State<_MiniPlayerDismissGesture>
           );
         },
         child: Material(
-          color: PelevoColors.surfaceHigh,
+          color: context.pelevo.surfaceHigh,
           child: InkWell(
             onTap: () {
               if (_isRevealed) {
@@ -323,8 +323,8 @@ class _EarnMiniBar extends ConsumerWidget {
                           : 'Paused',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 12,
                       ),
                     ),

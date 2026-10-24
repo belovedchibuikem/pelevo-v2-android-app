@@ -41,7 +41,7 @@ class CatalogScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final entry = groups.entries.elementAt(index);
           return Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             clipBehavior: Clip.antiAlias,
             child: ExpansionTile(

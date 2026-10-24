@@ -225,7 +225,7 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                     width: 42,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: PelevoColors.border,
+                      color: context.pelevo.border,
                       borderRadius: BorderRadius.circular(5),
                     ),
                   ),
@@ -254,10 +254,10 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                             'Support ${widget.creator}',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const Text(
+                          Text(
                             'Send a gift to show your appreciation',
                             style: TextStyle(
-                              color: PelevoColors.textMuted,
+                              color: context.pelevo.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -278,9 +278,9 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      color: PelevoColors.surfaceHigh,
+                      color: context.pelevo.surfaceHigh,
                       borderRadius: PelevoRadii.card,
-                      border: Border.all(color: PelevoColors.border),
+                      border: Border.all(color: context.pelevo.border),
                     ),
                     child: Row(
                       children: [
@@ -322,9 +322,9 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (!hasCatalog)
-                  const Text(
+                  Text(
                     'No gifts are available yet.',
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   )
                 else
                   GridView.builder(
@@ -350,13 +350,13 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                             color:
                                 selected
                                     ? PelevoColors.purple.withValues(alpha: .14)
-                                    : PelevoColors.surfaceHigh,
+                                    : context.pelevo.surfaceHigh,
                             borderRadius: PelevoRadii.card,
                             border: Border.all(
                               color:
                                   selected
                                       ? PelevoColors.purple
-                                      : PelevoColors.border,
+                                      : context.pelevo.border,
                               width: selected ? 1.5 : 1,
                             ),
                           ),
@@ -442,10 +442,10 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Want more options?',
                         style: TextStyle(
-                          color: PelevoColors.textMuted,
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -480,10 +480,10 @@ class _GiftComposerSheetState extends ConsumerState<GiftComposerSheet> {
                           : () => _sendGift(catalog, wallet),
                 ),
                 const SizedBox(height: 7),
-                const Text(
+                Text(
                   'Gifts are voluntary and cannot be exchanged or transferred.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: PelevoColors.textDim, fontSize: 10),
+                  style: TextStyle(color: context.pelevo.textDim, fontSize: 10),
                 ),
               ],
             );
@@ -649,9 +649,9 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: PelevoColors.surface,
+                      color: context.pelevo.surface,
                       borderRadius: PelevoRadii.card,
-                      border: Border.all(color: PelevoColors.border),
+                      border: Border.all(color: context.pelevo.border),
                     ),
                     child: Row(
                       children: [
@@ -661,13 +661,13 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                           size: 30,
                         ),
                         const SizedBox(width: 11),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Coin Balance',
-                                style: TextStyle(color: PelevoColors.textMuted),
+                                style: TextStyle(color: context.pelevo.textMuted),
                               ),
                               Text(
                                 'Use coins to support creators you love',
@@ -692,10 +692,10 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Your Apple ID or Google Play account will be charged.',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -708,9 +708,9 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                   else if (packsAsync.isLoading)
                     const Center(child: CircularProgressIndicator())
                   else if (packs.isEmpty)
-                    const Text(
+                    Text(
                       'No coin packs are available yet.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     )
                   else
                     for (var index = 0; index < packs.length; index++)
@@ -751,10 +751,10 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                             : () => _purchase(packs),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Payment is processed securely by Apple or Google. Coin purchases are consumable and are synchronized through your Pelevo wallet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textDim, fontSize: 10),
+                    style: TextStyle(color: context.pelevo.textDim, fontSize: 10),
                   ),
                   const PelevoPublicLegalNotice(
                     lead: 'By purchasing coins you agree to the',
@@ -847,9 +847,9 @@ class CoinWalletScreen extends ConsumerWidget {
                           color: PelevoColors.yellow,
                         ),
                         const SizedBox(height: 7),
-                        const Text(
+                        Text(
                           'Available Balance',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                         Text(
                           '${wallet.balance} coins',
@@ -1043,15 +1043,15 @@ class GiftReceiptScreen extends ConsumerWidget {
                   Text(
                     'Your ${receipt.giftTypeName} was sent to ${receipt.creatorDisplayName}.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: 28),
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: PelevoColors.surface,
+                      color: context.pelevo.surface,
                       borderRadius: PelevoRadii.card,
-                      border: Border.all(color: PelevoColors.border),
+                      border: Border.all(color: context.pelevo.border),
                     ),
                     child: Column(
                       children: [
@@ -1110,10 +1110,10 @@ class _CoinPackTile extends StatelessWidget {
         color:
             selected
                 ? PelevoColors.purple.withValues(alpha: .1)
-                : PelevoColors.surface,
+                : context.pelevo.surface,
         borderRadius: PelevoRadii.card,
         border: Border.all(
-          color: selected ? PelevoColors.purple : PelevoColors.border,
+          color: selected ? PelevoColors.purple : context.pelevo.border,
           width: selected ? 1.5 : 1,
         ),
       ),
@@ -1123,7 +1123,7 @@ class _CoinPackTile extends StatelessWidget {
             selected
                 ? Icons.radio_button_checked_rounded
                 : Icons.radio_button_off_rounded,
-            color: selected ? PelevoColors.purple : PelevoColors.textDim,
+            color: selected ? PelevoColors.purple : context.pelevo.textDim,
           ),
           const SizedBox(width: 11),
           const Icon(Icons.monetization_on_rounded, color: PelevoColors.yellow),
@@ -1181,15 +1181,15 @@ class _CoinPurchaseSuccess extends StatelessWidget {
       Text(
         '$coins coins were securely added to your Pelevo wallet.',
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: 28),
       Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           borderRadius: PelevoRadii.card,
-          border: Border.all(color: PelevoColors.border),
+          border: Border.all(color: context.pelevo.border),
         ),
         child: Row(
           children: [
@@ -1242,7 +1242,7 @@ class _PurchaseUnavailable extends StatelessWidget {
       Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -1274,7 +1274,7 @@ class _PurchaseFailure extends StatelessWidget {
       Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: 26),
       PelevoButton(
@@ -1303,12 +1303,12 @@ class _ReceiptRow extends StatelessWidget {
     decoration: BoxDecoration(
       border:
           divider
-              ? const Border(bottom: BorderSide(color: PelevoColors.border))
+              ? Border(bottom: BorderSide(color: context.pelevo.border))
               : null,
     ),
     child: Row(
       children: [
-        Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+        Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         const Spacer(),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
@@ -1323,21 +1323,21 @@ class _EmptyWalletHistory extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(vertical: 38, horizontal: 20),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
     ),
-    child: const Column(
+    child: Column(
       children: [
         Icon(
           Icons.receipt_long_outlined,
-          color: PelevoColors.textDim,
+          color: context.pelevo.textDim,
           size: 42,
         ),
         SizedBox(height: 9),
         Text('No coin activity yet'),
         Text(
           'Purchases and gifts will appear here.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     ),

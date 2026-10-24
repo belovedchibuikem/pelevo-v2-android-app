@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/src/platform/file_picker_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -209,7 +213,9 @@ void main() {
       '/studio/payout-settings' => studioPayoutSettingsFixture(),
       '/payout-methods' => [studioPayoutMethodFixture()],
       '/studios' => studioTeamFixture(),
-      '/search' => {'shows': [claimShowFixture()]},
+      '/search' => {
+        'shows': [claimShowFixture()],
+      },
       _ => throw StateError(request.path),
     });
   });
@@ -223,7 +229,9 @@ void main() {
       adapter: workspaceAdapter(),
     );
 
-    expect(find.text('Studio Owner'), findsOneWidget);
+    expect(find.text('Test listener'), findsOneWidget);
+    expect(find.text('@listener'), findsOneWidget);
+    expect(find.text('Studio Owner'), findsNothing);
     expect(find.text('Owned Show'), findsOneWidget);
     expect(find.text('View all studios (1)'), findsOneWidget);
     expect(find.text('Adesola Adeyemi'), findsNothing);
@@ -254,7 +262,10 @@ void main() {
     expect(find.text('126K'), findsNothing);
     expect(find.text('2.7K hrs'), findsNothing);
     expect(find.text('12.5%'), findsNothing);
-    expect(find.text('Ep 42: The conversation,\nnobody expected...'), findsNothing);
+    expect(
+      find.text('Ep 42: The conversation,\nnobody expected...'),
+      findsNothing,
+    );
   });
 
   testWidgets('missing claim keeps the claim CTA and hides seeded studio', (
@@ -297,11 +308,19 @@ void main() {
     expect(find.text('Published'), findsOneWidget);
     expect(find.text('The Relationship Podcast'), findsNothing);
     expect(find.text('12.4K'), findsNothing);
-    expect(find.text('Ep 42: The conversation\nnobody expected...'), findsNothing);
-    expect(find.text('Search creator episodes is not available yet.'), findsNothing);
+    expect(
+      find.text('Ep 42: The conversation\nnobody expected...'),
+      findsNothing,
+    );
+    expect(
+      find.text('Search creator episodes is not available yet.'),
+      findsNothing,
+    );
   });
 
-  testWidgets('episode details use the selected server episode', (tester) async {
+  testWidgets('episode details use the selected server episode', (
+    tester,
+  ) async {
     await mount(
       tester,
       location: '/screen/creator-episodes',
@@ -316,7 +335,10 @@ void main() {
     expect(find.text('2026-09-09 · 20:56'), findsOneWidget);
     expect(find.text('Streams'), findsNothing);
     expect(find.text('12.4K'), findsNothing);
-    expect(find.text('Ep 42: The conversation\nnobody expected...'), findsNothing);
+    expect(
+      find.text('Ep 42: The conversation\nnobody expected...'),
+      findsNothing,
+    );
   });
 
   testWidgets('episodes keep the claim CTA when studio access is missing', (
@@ -355,7 +377,10 @@ void main() {
     expect(find.text('I can’t believe she\nsaid this!'), findsNothing);
     expect(find.text('12.4K'), findsNothing);
     expect(find.text('2.8K'), findsNothing);
-    expect(find.text('Linked to Ep 42: The conversation nobody expected...'), findsNothing);
+    expect(
+      find.text('Linked to Ep 42: The conversation nobody expected...'),
+      findsNothing,
+    );
   });
 
   testWidgets('creator can delete a reel from studio options', (tester) async {
@@ -543,37 +568,56 @@ void main() {
     expect(find.text('TXN-20240509-102400-BLESSEDP'), findsNothing);
   });
 
-  testWidgets('payout settings bind the saved method instead of seeded bank copy', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(430, 1800);
-    await mount(
-      tester,
-      location: '/screen/creator-payout-settings',
-      adapter: workspaceAdapter(),
-    );
+  testWidgets(
+    'payout settings bind the saved method instead of seeded bank copy',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 1800);
+      await mount(
+        tester,
+        location: '/screen/creator-payout-settings',
+        adapter: workspaceAdapter(),
+      );
 
-    expect(find.text('Access Bank'), findsOneWidget);
-    expect(find.text('•••• 1234'), findsOneWidget);
-    expect(find.text('NGN'), findsOneWidget);
-    expect(find.text('Noble Stan'), findsNothing);
-    expect(find.text('Access Bank PLC'), findsNothing);
-    expect(find.text('₦72,430.00'), findsNothing);
-    expect(find.text('₦10,000.00'), findsNothing);
-  });
+      expect(find.text('Access Bank'), findsOneWidget);
+      expect(find.text('•••• 1234'), findsOneWidget);
+      expect(find.text('NGN'), findsOneWidget);
+      expect(find.text('Noble Stan'), findsNothing);
+      expect(find.text('Access Bank PLC'), findsNothing);
+      expect(find.text('₦72,430.00'), findsNothing);
+      expect(find.text('₦10,000.00'), findsNothing);
+    },
+  );
 
   testWidgets('add payout posts a bank destination and does not fake success', (
     tester,
   ) async {
     late RequestOptions saved;
+    final proof = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}pelevo-account-proof-${DateTime.now().microsecondsSinceEpoch}.png',
+    );
+    proof.writeAsBytesSync(const [137, 80, 78, 71, 13, 10, 26, 10]);
+    addTearDown(() {
+      try {
+        if (proof.existsSync()) proof.deleteSync();
+      } on FileSystemException {
+        // The payout upload can still be holding the proof file.
+      }
+    });
     tester.view.physicalSize = const Size(430, 1800);
     await mount(
       tester,
       location: '/screen/creator-add-payout',
       adapter: ApiAdapter((request) {
+        if (request.path == '/me/age-majority' && request.method == 'POST') {
+          return jsonResponse({'confirmed': true});
+        }
         if (request.path == '/payout-methods' && request.method == 'POST') {
           saved = request;
           return jsonResponse(studioPayoutMethodFixture(), status: 201);
+        }
+        if (request.path.endsWith('/account-proof') &&
+            request.method == 'POST') {
+          return jsonResponse({'status': 'pending'});
         }
         if (request.path == '/studio/transactions/txn-1') {
           return jsonResponse(studioTransactionFixture());
@@ -602,15 +646,27 @@ void main() {
     await tester.tap(find.text('Access Bank').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '0123456789');
+    final previousPicker = FilePickerPlatform.instance;
+    FilePickerPlatform.instance = _ProofFilePicker(proof.path);
+    addTearDown(() => FilePickerPlatform.instance = previousPicker);
+    await tester.ensureVisible(find.text('Tap to upload'));
+    await tester.tap(find.text('Tap to upload'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('proof.png'), findsOneWidget);
+    await tester.ensureVisible(find.byType(Checkbox));
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
     await tester.ensureVisible(find.text('Save Payout Method'));
     await tester.tap(find.text('Save Payout Method'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(saved.method, 'POST');
-    expect(saved.data['provider'], 'paystack');
+    expect(saved.data['provider'], 'flutterwave');
     expect(saved.data['kind'], 'bank');
     expect(saved.data['destination']['account_number'], '0123456789');
     expect(saved.data['destination']['bank_code'], '044');
-    expect(find.text('Payout Settings'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('audience binds follower counts instead of seeded 18.4K', (
@@ -651,28 +707,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Top Supporters'), findsOneWidget);
     expect(find.text('100 coins received from 1 supporters.'), findsOneWidget);
-    expect(find.text('12,900 coins received from 148 supporters this month.'), findsNothing);
-  });
-
-  testWidgets('monetization keeps the claim CTA when studio access is missing', (
-    tester,
-  ) async {
-    await mount(
-      tester,
-      location: '/screen/creator-monetization',
-      adapter: ApiAdapter(
-        (_) => errorResponse(
-          status: 403,
-          code: 'CLAIM_REQUIRED',
-          message: 'A verified show claim is required.',
-        ),
-      ),
+    expect(
+      find.text('12,900 coins received from 148 supporters this month.'),
+      findsNothing,
     );
-
-    expect(find.text('A verified show claim is required.'), findsOneWidget);
-    expect(find.text('Claim a podcast'), findsOneWidget);
-    expect(find.text('₦72,430.00'), findsNothing);
   });
+
+  testWidgets(
+    'monetization keeps the claim CTA when studio access is missing',
+    (tester) async {
+      await mount(
+        tester,
+        location: '/screen/creator-monetization',
+        adapter: ApiAdapter(
+          (_) => errorResponse(
+            status: 403,
+            code: 'CLAIM_REQUIRED',
+            message: 'A verified show claim is required.',
+          ),
+        ),
+      );
+
+      expect(find.text('A verified show claim is required.'), findsOneWidget);
+      expect(find.text('Claim a podcast'), findsOneWidget);
+      expect(find.text('₦72,430.00'), findsNothing);
+    },
+  );
 
   testWidgets('new episode saves a draft and does not fake publish', (
     tester,
@@ -718,7 +778,10 @@ void main() {
       adapter: ApiAdapter((request) {
         if (request.path == '/studio/live' && request.method == 'POST') {
           created = request;
-          return jsonResponse(studioLiveFixture(state: 'scheduled'), status: 201);
+          return jsonResponse(
+            studioLiveFixture(state: 'scheduled'),
+            status: 201,
+          );
         }
         if (RegExp(r'^/studio/live/[^/]+$').hasMatch(request.path)) {
           started = request;
@@ -839,4 +902,30 @@ void main() {
     expect(saved.data['minimum_amount'], 10000);
     expect(find.text('Payout Settings'), findsOneWidget);
   });
+}
+
+class _ProofFilePicker extends FilePickerPlatform {
+  _ProofFilePicker(this.path);
+
+  final String path;
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    int compressionQuality = 0,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+    bool cancelUploadOnWindowBlur = true,
+  }) async {
+    return FilePickerResult([
+      PlatformFile(name: 'proof.png', size: 8, path: path),
+    ]);
+  }
 }

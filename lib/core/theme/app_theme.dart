@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class PelevoColors {
@@ -44,27 +45,128 @@ abstract final class PelevoMotion {
   static const slow = Duration(milliseconds: 480);
 }
 
+/// Surfaces and text that switch with light and dark mode.
+///
+/// Brand colors stay on [PelevoColors]. Screens read this from the theme so a
+/// light device is not painted with the dark palette.
+class PelevoScheme extends ThemeExtension<PelevoScheme> {
+  const PelevoScheme({
+    required this.background,
+    required this.surface,
+    required this.surfaceHigh,
+    required this.border,
+    required this.text,
+    required this.textMuted,
+    required this.textDim,
+  });
+
+  final Color background;
+  final Color surface;
+  final Color surfaceHigh;
+  final Color border;
+  final Color text;
+  final Color textMuted;
+  final Color textDim;
+
+  static const dark = PelevoScheme(
+    background: PelevoColors.background,
+    surface: PelevoColors.surface,
+    surfaceHigh: PelevoColors.surfaceHigh,
+    border: PelevoColors.border,
+    text: PelevoColors.text,
+    textMuted: PelevoColors.textMuted,
+    textDim: PelevoColors.textDim,
+  );
+
+  static const light = PelevoScheme(
+    background: Color(0xFFF6F5F2),
+    surface: Color(0xFFFFFFFF),
+    surfaceHigh: Color(0xFFEFEDE8),
+    border: Color(0xFFD9D6D0),
+    text: Color(0xFF161815),
+    textMuted: Color(0xFF5E635E),
+    textDim: Color(0xFF8B908B),
+  );
+
+  @override
+  PelevoScheme copyWith({
+    Color? background,
+    Color? surface,
+    Color? surfaceHigh,
+    Color? border,
+    Color? text,
+    Color? textMuted,
+    Color? textDim,
+  }) => PelevoScheme(
+    background: background ?? this.background,
+    surface: surface ?? this.surface,
+    surfaceHigh: surfaceHigh ?? this.surfaceHigh,
+    border: border ?? this.border,
+    text: text ?? this.text,
+    textMuted: textMuted ?? this.textMuted,
+    textDim: textDim ?? this.textDim,
+  );
+
+  @override
+  PelevoScheme lerp(PelevoScheme? other, double t) {
+    if (other == null) return this;
+    return PelevoScheme(
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceHigh: Color.lerp(surfaceHigh, other.surfaceHigh, t)!,
+      border: Color.lerp(border, other.border, t)!,
+      text: Color.lerp(text, other.text, t)!,
+      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      textDim: Color.lerp(textDim, other.textDim, t)!,
+    );
+  }
+}
+
+extension PelevoSchemeContext on BuildContext {
+  PelevoScheme get pelevo =>
+      Theme.of(this).extension<PelevoScheme>() ?? PelevoScheme.dark;
+}
+
 abstract final class PelevoTheme {
-  static ThemeData get dark {
+  static ThemeData get dark => _theme(Brightness.dark, PelevoScheme.dark);
+
+  static ThemeData get light => _theme(Brightness.light, PelevoScheme.light);
+
+  static ThemeData _theme(Brightness brightness, PelevoScheme scheme) {
     final baseText = GoogleFonts.robotoCondensedTextTheme(
-      ThemeData.dark().textTheme,
-    ).apply(bodyColor: PelevoColors.text, displayColor: PelevoColors.text);
+      brightness == Brightness.dark
+          ? ThemeData.dark().textTheme
+          : ThemeData.light().textTheme,
+    ).apply(bodyColor: scheme.text, displayColor: scheme.text);
+    final overlay = brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: PelevoColors.background,
-      canvasColor: PelevoColors.background,
-      colorScheme: const ColorScheme.dark(
+      brightness: brightness,
+      scaffoldBackgroundColor: scheme.background,
+      canvasColor: scheme.background,
+      extensions: [scheme],
+      colorScheme: ColorScheme(
+        brightness: brightness,
         primary: PelevoColors.red,
-        secondary: PelevoColors.green,
-        tertiary: PelevoColors.yellow,
-        surface: PelevoColors.surface,
-        error: PelevoColors.red,
         onPrimary: Colors.white,
+        secondary: PelevoColors.green,
         onSecondary: Colors.white,
+        tertiary: PelevoColors.yellow,
         onTertiary: Colors.black,
-        onSurface: PelevoColors.text,
+        error: PelevoColors.red,
+        onError: Colors.white,
+        surface: scheme.surface,
+        onSurface: scheme.text,
+        outline: scheme.text,
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.text,
+          side: BorderSide(color: scheme.text, width: 1.5),
+        ),
       ),
       textTheme: baseText.copyWith(
         displaySmall: baseText.displaySmall?.copyWith(
@@ -95,17 +197,21 @@ abstract final class PelevoTheme {
         bodySmall: baseText.bodySmall?.copyWith(
           fontSize: 12,
           height: 1.35,
-          color: PelevoColors.textMuted,
+          color: scheme.textMuted,
         ),
         labelLarge: baseText.labelLarge?.copyWith(
           fontSize: 15,
           fontWeight: FontWeight.w700,
         ),
       ),
-      dividerColor: PelevoColors.border,
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: PelevoColors.border,
-        contentTextStyle: TextStyle(color: PelevoColors.text, fontSize: 14),
+      dividerColor: scheme.border,
+      dividerTheme: DividerThemeData(color: scheme.border),
+      dialogTheme: DialogThemeData(backgroundColor: scheme.surface),
+      bottomSheetTheme: BottomSheetThemeData(backgroundColor: scheme.surface),
+      cardTheme: CardThemeData(color: scheme.surface),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: scheme.surfaceHigh,
+        contentTextStyle: TextStyle(color: scheme.text, fontSize: 14),
         behavior: SnackBarBehavior.floating,
         actionTextColor: PelevoColors.green,
       ),
@@ -113,45 +219,44 @@ abstract final class PelevoTheme {
         elevation: 0,
         centerTitle: false,
         backgroundColor: Colors.transparent,
-        foregroundColor: PelevoColors.text,
+        foregroundColor: scheme.text,
+        systemOverlayStyle: overlay.copyWith(statusBarColor: Colors.transparent),
         titleTextStyle: baseText.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: PelevoColors.surface,
+        fillColor: scheme.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
-        hintStyle: const TextStyle(color: PelevoColors.textDim),
-        labelStyle: const TextStyle(color: PelevoColors.textMuted),
-        border: _inputBorder(PelevoColors.border),
-        enabledBorder: _inputBorder(PelevoColors.border),
+        hintStyle: TextStyle(color: scheme.textDim),
+        labelStyle: TextStyle(color: scheme.textMuted),
+        border: _inputBorder(scheme.border),
+        enabledBorder: _inputBorder(scheme.border),
         focusedBorder: _inputBorder(PelevoColors.green),
         errorBorder: _inputBorder(PelevoColors.red),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
-        backgroundColor: PelevoColors.background,
+        backgroundColor: scheme.background,
         indicatorColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 10,
-            color:
-                states.contains(WidgetState.selected)
-                    ? PelevoColors.red
-                    : PelevoColors.textMuted,
+            color: states.contains(WidgetState.selected)
+                ? PelevoColors.red
+                : scheme.textMuted,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             size: 22,
-            color:
-                states.contains(WidgetState.selected)
-                    ? PelevoColors.red
-                    : PelevoColors.textMuted,
+            color: states.contains(WidgetState.selected)
+                ? PelevoColors.red
+                : scheme.textMuted,
           ),
         ),
       ),

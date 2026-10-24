@@ -175,7 +175,7 @@ class LiveNowScreen extends ConsumerWidget {
             children: [
               Text(
                 error is ApiFailure ? error.message : 'Live sessions unavailable.',
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -189,10 +189,10 @@ class LiveNowScreen extends ConsumerWidget {
         ),
         data: (sessions) {
           if (sessions.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'No live sessions are on now.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             );
           }
@@ -205,7 +205,7 @@ class LiveNowScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                tileColor: PelevoColors.surfaceHigh,
+                tileColor: context.pelevo.surfaceHigh,
                 title: Text(session.title),
                 subtitle: Text(
                   [
@@ -213,7 +213,7 @@ class LiveNowScreen extends ConsumerWidget {
                     if (session.viewerCount != null)
                       '${session.viewerCount} listening',
                   ].join(' · '),
-                  style: const TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
@@ -266,7 +266,7 @@ class LiveSessionScreen extends ConsumerWidget {
         error: (error, _) => Center(
           child: Text(
             error is ApiFailure ? error.message : 'Live session unavailable.',
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
         data: (session) => ListView(
@@ -286,7 +286,7 @@ class LiveSessionScreen extends ConsumerWidget {
                 color:
                     session.state == 'live'
                         ? PelevoColors.green
-                        : PelevoColors.textMuted,
+                        : context.pelevo.textMuted,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -298,7 +298,7 @@ class LiveSessionScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 'Started ${session.startedAt}',
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             ],
             const SizedBox(height: 24),
@@ -308,9 +308,9 @@ class LiveSessionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             if (session.events.isEmpty)
-              const Text(
+              Text(
                 'No events yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               )
             else
               for (final event in session.events)
@@ -319,13 +319,13 @@ class LiveSessionScreen extends ConsumerWidget {
                   title: Text('${event['type'] ?? 'event'}'),
                   subtitle: Text(
                     '${event['created_at'] ?? ''}',
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Audio/video streaming transport is host-operated. This screen shows the public live session state from Pelevo.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           ],
         ),

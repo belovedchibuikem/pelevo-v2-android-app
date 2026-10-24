@@ -341,10 +341,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     children: [
       _crownHero(context, 'Pelevo Plus', 'More Power. More Content. More You.'),
       const SizedBox(height: PelevoSpacing.lg),
-      const Text(
+      Text(
         'Take your listening to the next level with exclusive content and premium features.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final item in const [
@@ -403,23 +403,23 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             ),
           ),
           const SizedBox(height: PelevoSpacing.xs),
-          const Text(
+          Text(
             'Choose Monthly or Annual. Billing starts automatically when the 3 months end.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
         ] else
           _introCallout(_selectedPlan),
         if (plans.isEmpty)
-          const Text(
+          Text(
             'No active Premium plans.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (var i = 0; i < plans.length; i++) ...[
             Text(
               plans[i].interval,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.sm),
             _planCard(
@@ -501,8 +501,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                 child: Text(
                   feature.$2,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -561,9 +561,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           ),
           _introCallout(plan),
           const SizedBox(height: PelevoSpacing.md),
-          const Text(
+          Text(
             'Payment is completed by Google Play or the App Store. Your Pelevo account stays signed in.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.xl),
           PelevoButton(
@@ -584,9 +584,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Create or sign in to start your Pelevo Plus membership.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (showsGoogleSignIn) ...[
@@ -695,7 +695,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         const SizedBox(height: PelevoSpacing.md),
         Text(
           'Pelevo Plus is purchased through $_storeBillingName. Payment stays with that store account.',
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const Divider(),
         _introCallout(plan),
@@ -765,11 +765,11 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               ? 'Your subscription is active and you now have access to all premium features.'
               : 'The $_storeName purchase is saved. Pelevo Plus unlocks when that receipt is confirmed.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         Card(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           child: Padding(
             padding: const EdgeInsets.all(PelevoSpacing.md),
             child: Column(
@@ -810,9 +810,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   Widget _features(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      Text(
         'You have unlocked all premium features.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final item in const [
@@ -886,7 +886,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Card(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           shape: RoundedRectangleBorder(
             side: const BorderSide(color: PelevoColors.yellow),
             borderRadius: PelevoRadii.card,
@@ -916,17 +916,17 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         ),
         if (me.entitlement?.state == 'in_grace_period') ...[
           const SizedBox(height: PelevoSpacing.sm),
-          const Text(
+          Text(
             'A renewal payment is still retrying. Pelevo Plus stays available during this grace period.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ],
         if (me.subscription?.cancelAt != null &&
             me.entitlement?.grantsPlus == true) ...[
           const SizedBox(height: PelevoSpacing.sm),
-          const Text(
+          Text(
             'Auto-renew is off. Pelevo Plus stays available until the period you already paid for ends.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ],
         const UtilitySectionLabel('Manage'),
@@ -980,9 +980,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Choose New Plan',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         for (var i = 0; i < plans.length; i++) ...[
           const SizedBox(height: PelevoSpacing.sm),
@@ -998,7 +998,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         Text(
           'Plan changes are completed in $_storeBillingName. Pelevo Plus updates after the store confirms the new plan.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -1052,9 +1052,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (visible.isEmpty)
-          const Text(
+          Text(
             'No invoices yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in visible)
@@ -1167,7 +1167,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       Text(
         'Pelevo Plus is billed through $_storeBillingName. Restore looks up that subscription on this device and applies it to your Pelevo account.',
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
@@ -1230,9 +1230,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Handpicked premium content just for you.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.md),
         _tabs(
@@ -1249,14 +1249,14 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             retry: () => ref.invalidate(premiumExclusiveProvider),
           )
         else if (async.requireValue.isEmpty)
-          const Text(
+          Text(
             'No exclusive episodes are available.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in async.requireValue)
             Card(
-              color: PelevoColors.surface,
+              color: context.pelevo.surface,
               margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
               child: ListTile(
                 contentPadding: const EdgeInsets.all(PelevoSpacing.xs),
@@ -1298,8 +1298,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         padding: const EdgeInsets.all(PelevoSpacing.xl),
         decoration: BoxDecoration(
           borderRadius: PelevoRadii.card,
-          gradient: const RadialGradient(
-            colors: [Color(0xFF5A3D00), PelevoColors.background],
+          gradient: RadialGradient(
+            colors: [Color(0xFF5A3D00), context.pelevo.background],
           ),
           border: Border.all(color: PelevoColors.yellow.withValues(alpha: .45)),
         ),
@@ -1315,7 +1315,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           ],
         ),
@@ -1367,9 +1367,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     child: Container(
       padding: const EdgeInsets.all(PelevoSpacing.md),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         border: Border.all(
-          color: _plan == value ? PelevoColors.yellow : PelevoColors.border,
+          color: _plan == value ? PelevoColors.yellow : context.pelevo.border,
         ),
         borderRadius: PelevoRadii.card,
       ),
@@ -1469,18 +1469,21 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     IconData icon,
     String title,
     VoidCallback onTap, {
-    Color color = PelevoColors.text,
-  }) => ListTile(
+    Color? color,
+  }) {
+    final ink = color ?? context.pelevo.text;
+    return ListTile(
     contentPadding: EdgeInsets.zero,
     leading: SizedBox(
       width: 40,
       height: 40,
-      child: Icon(icon, color: color, size: 22),
+      child: Icon(icon, color: ink, size: 22),
     ),
-    title: Text(title, style: TextStyle(color: color)),
+    title: Text(title, style: TextStyle(color: ink)),
     trailing: const Icon(Icons.chevron_right_rounded),
     onTap: onTap,
-  );
+    );
+  }
 
   Widget _tabs(
     List<String> labels,
@@ -1533,8 +1536,8 @@ class UtilitySectionLabel extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: const TextStyle(
-        color: PelevoColors.textMuted,
+      style: TextStyle(
+        color: context.pelevo.textMuted,
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -1553,7 +1556,7 @@ class _SummaryRow extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+        Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         const SizedBox(width: PelevoSpacing.md),
         Expanded(child: Text(value, textAlign: TextAlign.end)),
       ],

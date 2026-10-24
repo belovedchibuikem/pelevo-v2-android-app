@@ -92,9 +92,9 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'What are you in the mood for today?',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         GridView.count(
@@ -583,7 +583,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   childAspectRatio: 1.05,
-                  children: const [
+                  children: [
                     _Category('Podcasts', Icons.podcasts, PelevoColors.red),
                     _Category(
                       'Shorts',
@@ -598,7 +598,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     _Category(
                       'More',
                       Icons.grid_view_rounded,
-                      PelevoColors.surfaceHigh,
+                      context.pelevo.surfaceHigh,
                     ),
                   ],
                 ),
@@ -947,7 +947,7 @@ class PlaylistsScreen extends ConsumerWidget {
                             },
                           ),
                 ),
-                const _Section(
+                _Section(
                   title: 'Shorts',
                   seeAllRoute: '/screen/browse',
                   child: Row(
@@ -975,7 +975,7 @@ class PlaylistsScreen extends ConsumerWidget {
                         'Daily',
                         'Wisdom',
                         Icons.auto_awesome,
-                        PelevoColors.surfaceHigh,
+                        context.pelevo.surfaceHigh,
                       ),
                     ],
                   ),
@@ -1104,7 +1104,7 @@ class _EmptyRail extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: PelevoSpacing.md),
     child: Text(
       message,
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     ),
   );
 }
@@ -1224,9 +1224,9 @@ class _RecommendationReason extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.sm),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Row(
       children: [
@@ -1298,7 +1298,7 @@ class _ShortCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     ColoredBox(
-                      color: PelevoColors.surfaceHigh,
+                      color: context.pelevo.surfaceHigh,
                       child: Image.asset(
                         assetPath,
                         fit: BoxFit.cover,
@@ -1507,7 +1507,7 @@ class _PickForTodayCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
       border: Border.all(color: PelevoColors.green.withValues(alpha: .7)),
     ),
@@ -1563,14 +1563,14 @@ class _PickForTodayCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: PelevoSpacing.sm),
-        const Row(
+        Row(
           children: [
             Icon(Icons.auto_awesome, color: PelevoColors.green, size: 16),
             SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Picked because you finished Morning Motivation',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
               ),
             ),
           ],
@@ -1600,13 +1600,13 @@ class _MetaBadge extends StatelessWidget {
       color:
           emphasize
               ? PelevoColors.green.withValues(alpha: .18)
-              : PelevoColors.surfaceHigh,
+              : context.pelevo.surfaceHigh,
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       label,
       style: TextStyle(
-        color: emphasize ? PelevoColors.green : PelevoColors.textMuted,
+        color: emphasize ? PelevoColors.green : context.pelevo.textMuted,
         fontSize: 11,
         fontWeight: FontWeight.w700,
       ),
@@ -1766,9 +1766,9 @@ class _QuickListenCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(PelevoSpacing.sm),
           decoration: BoxDecoration(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             borderRadius: PelevoRadii.card,
-            border: Border.all(color: PelevoColors.border),
+            border: Border.all(color: context.pelevo.border),
           ),
           child: Row(
             children: [
@@ -1958,7 +1958,7 @@ class _TopicChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ActionChip(
     label: Text(label),
-    backgroundColor: PelevoColors.surfaceHigh,
+    backgroundColor: context.pelevo.surfaceHigh,
     onPressed: () => context.push('/screen/browse-categories'),
   );
 }

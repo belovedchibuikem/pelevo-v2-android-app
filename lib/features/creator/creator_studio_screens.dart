@@ -217,8 +217,8 @@ class _RelationshipPodcastScreenState
                                 const SizedBox(height: 4),
                                 Text(
                                   author,
-                                  style: const TextStyle(
-                                    color: PelevoColors.textMuted,
+                                  style: TextStyle(
+                                    color: context.pelevo.textMuted,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -262,7 +262,7 @@ class _RelationshipPodcastScreenState
                       const SizedBox(height: PelevoSpacing.md),
                       Text(
                         description,
-                        style: const TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                     if (show?.episodeCount != null) ...[
@@ -316,11 +316,11 @@ class _RelationshipPodcastScreenState
                           ),
                     ),
                     if (_episodes.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Text(
                           'No episodes are available for this show yet.',
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       )
                     else
@@ -442,10 +442,10 @@ class _ClaimPodcastScreenState extends ConsumerState<ClaimPodcastScreen> {
               ),
             ),
             const SizedBox(height: PelevoSpacing.lg),
-            const Text(
+            Text(
               'Take control of your podcast on Pelevo.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.xl),
             if (ref.watch(myClaimsProvider).value case final claims?
@@ -472,8 +472,8 @@ class _ClaimPodcastScreenState extends ConsumerState<ClaimPodcastScreen> {
                             const SizedBox(height: 2),
                             Text(
                               '${claims.where((claim) => claim.isInReview || claim.needsAction).length} in progress · ${claims.where((claim) => claim.isVerified).length} approved',
-                              style: const TextStyle(
-                                color: PelevoColors.textMuted,
+                              style: TextStyle(
+                                color: context.pelevo.textMuted,
                                 fontSize: 12,
                               ),
                             ),
@@ -541,8 +541,8 @@ class _ClaimPodcastScreenState extends ConsumerState<ClaimPodcastScreen> {
                               ),
                               Text(
                                 selected.author ?? '',
-                                style: const TextStyle(
-                                  color: PelevoColors.textMuted,
+                                style: TextStyle(
+                                  color: context.pelevo.textMuted,
                                   fontSize: 12,
                                 ),
                               ),
@@ -655,14 +655,21 @@ class CreatorStudioScreen extends ConsumerWidget {
                 ),
             data: (value) {
               final show = value.showFor(ref.watch(selectedStudioShowIdProvider));
-              final handle = session.user?['handle'];
+              final account = ref.watch(profileProvider).asData?.value;
+              final name = account?.name ?? session.displayName;
+              final sessionHandle = session.user?['handle'];
+              final handle = account != null
+                  ? account.handle
+                  : sessionHandle is String
+                  ? sessionHandle
+                  : null;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Your all-in-one hub to grow your podcast\nand build your audience',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: PelevoSpacing.lg),
                   Center(
@@ -673,7 +680,7 @@ class CreatorStudioScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    value.profile.displayName,
+                    name,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
@@ -681,7 +688,7 @@ class CreatorStudioScreen extends ConsumerWidget {
                     Text(
                       '@$handle',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   const SizedBox(height: 6),
                   const Center(child: _PurpleBadge('Verified Creator')),
@@ -709,10 +716,10 @@ class CreatorStudioScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   if (show == null)
-                    const _Panel(
+                    _Panel(
                       child: Text(
                         'No claimed shows are available yet.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     )
                   else
@@ -744,8 +751,8 @@ class CreatorStudioScreen extends ConsumerWidget {
                                         show.episodeCount == null
                                             ? (show.author ?? '')
                                             : '${show.episodeCount} ${show.episodeCount == 1 ? 'Episode' : 'Episodes'}',
-                                        style: const TextStyle(
-                                          color: PelevoColors.textMuted,
+                                        style: TextStyle(
+                                          color: context.pelevo.textMuted,
                                           fontSize: 12,
                                         ),
                                       ),
@@ -1029,7 +1036,7 @@ class _CreatorDashboardScreenState extends ConsumerState<CreatorDashboardScreen>
                               color:
                                   _tab == i
                                       ? PelevoColors.green
-                                      : PelevoColors.textMuted,
+                                      : context.pelevo.textMuted,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -1113,9 +1120,9 @@ class _CreatorDashboardScreenState extends ConsumerState<CreatorDashboardScreen>
         onSeeAll: () => context.push('/screen/creator-episodes'),
       ),
       if (episodes.isEmpty)
-        const Text(
+        Text(
           'No episodes are available yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         )
       else
         for (final episode in episodes)
@@ -1185,9 +1192,9 @@ class _CreatorDashboardScreenState extends ConsumerState<CreatorDashboardScreen>
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Creator tools and insights for your podcast.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ],
       ),
@@ -1207,7 +1214,7 @@ class _PodcastCover extends StatelessWidget {
       height: size,
       color: const Color(0xFF111016),
       alignment: Alignment.center,
-      child: const Icon(Icons.podcasts_rounded, color: PelevoColors.textMuted),
+      child: Icon(Icons.podcasts_rounded, color: context.pelevo.textMuted),
     );
     return ClipRRect(
       borderRadius: BorderRadius.circular(PelevoRadii.medium),
@@ -1249,7 +1256,7 @@ class _StudioStat extends StatelessWidget {
       Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
       Text(
         label,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
       ),
     ],
   );
@@ -1270,7 +1277,7 @@ class _ClaimCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.verified_user_outlined, color: PelevoColors.green),
@@ -1286,7 +1293,7 @@ class _ClaimCard extends StatelessWidget {
                   Text(
                     'Claim this podcast to manage your show, view analytics and grow your audience.',
                     style: TextStyle(
-                      color: PelevoColors.textMuted,
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -1318,9 +1325,9 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: padding,
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: child,
   );
@@ -1355,15 +1362,15 @@ class _EpisodeTile extends StatelessWidget {
   final String date;
   final String? artworkUrl;
 
-  Widget get _fallback => Container(
-    width: 58,
-    height: 58,
-    color: PelevoColors.surfaceHigh,
-    child: const Icon(Icons.mic_rounded),
-  );
-
   @override
-  Widget build(BuildContext context) => ListTile(
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: 58,
+      height: 58,
+      color: context.pelevo.surfaceHigh,
+      child: const Icon(Icons.mic_rounded),
+    );
+    return ListTile(
     contentPadding: EdgeInsets.zero,
     leading: ClipRRect(
       borderRadius: BorderRadius.circular(PelevoRadii.small),
@@ -1374,15 +1381,16 @@ class _EpisodeTile extends StatelessWidget {
                 width: 58,
                 height: 58,
                 fit: BoxFit.cover,
-                errorWidget: (_, _, _) => _fallback,
+                errorWidget: (_, _, _) => fallback,
               )
-              : _fallback,
+              : fallback,
     ),
     title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
     subtitle: Text(date),
     trailing: const Icon(Icons.play_circle_outline_rounded),
     onTap: () => context.push('/screen/player-now-playing'),
-  );
+    );
+  }
 }
 
 class _CreatorAction extends StatelessWidget {
@@ -1423,7 +1431,7 @@ class _MetricCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+        Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         const SizedBox(height: 2),
         Text(
           value,

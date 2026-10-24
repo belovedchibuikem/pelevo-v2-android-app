@@ -28,7 +28,7 @@ class ProfileAvatar extends ConsumerWidget {
     final placeholder = Icon(
       Icons.person_outline_rounded,
       size: size * .48,
-      color: PelevoColors.textMuted,
+      color: context.pelevo.textMuted,
     );
     return Semantics(
       label: 'Profile photo',

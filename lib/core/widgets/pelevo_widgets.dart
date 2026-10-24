@@ -59,7 +59,7 @@ class PelevoNetworkArt extends StatelessWidget {
         return SizedBox(
           width: w,
           height: h,
-          child: const ColoredBox(color: PelevoColors.surfaceHigh),
+          child: ColoredBox(color: context.pelevo.surfaceHigh),
         );
       },
     );
@@ -155,7 +155,7 @@ class PelevoPage extends ConsumerWidget {
       },
       child: Scaffold(
         extendBody: extendBody,
-        backgroundColor: PelevoColors.background,
+        backgroundColor: context.pelevo.background,
         appBar: resolvedBar,
         bottomNavigationBar: chrome,
         body:
@@ -189,6 +189,9 @@ class PelevoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = outlined && foregroundColor == Colors.white
+        ? color
+        : foregroundColor;
     final style = ButtonStyle(
       minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
       shape: WidgetStatePropertyAll(
@@ -196,9 +199,11 @@ class PelevoButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(PelevoRadii.small),
         ),
       ),
-      foregroundColor: WidgetStatePropertyAll(foregroundColor),
+      foregroundColor: WidgetStatePropertyAll(ink),
       backgroundColor: outlined ? null : WidgetStatePropertyAll(color),
-      side: outlined ? WidgetStatePropertyAll(BorderSide(color: color)) : null,
+      side: outlined
+          ? WidgetStatePropertyAll(BorderSide(color: color, width: 1.5))
+          : null,
     );
     final child =
         icon == null && !loading
@@ -212,7 +217,7 @@ class PelevoButton extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
-                      color: outlined ? color : foregroundColor,
+                      color: ink,
                     ),
                   )
                 else
@@ -467,7 +472,7 @@ class PelevoStateHero extends StatelessWidget {
         textAlign: TextAlign.center,
         style: Theme.of(
           context,
-        ).textTheme.bodyMedium?.copyWith(color: PelevoColors.textMuted),
+        ).textTheme.bodyMedium?.copyWith(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -537,9 +542,9 @@ class PelevoBottomNavigation extends ConsumerWidget {
       top: false,
       child: Container(
         height: 68,
-        decoration: const BoxDecoration(
-          color: PelevoColors.background,
-          border: Border(top: BorderSide(color: PelevoColors.border)),
+        decoration: BoxDecoration(
+          color: context.pelevo.background,
+          border: Border(top: BorderSide(color: context.pelevo.border)),
         ),
         child: Row(
           children: [
@@ -587,7 +592,7 @@ class _PelevoNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? PelevoColors.text : PelevoColors.textDim;
+    final color = selected ? context.pelevo.text : context.pelevo.textDim;
     return InkWell(
       onTap: onTap,
       child: Column(
@@ -623,7 +628,7 @@ Future<T?> showPelevoSheet<T>({
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled || heightFactor != null,
-    backgroundColor: PelevoColors.surface,
+    backgroundColor: context.pelevo.surface,
     useSafeArea: true,
     showDragHandle: showDragHandle,
     shape: const RoundedRectangleBorder(
@@ -858,9 +863,9 @@ extension Snackbars on BuildContext {
       SnackBar(
         content: Text(
           trimmed,
-          style: const TextStyle(color: PelevoColors.text),
+          style: TextStyle(color: pelevo.text),
         ),
-        backgroundColor: PelevoColors.border,
+        backgroundColor: pelevo.border,
         behavior: SnackBarBehavior.floating,
       ),
     );

@@ -173,10 +173,10 @@ class _MoodDiscoverScreenState extends ConsumerState<MoodDiscoverScreen> {
           index: 0,
           onDestinationSelected: context.openPelevoTab,
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'Pick a mood from Home to discover podcasts.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
       );
@@ -200,14 +200,14 @@ class _MoodDiscoverScreenState extends ConsumerState<MoodDiscoverScreen> {
         children: [
           Text(
             target.subtitle,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.xs),
           Text(
             'Searching for “${target.query}”'
             '${target.category == null ? '' : ' · ${target.category}'}',
-            style: const TextStyle(
-              color: PelevoColors.textDim,
+            style: TextStyle(
+              color: context.pelevo.textDim,
               fontSize: 12,
             ),
           ),
@@ -265,11 +265,11 @@ class _MoodDiscoverScreenState extends ConsumerState<MoodDiscoverScreen> {
           ],
         );
       }
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: PelevoSpacing.xl),
         child: Text(
           'No podcasts matched this mood yet. Try another mood or Search.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       );
     }

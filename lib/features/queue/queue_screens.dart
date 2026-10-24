@@ -349,11 +349,11 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
             title:
                 'Up Next · $count Episode${count == 1 ? '' : 's'}',
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: Text(
               'Hold and drag, or use the handle, to choose what plays next.',
-              style: TextStyle(color: PelevoColors.textMuted, fontSize: 13),
+              style: TextStyle(color: context.pelevo.textMuted, fontSize: 13),
             ),
           ),
         ],
@@ -381,7 +381,7 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
     return Column(
       children: [
         _nowPlayingTile(context, compact: true),
-        const Divider(color: PelevoColors.border),
+        Divider(color: context.pelevo.border),
         if (queueAsync.isLoading)
           const CatalogStatusBody()
         else if (queueAsync.hasError)
@@ -438,11 +438,11 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
 
   Widget _reorder(BuildContext context) {
     return QueueReorderList(
-      header: const Padding(
+      header: Padding(
         padding: EdgeInsets.only(bottom: PelevoSpacing.md),
         child: Text(
           'Drag episodes to set the order they will play.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ),
     );
@@ -466,10 +466,10 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'This will remove all upcoming episodes from your queue.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       if (queueAsync.hasError)
@@ -515,10 +515,10 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Add episodes to your queue to start listening.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       PelevoButton(
@@ -546,7 +546,7 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
             width: 42,
             height: 4,
             decoration: BoxDecoration(
-              color: PelevoColors.border,
+              color: context.pelevo.border,
               borderRadius: BorderRadius.circular(99),
             ),
           ),
@@ -645,7 +645,7 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
               ? 'The selected episode will play after the current episode finishes.'
               : '$title will play next. It will play after the current episode finishes.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xxl),
         PelevoButton(
@@ -675,7 +675,7 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
           width: 42,
           height: 4,
           decoration: BoxDecoration(
-            color: PelevoColors.border,
+            color: context.pelevo.border,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
@@ -785,10 +785,10 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Manage offline episodes from Downloads. Authorized files stay on this device.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       PelevoButton(
@@ -823,10 +823,10 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
       const SizedBox(height: PelevoSpacing.xl),
       Text('Shuffle On', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Your queue will now play episodes in random order.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       PelevoButton(
@@ -858,12 +858,12 @@ class _QueueScreenState extends ConsumerState<_QueueScreen> {
             retry: () => ref.invalidate(catalogLibraryRecentProvider),
           )
         else if (recentAsync.requireValue.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: PelevoSpacing.xl),
             child: Text(
               'No recently played episodes yet.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           )
         else

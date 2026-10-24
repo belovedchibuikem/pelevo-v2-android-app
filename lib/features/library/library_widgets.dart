@@ -71,9 +71,9 @@ class _UtilityTabsState extends State<UtilityTabs> {
       ],
       selected: {selected},
       onSelectionChanged: (value) => setState(() => selected = value.first),
-      style: const ButtonStyle(
+      style: ButtonStyle(
         visualDensity: VisualDensity.compact,
-        backgroundColor: WidgetStatePropertyAll(PelevoColors.surface),
+        backgroundColor: WidgetStatePropertyAll(context.pelevo.surface),
       ),
     ),
   );
@@ -93,7 +93,7 @@ class UtilitySection extends StatelessWidget {
       title,
       style: Theme.of(
         context,
-      ).textTheme.titleMedium?.copyWith(color: PelevoColors.textMuted),
+      ).textTheme.titleMedium?.copyWith(color: context.pelevo.textMuted),
     ),
   );
 }
@@ -121,7 +121,7 @@ class UtilityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: PelevoSpacing.xs),
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     child: ListTile(
       onTap: onTap ?? () => context.showPelevoMessage(title),
       leading:
@@ -232,7 +232,7 @@ class ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     child: Padding(
       padding: const EdgeInsets.all(PelevoSpacing.md),
       child: Column(
@@ -281,7 +281,7 @@ class StorageChart extends StatelessWidget {
     return Semantics(
       label: semanticsLabel ?? '$used GB used of $total GB',
       child: Card(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         child: Padding(
           padding: const EdgeInsets.all(PelevoSpacing.lg),
           child: Column(
@@ -296,7 +296,7 @@ class StorageChart extends StatelessWidget {
                         value: progress,
                         strokeWidth: 10,
                         color: PelevoColors.green,
-                        backgroundColor: PelevoColors.border,
+                        backgroundColor: context.pelevo.border,
                       ),
                       Text(
                         centerLabel ?? '$used GB\nUsed',
@@ -311,7 +311,7 @@ class StorageChart extends StatelessWidget {
                   value: progress,
                   minHeight: 12,
                   color: PelevoColors.green,
-                  backgroundColor: PelevoColors.border,
+                  backgroundColor: context.pelevo.border,
                   borderRadius: BorderRadius.circular(8),
                 ),
               const SizedBox(height: PelevoSpacing.lg),

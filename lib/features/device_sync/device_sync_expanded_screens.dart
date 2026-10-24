@@ -675,14 +675,14 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
           const SizedBox(height: PelevoSpacing.xs),
           Text(
             _description(config.id),
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.lg),
           if (config.id == 'syncing-data' || config.id == 'merge-progress') ...[
-            const LinearProgressIndicator(
+            LinearProgressIndicator(
               minHeight: 8,
               color: PelevoColors.green,
-              backgroundColor: PelevoColors.border,
+              backgroundColor: context.pelevo.border,
             ),
             const SizedBox(height: PelevoSpacing.sm),
             Text(
@@ -737,9 +737,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
       case 'sync-conflicts':
         return _conflicts(context);
       case 'sign-out-all-devices':
-        return const Text(
+        return Text(
           'This revokes every registered device and session for the account.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         );
       case 'offline-sync-queue':
         return _offlineQueue(context);
@@ -827,14 +827,14 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
       case 'clear-cache':
         return _storage(context);
       case 'reset-sync-data':
-        return const Text(
+        return Text(
           'This clears the local storage cache only. A full account sync wipe is not offered by the mobile API.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         );
       case 'encryption-security':
-        return const Text(
+        return Text(
           'Encryption controls are not exposed by the mobile API. Transport security follows the signed-in session.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         );
       case 'device-activity-log':
         return _activityLog(context);
@@ -875,9 +875,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
       case 'device-limit':
         return _deviceLimit(context);
       case 'device-connected':
-        return const Text(
+        return Text(
           'This device was paired with the account. Continue to review connected devices.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         );
       default:
         return const SizedBox.shrink();
@@ -988,9 +988,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     }
     final list = async.requireValue;
     if (list.isEmpty) {
-      return const Text(
+      return Text(
         'No registered devices yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
@@ -1012,7 +1012,7 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
               Icons.circle,
               size: 10,
               color:
-                  device.active ? PelevoColors.green : PelevoColors.textDim,
+                  device.active ? PelevoColors.green : context.pelevo.textDim,
             ),
             onTap: () {
               ref.read(selectedDeviceIdProvider.notifier).select(device.id);
@@ -1034,9 +1034,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     }
     final device = _resolveDevice(async.requireValue);
     if (device == null) {
-      return const Text(
+      return Text(
         'No device is available to show.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     final confirming = widget.config.id == 'remove-device';
@@ -1062,9 +1062,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
           subtitle: Text(device.active ? 'Yes' : 'Revoked'),
         ),
         if (confirming)
-          const Text(
+          Text(
             'Removing this device revokes its registered session.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
       ],
     );
@@ -1098,9 +1098,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
         if (code == null)
           _busy
               ? const CatalogStatusBody()
-              : const Text(
+              : Text(
                 'No pairing code yet. Generate one to show a QR.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               )
         else ...[
           Center(
@@ -1127,13 +1127,13 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
           Text(
             'Expires in ${_pairing!.expiresIn} seconds',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ],
         const SizedBox(height: PelevoSpacing.md),
-        const Text(
+        Text(
           'Camera auto-pair is not offered. Share this code with the other device, then enter a code on this device if needed.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.sm),
         TextButton(
@@ -1155,9 +1155,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
           hintText: 'ABCD1234',
         ),
       ),
-      const Text(
+      Text(
         'Connect calls the pairing API with this session’s device identifier.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -1231,7 +1231,7 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
       notice?.isNotEmpty == true
           ? notice!
           : 'Sync could not finish. Retry to pull account changes again.',
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     );
   }
 
@@ -1246,9 +1246,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     }
     final items = async.requireValue;
     if (items.isEmpty) {
-      return const Text(
+      return Text(
         'No open conflicts.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
@@ -1291,15 +1291,15 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'A separate local offline queue API is not offered. These are account changes from sync pull awaiting apply.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.md),
         if (items.isEmpty)
-          const Text(
+          Text(
             'No account changes awaiting apply.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in items)
@@ -1341,9 +1341,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Backup schedule is not a server setting.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.md),
         ListTile(
@@ -1362,9 +1362,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
   Widget _restoreBackup(BuildContext context) {
     final backup = ref.watch(latestBackupProvider);
     if (backup == null) {
-      return const Text(
+      return Text(
         'Create a backup first. A remote backup list is not offered here.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return ListTile(
@@ -1432,17 +1432,17 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
     }
     final list = async.requireValue;
     if (list.isEmpty) {
-      return const Text(
+      return Text(
         'No devices to show activity for.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Only last_seen_at / last_active_at from registered devices are shown. Invented activity events are not available.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.md),
         for (final device in list)
@@ -1524,9 +1524,9 @@ class _DeviceSyncScreenState extends ConsumerState<_DeviceSyncScreen> {
           title: const Text('Current devices'),
           subtitle: Text('${async.requireValue.length}'),
         ),
-        const Text(
+        Text(
           'A maximum device limit is not reported by the API.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     );
@@ -1589,9 +1589,9 @@ class _StatusBanner extends StatelessWidget {
                   ),
                   Text(config.state, style: TextStyle(color: color)),
                   if (busy)
-                    const Text(
+                    Text(
                       'In progress',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                 ],
               ),

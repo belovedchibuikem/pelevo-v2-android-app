@@ -28,7 +28,7 @@ class PelevoPublicLegalNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = TextStyle(
-      color: PelevoColors.textDim,
+      color: context.pelevo.textDim,
       fontSize: 12,
       height: 1.45,
     );
@@ -127,7 +127,7 @@ class _PublicLegalTextState extends State<PublicLegalText> {
 
     return SelectableText.rich(
       TextSpan(
-        style: const TextStyle(color: PelevoColors.text, height: 1.45),
+        style: TextStyle(color: context.pelevo.text, height: 1.45),
         children: spans,
       ),
     );

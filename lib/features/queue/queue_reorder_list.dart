@@ -55,7 +55,7 @@ class QueueReorderList extends ConsumerWidget {
           if (header != null) header!,
           Text(
             emptyLabel,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           if (footer != null) footer!,
         ],
@@ -74,7 +74,7 @@ class QueueReorderList extends ConsumerWidget {
           builder: (context, _) {
             return Material(
               elevation: 4 * animation.value,
-              color: PelevoColors.surfaceHigh,
+              color: context.pelevo.surfaceHigh,
               borderRadius: BorderRadius.circular(PelevoRadii.medium),
               child: child,
             );

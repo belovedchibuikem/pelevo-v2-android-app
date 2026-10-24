@@ -20,6 +20,7 @@ import 'package:pelevo/features/player/cast/pelevo_cast.dart';
 import 'package:pelevo/features/player/cast/pelevo_cast_sheet.dart';
 import 'package:pelevo/features/player/pelevo_audio_handler.dart';
 import 'package:pelevo/features/player/pelevo_playback.dart';
+import 'package:pelevo/features/player/sleep_timer.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/queue/queue_reorder_list.dart';
@@ -310,7 +311,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
         retry: () => context.go('/screen/podcast-episodes'),
       );
       return _isFullPlayer
-          ? Scaffold(backgroundColor: PelevoColors.background, body: page)
+          ? Scaffold(backgroundColor: context.pelevo.background, body: page)
           : PelevoPage(appBar: AppBar(title: Text(widget.title)), child: page);
     }
     final live = ref.watch(nowPlayingEpisodeProvider);
@@ -324,7 +325,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           retry: () => ref.invalidate(catalogEpisodeByIdProvider(episodeId)),
         );
         return _isFullPlayer
-            ? Scaffold(backgroundColor: PelevoColors.background, body: error)
+            ? Scaffold(backgroundColor: context.pelevo.background, body: error)
             : PelevoPage(
               appBar: AppBar(title: Text(widget.title)),
               child: error,
@@ -332,8 +333,8 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
       }
       const loading = CatalogStatusBody();
       return _isFullPlayer
-          ? const Scaffold(
-            backgroundColor: PelevoColors.background,
+          ? Scaffold(
+            backgroundColor: context.pelevo.background,
             body: loading,
           )
           : PelevoPage(
@@ -439,13 +440,13 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             : _progress;
 
     return Scaffold(
-      backgroundColor: PelevoColors.background,
+      backgroundColor: context.pelevo.background,
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF2A0E12), PelevoColors.background],
+            colors: [Color(0xFF2A0E12), context.pelevo.background],
           ),
         ),
         child: SafeArea(
@@ -463,10 +464,10 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          const Text(
+                          Text(
                             'PLAYING FROM',
                             style: TextStyle(
-                              color: PelevoColors.textDim,
+                              color: context.pelevo.textDim,
                               fontSize: 11,
                               letterSpacing: 1.1,
                               fontWeight: FontWeight.w600,
@@ -507,7 +508,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                         const SizedBox(height: PelevoSpacing.xxs),
                         Text(
                           episode.showTitle ?? '',
-                          style: const TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                         if (widget.view == _PlayerView.casting ||
                             cast?.connected == true) ...[
@@ -523,7 +524,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                 color:
                                     cast?.connected == true
                                         ? PelevoColors.green
-                                        : PelevoColors.textMuted,
+                                        : context.pelevo.textMuted,
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -534,18 +535,24 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                   color:
                                       cast?.connected == true
                                           ? PelevoColors.green
-                                          : PelevoColors.textMuted,
+                                          : context.pelevo.textMuted,
                                 ),
                               ),
                             ],
                           ),
                         ],
-                        if (widget.view == _PlayerView.sleepActive) ...[
+                        if (widget.view == _PlayerView.sleepActive ||
+                            ref.watch(sleepTimerProvider).active) ...[
                           const SizedBox(height: PelevoSpacing.md),
-                          const Text(
-                            'Sleep timer is on this device only',
+                          Text(
+                            ref.watch(sleepTimerProvider).active
+                                ? 'Sleep timer · ${ref.watch(sleepTimerProvider).label}'
+                                : 'Sleep timer is off',
                             style: TextStyle(
-                              color: PelevoColors.yellow,
+                              color:
+                                  ref.watch(sleepTimerProvider).active
+                                      ? PelevoColors.yellow
+                                      : context.pelevo.textMuted,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -554,7 +561,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: PelevoColors.red,
-                            inactiveTrackColor: PelevoColors.surfaceHigh,
+                            inactiveTrackColor: context.pelevo.surfaceHigh,
                             thumbColor: Colors.white,
                             overlayColor: PelevoColors.red.withValues(
                               alpha: .2,
@@ -586,16 +593,16 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                 formatCatalogClock(
                                   (displayProgress * duration).round(),
                                 ),
-                                style: const TextStyle(
-                                  color: PelevoColors.textMuted,
+                                style: TextStyle(
+                                  color: context.pelevo.textMuted,
                                 ),
                               ),
                               Text(
                                 duration == 0
                                     ? '—'
                                     : formatCatalogClock(duration),
-                                style: const TextStyle(
-                                  color: PelevoColors.textMuted,
+                                style: TextStyle(
+                                  color: context.pelevo.textMuted,
                                 ),
                               ),
                             ],
@@ -616,7 +623,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                   color:
                                       widget.view == _PlayerView.speedChanged
                                           ? PelevoColors.yellow
-                                          : PelevoColors.text,
+                                          : context.pelevo.text,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -695,7 +702,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                   color:
                                       (cast?.connected ?? false)
                                           ? PelevoColors.green
-                                          : PelevoColors.text,
+                                          : context.pelevo.text,
                                 ),
                               )
                             else
@@ -708,7 +715,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                                   color:
                                       widget.view == _PlayerView.sleepActive
                                           ? PelevoColors.yellow
-                                          : PelevoColors.text,
+                                          : context.pelevo.text,
                                 ),
                               ),
                           ],
@@ -825,9 +832,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             retry: () => ref.invalidate(searchRecentProvider),
           )
         else if (recent.requireValue.isEmpty)
-          const Text(
+          Text(
             'No recent searches.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final term in recent.requireValue)
@@ -848,9 +855,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             retry: () => ref.invalidate(homeChartsProvider),
           )
         else if (charts.requireValue.podcasts.isEmpty)
-          const Text(
+          Text(
             'No trending shows are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           Wrap(
@@ -889,9 +896,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
         ),
         const SizedBox(height: PelevoSpacing.sm),
         if (page.editorsPicks.isEmpty)
-          const Text(
+          Text(
             'No featured collections are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           SizedBox(
@@ -933,9 +940,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           onSeeAll: () => context.go('/screen/browse'),
         ),
         if (page.trending.isEmpty)
-          const Text(
+          Text(
             'Nothing is trending yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in page.trending)
@@ -973,9 +980,9 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     }
     final chapters = chaptersAsync.requireValue;
     if (chapters.isEmpty) {
-      return const Text(
+      return Text(
         'No chapters are available.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
@@ -1034,7 +1041,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
         Text(
           empty ? 'Be the first to take notes on this episode.' : note.body!,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -1076,11 +1083,11 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             trailing: 'See All',
             onSeeAll: () => context.go('/screen/queue-up-next'),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: Text(
               'Hold and drag to rearrange play order.',
-              style: TextStyle(color: PelevoColors.textMuted, fontSize: 13),
+              style: TextStyle(color: context.pelevo.textMuted, fontSize: 13),
             ),
           ),
         ],
@@ -1104,14 +1111,14 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           width: 42,
           height: 4,
           decoration: BoxDecoration(
-            color: PelevoColors.border,
+            color: context.pelevo.border,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       Card(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         child: ListTile(
           leading: CatalogArtwork(
             url: episode.artworkUrl,
@@ -1145,7 +1152,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
             ('Share Card', Icons.image_outlined, PelevoColors.purple),
             ('WhatsApp', Icons.chat_rounded, PelevoColors.green),
             ('Messages', Icons.sms_rounded, PelevoColors.yellow),
-            ('More', Icons.more_horiz_rounded, PelevoColors.textMuted),
+            ('More', Icons.more_horiz_rounded, context.pelevo.textMuted),
           ])
             SizedBox(
               width: 72,
@@ -1189,14 +1196,14 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
               ? 'This episode is saved for offline listening on this device.'
               : 'Authorize and save this episode to offline storage on this device.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(PelevoSpacing.md),
           decoration: BoxDecoration(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             borderRadius: BorderRadius.circular(PelevoRadii.large),
           ),
           child: Column(
@@ -1247,15 +1254,15 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                 LinearProgressIndicator(
                   value: progress <= 0 || progress > 1 ? null : progress,
                   color: PelevoColors.green,
-                  backgroundColor: PelevoColors.border,
+                  backgroundColor: context.pelevo.border,
                 ),
                 const SizedBox(height: PelevoSpacing.xs),
                 Text(
                   progress > 0 && progress <= 1
                       ? 'Downloading ${(progress * 100).clamp(0, 100).toStringAsFixed(0)}%'
                       : 'Downloading…',
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -1303,7 +1310,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
           width: 42,
           height: 4,
           decoration: BoxDecoration(
-            color: PelevoColors.border,
+            color: context.pelevo.border,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
@@ -1406,7 +1413,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
       padding: const EdgeInsets.all(PelevoSpacing.xs),
       child: Column(
         children: [
-          Icon(icon, color: PelevoColors.text),
+          Icon(icon, color: context.pelevo.text),
           const SizedBox(height: 6),
           Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],

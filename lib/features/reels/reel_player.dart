@@ -256,8 +256,8 @@ class _ReelCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (url == null) {
-      return const ColoredBox(
-        color: PelevoColors.surfaceHigh,
+      return ColoredBox(
+        color: context.pelevo.surfaceHigh,
         child: Center(
           child: Icon(Icons.movie_creation_outlined, size: 42),
         ),
@@ -267,8 +267,8 @@ class _ReelCover extends StatelessWidget {
       imageUrl: url!,
       fit: BoxFit.cover,
       errorWidget:
-          (context, error, stackTrace) => const ColoredBox(
-            color: PelevoColors.surfaceHigh,
+          (context, error, stackTrace) => ColoredBox(
+            color: context.pelevo.surfaceHigh,
             child: Center(
               child: Icon(Icons.broken_image_outlined, size: 42),
             ),

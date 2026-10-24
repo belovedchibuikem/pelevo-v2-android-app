@@ -14,6 +14,7 @@ import 'package:pelevo/features/profile/support_data.dart';
 import 'package:pelevo/features/share_cards/share_link_resolver_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
+import 'package:pelevo/core/theme/pelevo_appearance.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/core/catalog_preview.dart';
 import 'package:pelevo/features/creator/creator_studio_screens.dart';
@@ -235,9 +236,9 @@ class _PelevoAppState extends ConsumerState<PelevoApp> {
     return MaterialApp.router(
       title: 'Pelevo',
       debugShowCheckedModeBanner: false,
-      theme: PelevoTheme.dark,
+      theme: PelevoTheme.light,
       darkTheme: PelevoTheme.dark,
-      themeMode: ThemeMode.dark,
+      themeMode: ref.watch(pelevoThemeModeProvider),
       routerConfig: pelevoRouter,
       builder:
           (context, child) => ResponsiveBreakpoints.builder(

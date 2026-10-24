@@ -95,7 +95,7 @@ Map<String, dynamic> earnAwardFixture({
 
 Map<String, dynamic> earnPayoutMethodFixture({
   String id = 'method-1',
-  String provider = 'paystack',
+  String provider = 'flutterwave',
   String kind = 'bank',
   String label = 'Guaranty Trust Bank',
   String lastFour = '6789',

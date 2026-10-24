@@ -324,10 +324,10 @@ class _ClaimEnterCodeScreenState extends ConsumerState<ClaimEnterCodeScreen> {
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Enter the 6-digit code we sent to',
             textAlign: TextAlign.center,
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           Text(
             destination,
@@ -357,7 +357,7 @@ class _ClaimEnterCodeScreenState extends ConsumerState<ClaimEnterCodeScreen> {
             Text(
               'Code expires at ${start!.challengeExpiresAt}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+              style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
             ),
           ],
           if (_error != null) ...[
@@ -484,10 +484,10 @@ class _ClaimManualCodeScreenState extends ConsumerState<ClaimManualCodeScreen> {
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Add the unique code below to your podcast description in your RSS feed. Our team will manually review and verify your ownership.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: 26),
           _InfoCard(
@@ -773,7 +773,7 @@ class ClaimStatusListScreen extends ConsumerWidget {
                   Text(
                     _claimError(error),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   TextButton(
                     onPressed: () => ref.invalidate(myClaimsProvider),
@@ -808,11 +808,11 @@ class ClaimStatusListScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Tap a request to see details.',
                         style: TextStyle(
-                          color: PelevoColors.textMuted,
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -881,9 +881,9 @@ class _ClaimStatusTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           borderRadius: PelevoRadii.card,
-          border: Border.all(color: PelevoColors.border),
+          border: Border.all(color: context.pelevo.border),
         ),
         child: Row(
           children: [
@@ -896,7 +896,7 @@ class _ClaimStatusTile extends StatelessWidget {
                     claim.showArtworkUrl == null ||
                             claim.showArtworkUrl!.isEmpty
                         ? Container(
-                          color: PelevoColors.surfaceHigh,
+                          color: context.pelevo.surfaceHigh,
                           child: const Icon(Icons.podcasts_rounded),
                         )
                         : Image.network(
@@ -904,7 +904,7 @@ class _ClaimStatusTile extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder:
                               (_, _, _) => Container(
-                                color: PelevoColors.surfaceHigh,
+                                color: context.pelevo.surfaceHigh,
                                 child: const Icon(Icons.podcasts_rounded),
                               ),
                         ),
@@ -938,8 +938,8 @@ class _ClaimStatusTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       'Submitted ${submitted.year}-${submitted.month.toString().padLeft(2, '0')}-${submitted.day.toString().padLeft(2, '0')} · ${claim.method == 'email' ? 'Email code' : 'RSS description'}',
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -951,8 +951,8 @@ class _ClaimStatusTile extends StatelessWidget {
                       claim.decisionReason!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: PelevoColors.textMuted,
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -1142,7 +1142,7 @@ class _ClaimHero extends StatelessWidget {
       Text(
         body,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -1171,10 +1171,10 @@ class _MethodCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: PelevoRadii.card,
         border: Border.all(
-          color: recommended ? PelevoColors.green : PelevoColors.border,
+          color: recommended ? PelevoColors.green : context.pelevo.border,
         ),
       ),
       child: Row(
@@ -1220,8 +1220,8 @@ class _MethodCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   body,
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -1257,9 +1257,9 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1278,7 +1278,7 @@ class _InfoCard extends StatelessWidget {
                   color:
                       highlightBody
                           ? PelevoColors.green
-                          : PelevoColors.textMuted,
+                          : context.pelevo.textMuted,
                   fontSize: highlightBody ? 17 : 12,
                   fontWeight:
                       highlightBody ? FontWeight.w700 : FontWeight.normal,
@@ -1314,11 +1314,11 @@ class _StepDots extends StatelessWidget {
           height: 11,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: i == 0 ? PelevoColors.green : PelevoColors.textDim,
+            color: i == 0 ? PelevoColors.green : context.pelevo.textDim,
             border: i == 0 ? Border.all(color: PelevoColors.green) : null,
           ),
         ),
-        if (i < 2) Container(width: 42, height: 1, color: PelevoColors.textDim),
+        if (i < 2) Container(width: 42, height: 1, color: context.pelevo.textDim),
       ],
     ],
   );
@@ -1330,10 +1330,10 @@ class _SupportLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: () => context.push('/screen/profile-help'),
-    child: const Text.rich(
+    child: Text.rich(
       TextSpan(
         text: 'Need help? ',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
         children: [
           TextSpan(
             text: 'Contact support',

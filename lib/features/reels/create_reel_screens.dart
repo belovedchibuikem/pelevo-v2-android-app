@@ -42,9 +42,9 @@ class CreateReelHubScreen extends StatelessWidget {
     child: ListView(
       padding: const EdgeInsets.only(bottom: PelevoSpacing.xxl),
       children: [
-            const Text(
+            Text(
               'Record a short clip, upload from your library, or continue a draft.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.lg),
             _CreateActionTile(
@@ -156,7 +156,7 @@ class _ReelRecordScreenState extends State<ReelRecordScreen> {
             Text(
               _status ??
                   'Up to $reelMaxDurationLabel. Longer videos are trimmed to the first $reelMaxDurationLabel. Camera and microphone access are required.',
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
@@ -266,7 +266,7 @@ class _ReelUploadScreenState extends State<ReelUploadScreen> {
             Text(
               _status ??
                   'Select a clip from your library. Videos longer than $reelMaxDurationLabel are trimmed to the first $reelMaxDurationLabel.',
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
@@ -369,10 +369,10 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(height: 72),
-                        const Icon(
+                        Icon(
                           Icons.drafts_outlined,
                           size: 56,
-                          color: PelevoColors.textMuted,
+                          color: context.pelevo.textMuted,
                         ),
                         const SizedBox(height: PelevoSpacing.md),
                         Text(
@@ -380,10 +380,10 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: PelevoSpacing.sm),
-                        const Text(
+                        Text(
                           'Record or upload a reel, then save it as a draft to finish later.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                         const SizedBox(height: PelevoSpacing.lg),
                         PelevoButton(
@@ -415,7 +415,7 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
                           child: ListTile(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
-                              side: const BorderSide(color: PelevoColors.border),
+                              side: BorderSide(color: context.pelevo.border),
                             ),
                             leading: CircleAvatar(
                               backgroundColor: PelevoColors.purple.withValues(
@@ -429,8 +429,8 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
                             title: Text(draft.displayTitle),
                             subtitle: Text(
                               draft.updatedAt ?? 'Saved on Pelevo',
-                              style: const TextStyle(
-                                color: PelevoColors.textMuted,
+                              style: TextStyle(
+                                color: context.pelevo.textMuted,
                               ),
                             ),
                             trailing: IconButton(
@@ -487,7 +487,7 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
     return ListTile(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: PelevoColors.border),
+        side: BorderSide(color: context.pelevo.border),
       ),
       leading: CircleAvatar(
         backgroundColor: PelevoColors.purple.withValues(alpha: 0.2),
@@ -503,7 +503,7 @@ class _ReelDraftsScreenState extends ConsumerState<ReelDraftsScreen> {
       ),
       subtitle: Text(
         _relative(draft.createdAt),
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       trailing: IconButton(
         tooltip: 'Delete draft',
@@ -730,9 +730,9 @@ class _ReelEditorScreenState extends ConsumerState<ReelEditorScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'No reel selected',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
               const SizedBox(height: PelevoSpacing.md),
               PelevoButton(
@@ -773,7 +773,7 @@ class _ReelEditorScreenState extends ConsumerState<ReelEditorScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: ColoredBox(
-                    color: PelevoColors.surfaceHigh,
+                    color: context.pelevo.surfaceHigh,
                     child: _player != null && _player!.value.isInitialized
                         ? GestureDetector(
                             onTap: () {
@@ -794,20 +794,20 @@ class _ReelEditorScreenState extends ConsumerState<ReelEditorScreen> {
                               ),
                             ),
                           )
-                        : const Center(
+                        : Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.movie_creation_outlined,
                                   size: 48,
-                                  color: PelevoColors.textMuted,
+                                  color: context.pelevo.textMuted,
                                 ),
                                 SizedBox(height: 8),
                                 Text(
                                   'Preview unavailable',
                                   style: TextStyle(
-                                    color: PelevoColors.textMuted,
+                                    color: context.pelevo.textMuted,
                                   ),
                                 ),
                               ],
@@ -940,7 +940,7 @@ class _CreateActionTile extends StatelessWidget {
     title: Text(title),
     subtitle: Text(
       subtitle,
-      style: const TextStyle(color: PelevoColors.textMuted),
+      style: TextStyle(color: context.pelevo.textMuted),
     ),
     onTap: onTap,
   );

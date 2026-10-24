@@ -147,7 +147,7 @@ Map<String, dynamic> studioPayoutMethodFixture({
   String label = 'Access Bank',
 }) => {
   'id': id,
-  'provider': 'paystack',
+  'provider': 'flutterwave',
   'kind': 'bank',
   'label': label,
   'destination_last_four': '1234',

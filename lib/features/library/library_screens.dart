@@ -376,7 +376,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       _menuRow(
         'Recently Played',
         Icons.history_rounded,
-        PelevoColors.textMuted,
+        context.pelevo.textMuted,
         () {
           ref.invalidate(libraryRecentProvider);
           context.pelevoOpen('/screen/library-8');
@@ -485,7 +485,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
             _playlistFilter == 2
                 ? 'No public playlists from other listeners yet.'
                 : 'No playlists yet.',
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in playlists)
@@ -555,17 +555,17 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                 if (playlist.isOwner)
                   const ProfileNavAvatar(size: 22)
                 else
-                  const Icon(
+                  Icon(
                     Icons.public_rounded,
                     size: 16,
-                    color: PelevoColors.textMuted,
+                    color: context.pelevo.textMuted,
                   ),
                 const SizedBox(width: PelevoSpacing.xs),
                 Flexible(
                   child: Text(
                     ownerLabel,
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -575,7 +575,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           ),
         Text(
           [playlist.countLabel, playlist.visibilityLabel].join(' · '),
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         if (playlist.description != null &&
             playlist.description!.isNotEmpty) ...[
@@ -584,7 +584,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
             playlist.description!,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: PelevoColors.textDim),
+            style: TextStyle(color: context.pelevo.textDim),
           ),
         ],
         const SizedBox(height: PelevoSpacing.lg),
@@ -662,9 +662,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (playlist.items.isEmpty)
-          const Text(
+          Text(
             'No episodes are in this playlist yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (playlist.isOwner)
           ReorderableListView.builder(
@@ -711,8 +711,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
             ? PelevoColors.green
             : selected
             ? PelevoColors.green.withValues(alpha: 0.22)
-            : PelevoColors.surfaceHigh;
-    final foreground = filled ? Colors.white : PelevoColors.text;
+            : context.pelevo.surfaceHigh;
+    final foreground = filled ? Colors.white : context.pelevo.text;
     return ActionChip(
       onPressed: onPressed,
       avatar: Icon(icon, size: 18, color: foreground),
@@ -720,7 +720,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       labelStyle: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       backgroundColor: background,
       side: BorderSide(
-        color: filled || selected ? PelevoColors.green : PelevoColors.border,
+        color: filled || selected ? PelevoColors.green : context.pelevo.border,
       ),
       shape: const StadiumBorder(),
     );
@@ -782,8 +782,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                           item.showTitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: PelevoColors.textMuted,
+                          style: TextStyle(
+                            color: context.pelevo.textMuted,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -792,7 +792,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                         const SizedBox(height: 2),
                         Text(
                           duration,
-                          style: const TextStyle(color: PelevoColors.textDim),
+                          style: TextStyle(color: context.pelevo.textDim),
                         ),
                       ],
                     ],
@@ -985,14 +985,14 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'No saved reels yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
-          const Text(
+          Text(
             'Tap the bookmark on a reel to keep it here.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.lg),
           FilledButton.icon(
@@ -1090,22 +1090,22 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         const SizedBox(height: PelevoSpacing.lg),
         Text('Downloading', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
+        Text(
           'No in-progress downloads are reported.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         Text('Downloaded', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
         if (_downloadSource == 1)
-          const Text(
+          Text(
             'SD card downloads are not available.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (downloads.isEmpty)
-          const Text(
+          Text(
             'No authorized downloads yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in downloads)
@@ -1142,10 +1142,10 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
               },
             ),
         const SizedBox(height: PelevoSpacing.md),
-        const Center(
+        Center(
           child: Text(
             'On-device file size is not reported.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
         TextButton(
@@ -1170,14 +1170,14 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'No followed shows yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
-          const Text(
+          Text(
             'Follow shows from Search or Browse, then open them here to listen to episodes.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.lg),
           FilledButton.icon(
@@ -1195,7 +1195,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           '${shows.length} followed',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: PelevoColors.textMuted),
+          ).textTheme.bodySmall?.copyWith(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.sm),
         for (final item in shows)
@@ -1239,16 +1239,16 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
     }
     final episodes = async.requireValue;
     if (episodes.isEmpty) {
-      return const Text(
+      return Text(
         'No recently played episodes yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
       children: [
         for (final item in episodes)
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: InkWell(
               onTap: () {
@@ -1279,8 +1279,8 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                               Text(item.title),
                               Text(
                                 '${item.showTitle ?? ''} · ${(item.progress * 100).round()}%',
-                                style: const TextStyle(
-                                  color: PelevoColors.textMuted,
+                                style: TextStyle(
+                                  color: context.pelevo.textMuted,
                                 ),
                               ),
                             ],
@@ -1306,7 +1306,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                         value: item.progress,
                         minHeight: 5,
                         color: PelevoColors.green,
-                        backgroundColor: PelevoColors.surfaceHigh,
+                        backgroundColor: context.pelevo.surfaceHigh,
                       ),
                     ),
                   ],
@@ -1339,9 +1339,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           ),
         ),
         if (collections.isEmpty)
-          const Text(
+          Text(
             'No collections yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           GridView.count(
@@ -1366,7 +1366,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(PelevoSpacing.sm),
                     decoration: BoxDecoration(
-                      color: PelevoColors.surface,
+                      color: context.pelevo.surface,
                       borderRadius: BorderRadius.circular(PelevoRadii.large),
                     ),
                     child: Column(
@@ -1388,7 +1388,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
                         ),
                         Text(
                           item.countLabel,
-                          style: const TextStyle(color: PelevoColors.textMuted),
+                          style: TextStyle(color: context.pelevo.textMuted),
                         ),
                       ],
                     ),
@@ -1414,9 +1414,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
       const SizedBox(height: PelevoSpacing.xs),
       TextField(controller: _collectionDesc, maxLines: 3),
       const SizedBox(height: PelevoSpacing.xs),
-      const Text(
+      Text(
         'Descriptions are not stored.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       ListTile(
@@ -1477,7 +1477,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         ),
         Text(
           collection.countLabel,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         Row(
@@ -1517,9 +1517,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (collection.items.isEmpty)
-          const Text(
+          Text(
             'No items are in this collection yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in collection.items)
@@ -1719,9 +1719,9 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
         ),
         const SizedBox(height: PelevoSpacing.md),
         if (visible.isEmpty)
-          const Text(
+          Text(
             'No episodes match this list.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in visible)
@@ -1781,7 +1781,7 @@ class _LibraryScreenState extends ConsumerState<_LibraryScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: PelevoColors.surfaceHigh,
+              color: context.pelevo.surfaceHigh,
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(badge),

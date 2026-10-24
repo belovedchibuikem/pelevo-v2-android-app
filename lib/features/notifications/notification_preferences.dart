@@ -431,7 +431,7 @@ class _PreferenceEditorState extends ConsumerState<_PreferenceEditor> {
                   backgroundColor:
                       (options['summary_days'] as List).contains(day)
                           ? PelevoColors.green
-                          : PelevoColors.surfaceHigh,
+                          : context.pelevo.surfaceHigh,
                   child: Text(const ['S', 'M', 'T', 'W', 'T', 'F', 'S'][day]),
                 ),
               ),

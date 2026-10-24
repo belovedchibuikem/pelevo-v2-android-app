@@ -129,6 +129,7 @@ void main() {
     );
     expect(find.text('paystack'), findsNothing);
     expect(find.text('flutterwave'), findsNothing);
+    expect(find.text('paypal'), findsNothing);
     expect(find.text('Payment reference'), findsNothing);
     expect(
       find.textContaining('Pelevo Plus is billed through Google Play.'),

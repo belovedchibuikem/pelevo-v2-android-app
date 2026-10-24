@@ -183,7 +183,7 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
                 if (value.rails.every((rail) => rail.items.isEmpty) &&
                     byKey['moods'] == null) {
                   children.add(
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(PelevoSpacing.xl),
                       child: Column(
                         children: [
@@ -200,7 +200,7 @@ class _SystemHomeFeedState extends ConsumerState<SystemHomeFeed>
                           Text(
                             'Follow a show or play an episode to shape your recommendations.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: PelevoColors.textMuted),
+                            style: TextStyle(color: context.pelevo.textMuted),
                           ),
                         ],
                       ),
@@ -323,10 +323,10 @@ class _SystemHomeRailScreenState extends ConsumerState<SystemHomeRailScreen> {
     bool refreshing = false,
   }) {
     if (rail.items.isEmpty && filters.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No items are available yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       );
     }
@@ -339,7 +339,7 @@ class _SystemHomeRailScreenState extends ConsumerState<SystemHomeRailScreen> {
             padding: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: Text(
               rail.subtitle!,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           ),
         if (filters.isNotEmpty)
@@ -362,10 +362,10 @@ class _SystemHomeRailScreenState extends ConsumerState<SystemHomeRailScreen> {
         Expanded(
           child:
               rail.items.isEmpty
-                  ? const Center(
+                  ? Center(
                     child: Text(
                       'No items match this filter yet.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   )
                   : ListView.separated(
@@ -488,9 +488,9 @@ class _Header extends ConsumerWidget {
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'What are you in the mood for today?',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     ),
@@ -638,36 +638,81 @@ class _MoodTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: PelevoRadii.card,
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(PelevoSpacing.sm),
-      decoration: BoxDecoration(color: color, borderRadius: PelevoRadii.card),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 22),
-              const Spacer(),
-              const Icon(Icons.chevron_right_rounded, color: Colors.white70),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final tone = _AccentTile.of(context, color);
+    return InkWell(
+      borderRadius: PelevoRadii.card,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(PelevoSpacing.sm),
+        decoration: BoxDecoration(
+          color: tone.fill,
+          borderRadius: PelevoRadii.card,
+          border: Border.all(color: tone.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: tone.icon, size: 22),
+                const Spacer(),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: tone.foreground.withValues(alpha: .7),
+                ),
+              ],
             ),
-          ),
-        ],
+            const Spacer(),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tone.foreground,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _AccentTile {
+  const _AccentTile({
+    required this.fill,
+    required this.foreground,
+    required this.icon,
+    required this.border,
+  });
+
+  final Color fill;
+  final Color foreground;
+  final Color icon;
+  final Color border;
+
+  static _AccentTile of(BuildContext context, Color accent) {
+    if (Theme.of(context).brightness != Brightness.light) {
+      return _AccentTile(
+        fill: accent,
+        foreground: Colors.white,
+        icon: Colors.white,
+        border: accent,
+      );
+    }
+    final ink =
+        accent.computeLuminance() > 0.45
+            ? Color.lerp(accent, const Color(0xFF1C2420), 0.62)!
+            : accent;
+    return _AccentTile(
+      fill: Color.lerp(ink, const Color(0xFFF7F4EE), 0.8)!,
+      foreground: context.pelevo.text,
+      icon: ink,
+      border: Color.lerp(ink, context.pelevo.border, 0.35)!,
+    );
+  }
 }
 
 class _PickForTodayCard extends StatelessWidget {
@@ -682,9 +727,19 @@ class _PickForTodayCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(PelevoSpacing.md),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: PelevoRadii.card,
-        border: Border.all(color: PelevoColors.green.withValues(alpha: .7)),
+        border: Border.all(color: context.pelevo.border),
+        boxShadow:
+            Theme.of(context).brightness == Brightness.light
+                ? const [
+                  BoxShadow(
+                    color: Color(0x140F1412),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -751,8 +806,8 @@ class _PickForTodayCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     reason,
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -786,13 +841,13 @@ class _MetaBadge extends StatelessWidget {
       color:
           emphasize
               ? PelevoColors.green.withValues(alpha: .18)
-              : PelevoColors.surfaceHigh,
+              : context.pelevo.surfaceHigh,
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       label,
       style: TextStyle(
-        color: emphasize ? PelevoColors.green : PelevoColors.textMuted,
+        color: emphasize ? PelevoColors.green : context.pelevo.textMuted,
         fontSize: 11,
         fontWeight: FontWeight.w700,
       ),
@@ -900,8 +955,8 @@ class _ContinueCard extends StatelessWidget {
                 _progressLabel(item),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: PelevoColors.textMuted,
+                style: TextStyle(
+                  color: context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -994,9 +1049,9 @@ class _QuickListenSection extends StatelessWidget {
         ),
         const SizedBox(height: PelevoSpacing.sm),
         if (filteredItems.isEmpty)
-          const Text(
+          Text(
             'No episodes match this length yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           SizedBox(
@@ -1031,9 +1086,9 @@ class _QuickListenCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(PelevoSpacing.sm),
         decoration: BoxDecoration(
-          color: PelevoColors.surface,
+          color: context.pelevo.surface,
           borderRadius: PelevoRadii.card,
-          border: Border.all(color: PelevoColors.border),
+          border: Border.all(color: context.pelevo.border),
         ),
         child: Row(
           children: [
@@ -1052,8 +1107,8 @@ class _QuickListenCard extends StatelessWidget {
                   ),
                   Text(
                     item.durationLabel ?? item.showTitle ?? '',
-                    style: const TextStyle(
-                      color: PelevoColors.textMuted,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -1139,9 +1194,9 @@ class _RecommendationReason extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(PelevoSpacing.sm),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: PelevoRadii.card,
-      border: Border.all(color: PelevoColors.border),
+      border: Border.all(color: context.pelevo.border),
     ),
     child: Row(
       children: [
@@ -1343,9 +1398,9 @@ class _AfricanVoicesSection extends StatelessWidget {
         ),
         const SizedBox(height: PelevoSpacing.sm),
         if (filteredItems.isEmpty)
-          const Text(
+          Text(
             'No shows for this country yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           SizedBox(
@@ -1394,8 +1449,8 @@ class _AfricanVoicesSection extends StatelessWidget {
                               '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: PelevoColors.textMuted,
+                          style: TextStyle(
+                            color: context.pelevo.textMuted,
                             fontSize: 12,
                             height: 1.15,
                           ),
@@ -1525,34 +1580,41 @@ class _TryNewTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: PelevoRadii.card,
-    onTap: onTap,
-    child: Container(
-      decoration: BoxDecoration(color: color, borderRadius: PelevoRadii.card),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              label,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final tone = _AccentTile.of(context, color);
+    return InkWell(
+      borderRadius: PelevoRadii.card,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: tone.fill,
+          borderRadius: PelevoRadii.card,
+          border: Border.all(color: tone.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: tone.icon),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: tone.foreground,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _SurpriseBanner extends StatelessWidget {
@@ -1561,44 +1623,51 @@ class _SurpriseBanner extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: PelevoRadii.card,
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(PelevoSpacing.md),
-      decoration: BoxDecoration(
-        borderRadius: PelevoRadii.card,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5B2C8A), Color(0xFF2A2150)],
+  Widget build(BuildContext context) {
+    final light = Theme.of(context).brightness == Brightness.light;
+    final title = light ? context.pelevo.text : Colors.white;
+    final caption = light ? context.pelevo.textMuted : const Color(0xFFD7C6F0);
+    return InkWell(
+      borderRadius: PelevoRadii.card,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(PelevoSpacing.md),
+        decoration: BoxDecoration(
+          borderRadius: PelevoRadii.card,
+          color: light ? const Color(0xFFEDE6F6) : null,
+          border: light ? Border.all(color: context.pelevo.border) : null,
+          gradient:
+              light
+                  ? null
+                  : const LinearGradient(
+                    colors: [Color(0xFF5B2C8A), Color(0xFF2A2150)],
+                  ),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.casino_outlined, color: title),
+            const SizedBox(width: PelevoSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Surprise Me',
+                    style: TextStyle(color: title, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    'Get a suggestion',
+                    style: TextStyle(color: caption, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: title),
+          ],
         ),
       ),
-      child: const Row(
-        children: [
-          Icon(Icons.casino_outlined, color: Colors.white),
-          SizedBox(width: PelevoSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Surprise Me',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  'Get a suggestion',
-                  style: TextStyle(color: Color(0xFFD7C6F0), fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, color: Colors.white),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _ExploreByTopicSection extends ConsumerWidget {
@@ -1626,8 +1695,9 @@ class _ExploreByTopicSection extends ConsumerWidget {
                     item.title,
                     slug: item.slug,
                   ),
-              side: const BorderSide(color: Colors.white54),
-              backgroundColor: Colors.transparent,
+              side: BorderSide(color: context.pelevo.border),
+              backgroundColor: context.pelevo.surface,
+              labelStyle: TextStyle(color: context.pelevo.text),
             ),
         ],
       ),
@@ -1747,7 +1817,7 @@ class _ShortCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       ColoredBox(
-                        color: PelevoColors.surfaceHigh,
+                        color: context.pelevo.surfaceHigh,
                         child:
                             art == null
                                 ? const Icon(
@@ -1866,7 +1936,8 @@ class _BrowseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _parseColor(item.color) ?? PelevoColors.surfaceHigh;
+    final color = _parseColor(item.color) ?? context.pelevo.surfaceHigh;
+    final tone = _AccentTile.of(context, color);
     final route = switch (item.slug) {
       'shorts' => '/screen/reels',
       'more' => '/screen/browse',
@@ -1876,16 +1947,20 @@ class _BrowseTile extends StatelessWidget {
       borderRadius: PelevoRadii.card,
       onTap: () => context.push(route),
       child: Container(
-        decoration: BoxDecoration(color: color, borderRadius: PelevoRadii.card),
+        decoration: BoxDecoration(
+          color: tone.fill,
+          borderRadius: PelevoRadii.card,
+          border: Border.all(color: tone.border),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(_browseIcon(item.icon), color: Colors.white),
+            Icon(_browseIcon(item.icon), color: tone.icon),
             const SizedBox(height: 8),
             Text(
               item.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: tone.foreground,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1915,27 +1990,33 @@ class _FilterChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   @override
-  Widget build(BuildContext context) => ChoiceChip(
-    label: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (selected) ...[
-          const Icon(Icons.check, size: 14, color: Colors.white),
-          const SizedBox(width: 4),
+  Widget build(BuildContext context) {
+    final light = Theme.of(context).brightness == Brightness.light;
+    final selectedInk = light ? context.pelevo.text : Colors.white;
+    return ChoiceChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selected) ...[
+            Icon(Icons.check, size: 14, color: selectedInk),
+            const SizedBox(width: 4),
+          ],
+          Text(label),
         ],
-        Text(label),
-      ],
-    ),
-    selected: selected,
-    selectedColor: PelevoColors.green.withValues(alpha: .45),
-    backgroundColor: Colors.transparent,
-    side: BorderSide(color: selected ? PelevoColors.green : Colors.white54),
-    labelStyle: TextStyle(
-      color: selected ? Colors.white : PelevoColors.text,
-      fontWeight: FontWeight.w600,
-    ),
-    onSelected: (_) => onSelected(),
-  );
+      ),
+      selected: selected,
+      selectedColor: PelevoColors.green.withValues(alpha: light ? .22 : .45),
+      backgroundColor: Colors.transparent,
+      side: BorderSide(
+        color: selected ? PelevoColors.green : context.pelevo.border,
+      ),
+      labelStyle: TextStyle(
+        color: selected ? selectedInk : context.pelevo.text,
+        fontWeight: FontWeight.w600,
+      ),
+      onSelected: (_) => onSelected(),
+    );
+  }
 }
 
 class _Artwork extends StatelessWidget {
@@ -1947,9 +2028,13 @@ class _Artwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safeUrl = sanitizeArtworkUrl(url);
-    final fallback = const ColoredBox(
-      color: Color(0xFF1B2D2B),
-      child: Icon(Icons.podcasts_rounded, size: 42),
+    final fallback = ColoredBox(
+      color: context.pelevo.surfaceHigh,
+      child: Icon(
+        Icons.podcasts_rounded,
+        size: 42,
+        color: context.pelevo.textMuted,
+      ),
     );
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -1989,9 +2074,9 @@ class _ErrorState extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: PelevoSpacing.xs),
-          const Text(
+          Text(
             'Check your connection and try again.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
           FilledButton(onPressed: onRetry, child: const Text('Try again')),

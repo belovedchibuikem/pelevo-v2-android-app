@@ -312,7 +312,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         const SizedBox(height: PelevoSpacing.sm),
         PelevoButton(
           label: 'Download Settings',
-          color: PelevoColors.surfaceHigh,
+          color: context.pelevo.surfaceHigh,
           icon: Icons.settings_outlined,
           onPressed: () => context.go('/screen/downloads-4'),
         ),
@@ -324,9 +324,9 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         ),
         const UtilitySection('Recent Downloads'),
         if (items.isEmpty)
-          const Text(
+          Text(
             'No authorized downloads yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           _downloadRow(
@@ -377,18 +377,18 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         const UtilitySection('Downloaded Episodes'),
         if (_allFilter != 2)
           if (items.isEmpty)
-            const Text(
+            Text(
               'No authorized downloads yet.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             )
           else
             for (final item in items) _downloadRow(item, onTap: () => _openOptions(item)),
         if (_allFilter != 1) ...[
           const UtilitySection('Downloaded Podcasts'),
           if (shows.isEmpty)
-            const Text(
+            Text(
               'No downloaded shows yet.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             )
           else
             for (final entry in shows.entries)
@@ -417,14 +417,14 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'The server authorizes files. Transfer progress is not reported.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const UtilitySection('Queued'),
-      const Text(
+      Text(
         'No queued downloads are reported.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -561,7 +561,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
           semanticsLabel: '${usage.offlineItems} authorized files',
           items: [
             ('Authorized files', '${usage.offlineItems}', PelevoColors.green),
-            ('Limit', '$limit MB', PelevoColors.textDim),
+            ('Limit', '$limit MB', context.pelevo.textDim),
           ],
         ),
         const UtilitySection('Smart Cleaning'),
@@ -620,10 +620,10 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
           color: PelevoColors.green.withValues(alpha: .14),
           border: Border.all(color: PelevoColors.green),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.download_rounded,
           size: 54,
-          color: PelevoColors.text,
+          color: context.pelevo.text,
         ),
       ),
       const SizedBox(height: PelevoSpacing.lg),
@@ -633,10 +633,10 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         style: Theme.of(context).textTheme.headlineMedium,
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      const Text(
+      Text(
         'Automatic habit-based downloads are not stored on the server.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -667,9 +667,9 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
           ],
         ),
         if (ordered.isEmpty)
-          const Text(
+          Text(
             'No authorized downloads yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in ordered)
@@ -682,7 +682,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         Center(
           child: Text(
             '${ordered.length} episodes',
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
         TextButton.icon(
@@ -714,9 +714,9 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (item == null)
-          const Text(
+          Text(
             'Select a download first.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           _downloadRow(
@@ -778,7 +778,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         const SizedBox(height: PelevoSpacing.md),
         PelevoButton(
           label: 'Cancel',
-          color: PelevoColors.surfaceHigh,
+          color: context.pelevo.surfaceHigh,
           onPressed: () => context.go('/screen/downloads-7'),
         ),
       ],
@@ -819,7 +819,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         Text(
           'Total · ${selected.length} files',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.md),
         Row(
@@ -878,14 +878,14 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         ),
         const UtilitySection('Authorized'),
         if (_historyFilter == 2)
-          const Text(
+          Text(
             'Failed transfers are not reported.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (items.isEmpty)
-          const Text(
+          Text(
             'No authorized downloads yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final item in items)
@@ -920,10 +920,10 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
           },
         ),
       const UtilitySection('Capacity'),
-      const Text(
+      Text(
         'Device free space is not reported.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xxl),
       PelevoButton(
@@ -970,7 +970,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
               ? 'No internet connection. Enjoy your downloaded content.'
               : 'No internet connection. $count authorized files are listed.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xxl),
         PelevoButton(
@@ -982,7 +982,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
         PelevoButton(
           label: 'Retry Connection',
           icon: Icons.refresh_rounded,
-          color: PelevoColors.surfaceHigh,
+          color: context.pelevo.surfaceHigh,
           onPressed: () {
             ref.invalidate(libraryDownloadsProvider);
             ref.invalidate(storageUsageProvider);
@@ -1019,7 +1019,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
     required VoidCallback onTap,
     Widget? trailing,
   }) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     margin: const EdgeInsets.only(bottom: PelevoSpacing.xs),
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: PelevoSpacing.sm),
@@ -1048,7 +1048,7 @@ class _DownloadScreenState extends ConsumerState<_DownloadScreen> {
     String? artworkUrl,
     VoidCallback onTap,
   ) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     margin: const EdgeInsets.only(bottom: PelevoSpacing.xs),
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: PelevoSpacing.sm),

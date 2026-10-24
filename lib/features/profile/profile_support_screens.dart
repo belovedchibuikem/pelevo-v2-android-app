@@ -488,19 +488,19 @@ class ProfileInviteScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: PelevoSpacing.sm),
-                  const Text(
+                  Text(
                     'Share your invite code. When friends join and listen, you both unlock bonus coins.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: PelevoSpacing.xl),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(PelevoSpacing.lg),
                     decoration: BoxDecoration(
-                      color: PelevoColors.surface,
+                      color: context.pelevo.surface,
                       borderRadius: BorderRadius.circular(PelevoRadii.large),
-                      border: Border.all(color: PelevoColors.border),
+                      border: Border.all(color: context.pelevo.border),
                     ),
                     child: Column(
                       children: [
@@ -793,9 +793,9 @@ class _ProfileChangePasswordScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Your current session stays signed in after this change. Other devices will need to sign in again.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.lg),
             if (_saving) const LinearProgressIndicator(),
@@ -1174,7 +1174,7 @@ class _HelpTile extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Text(
             body,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
       ],
@@ -1196,7 +1196,7 @@ class _AboutRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ),
         Flexible(
@@ -1286,8 +1286,8 @@ class CmsDocumentContent extends ConsumerWidget {
                           ? PublicLegalText(text: page.intro)
                           : SelectableText(
                             page.intro,
-                            style: const TextStyle(
-                              color: PelevoColors.textMuted,
+                            style: TextStyle(
+                              color: context.pelevo.textMuted,
                             ),
                           ),
                 ),

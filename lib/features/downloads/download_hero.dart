@@ -26,8 +26,8 @@ class DownloadHeroBadge extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               accent.withValues(alpha: 0.22),
-              PelevoColors.surface,
-              PelevoColors.border.withValues(alpha: 0.55),
+              context.pelevo.surface,
+              context.pelevo.border.withValues(alpha: 0.55),
             ],
           ),
           border: Border.all(color: accent.withValues(alpha: 0.45), width: 1.4),
@@ -47,7 +47,7 @@ class DownloadHeroBadge extends StatelessWidget {
               child: Icon(
                 Icons.cloud_outlined,
                 size: size * 0.34,
-                color: PelevoColors.textMuted.withValues(alpha: 0.55),
+                color: context.pelevo.textMuted.withValues(alpha: 0.55),
               ),
             ),
             Container(

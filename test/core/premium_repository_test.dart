@@ -59,16 +59,16 @@ void main() {
         expect(request.path, '/premium/checkout');
         expect(request.headers['Idempotency-Key'], 'premium-once');
         expect(request.data['plan_id'], 'plan-monthly');
-        expect(request.data['provider'], 'paystack');
+        expect(request.data['provider'], 'flutterwave');
         return jsonResponse(premiumCheckoutFixture(), status: 201);
       }),
     );
     final checkout = await repository(dio).checkout(
       planId: 'plan-monthly',
-      provider: 'paystack',
+      provider: 'flutterwave',
       idempotencyKey: 'premium-once',
     );
-    expect(checkout.checkoutUrl, 'https://paystack.test/pay');
+    expect(checkout.checkoutUrl, 'https://flutterwave.test/pay');
   });
 
   test(
@@ -163,7 +163,7 @@ void main() {
       planForPlusProduct(plans, PremiumStore.yearlyProductId)?.id,
       'plan-yearly',
     );
-    expect(planForPlusProduct(plans, 'paystack'), isNull);
+    expect(planForPlusProduct(plans, 'flutterwave'), isNull);
   });
 
   test('charges keep the billed currency exponent', () {
@@ -213,7 +213,7 @@ void main() {
       'https://play.google.com/store/account/subscriptions?package=com.Podemeraldltd.pelevo&sku=pelevo_plus_monthly',
     );
     expect(plusStoreSubscriptionUri(provider: 'apple')?.host, 'apps.apple.com');
-    expect(plusStoreSubscriptionUri(provider: 'paystack'), isNull);
+    expect(plusStoreSubscriptionUri(provider: 'flutterwave'), isNull);
     expect(
       storeAccountToken('6f9619ff-8b86-d011-b42d-00cf4fc964ff'),
       '6f9619ff-8b86-d011-b42d-00cf4fc964ff',

@@ -188,6 +188,39 @@ final authSessionProvider = NotifierProvider<AuthSessionNotifier, AuthSession>(
   AuthSessionNotifier.new,
 );
 
+class AuthSignIn {
+  const AuthSignIn(this.session, {this.welcomeCoins});
+
+  final AuthSession session;
+  final int? welcomeCoins;
+
+  factory AuthSignIn.fromApi(Map<String, dynamic> data) {
+    final bonus = data['welcome_bonus'];
+    final coins = bonus is Map && bonus['granted'] == true && bonus['coins'] is int
+        ? bonus['coins'] as int
+        : null;
+    return AuthSignIn(
+      AuthSession.fromApi(data),
+      welcomeCoins: coins != null && coins > 0 ? coins : null,
+    );
+  }
+}
+
+class WelcomeBonusNoticeNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void remember(int coins) => state = coins;
+}
+
+final welcomeBonusNoticeProvider =
+    NotifierProvider<WelcomeBonusNoticeNotifier, int?>(
+      WelcomeBonusNoticeNotifier.new,
+    );
+
+String welcomeBonusMessage(int coins) =>
+    '$coins welcome coins are in your gift wallet. They can be gifted to creators and cannot be cashed out.';
+
 class AuthRepository {
   const AuthRepository(this._dio);
   final Dio _dio;
@@ -220,7 +253,7 @@ class AuthRepository {
     }
   }
 
-  Future<AuthSession> login({
+  Future<AuthSignIn> login({
     required String email,
     required String password,
   }) async {
@@ -232,7 +265,7 @@ class AuthRepository {
         'device_name': await _deviceName(),
       },
     );
-    return AuthSession.fromApi(requireApiData(asApiJsonMap(response.data)));
+    return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
   }
 
   Future<void> forgotPassword(String email) async {
@@ -277,7 +310,7 @@ class AuthRepository {
     requireApiData(asApiJsonMap(response.data));
   }
 
-  Future<AuthSession> verifyCode(
+  Future<AuthSignIn> verifyCode(
     String email,
     String code, {
     String purpose = 'login',
@@ -291,10 +324,10 @@ class AuthRepository {
         'device_name': await _deviceName(),
       },
     );
-    return AuthSession.fromApi(requireApiData(asApiJsonMap(response.data)));
+    return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
   }
 
-  Future<AuthSession> social({
+  Future<AuthSignIn> social({
     required String provider,
     required String token,
     String? nonce,
@@ -308,7 +341,7 @@ class AuthRepository {
         'device_name': await _deviceName(),
       },
     );
-    return AuthSession.fromApi(requireApiData(asApiJsonMap(response.data)));
+    return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
   }
 
   Future<String> _deviceName() async {
@@ -388,10 +421,13 @@ class AuthFormController extends Notifier<AuthFormState> {
         .social(provider: provider, token: token, nonce: nonce),
   );
 
-  Future<bool> _run(Future<AuthSession> Function() operation) => _guard(() async {
-    final session = await operation();
+  Future<bool> _run(Future<AuthSignIn> Function() operation) => _guard(() async {
+    final result = await operation();
     if (!ref.mounted) return;
-    await ref.read(authSessionProvider.notifier).save(session);
+    if (result.welcomeCoins != null) {
+      ref.read(welcomeBonusNoticeProvider.notifier).remember(result.welcomeCoins!);
+    }
+    await ref.read(authSessionProvider.notifier).save(result.session);
   });
 
   Future<bool> _guard(Future<void> Function() operation) async {

@@ -124,10 +124,10 @@ class EarnHomeScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        const Text(
+                        Text(
                           'Finish a marked episode to earn coins. Pause whenever you need to, then resume from the same place.',
                           style: TextStyle(
-                            color: PelevoColors.textMuted,
+                            color: context.pelevo.textMuted,
                             height: 1.4,
                           ),
                         ),
@@ -143,7 +143,7 @@ class EarnHomeScreen extends ConsumerWidget {
                             hintText: 'Search podcasts and episodes',
                             prefixIcon: const Icon(Icons.search_rounded),
                             filled: true,
-                            fillColor: PelevoColors.surface,
+                            fillColor: context.pelevo.surface,
                             isDense: true,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -218,7 +218,7 @@ class EarnHomeScreen extends ConsumerWidget {
                             ),
                             border: Border.all(color: const Color(0xFF245C38)),
                           ),
-                          child: const Column(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -240,7 +240,7 @@ class EarnHomeScreen extends ConsumerWidget {
                               Text(
                                 'Coins are credited only after the episode is completed. Pause and play are allowed. Forward and backward are disabled. Completed episodes lock for 72 hours. Earn progress is isolated from the main player.',
                                 style: TextStyle(
-                                  color: PelevoColors.textMuted,
+                                  color: context.pelevo.textMuted,
                                   fontSize: 12,
                                   height: 1.4,
                                 ),
@@ -255,11 +255,11 @@ class EarnHomeScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: PelevoSpacing.sm),
                         if (page.shows.isEmpty)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(bottom: PelevoSpacing.lg),
                             child: Text(
                               'No monetized podcasts are available yet.',
-                              style: TextStyle(color: PelevoColors.textMuted),
+                              style: TextStyle(color: context.pelevo.textMuted),
                             ),
                           )
                         else
@@ -448,19 +448,19 @@ class EarnOutsideUsScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: PelevoSpacing.sm),
-              const Text(
+              Text(
                 'Earn opens for connections in the United States. Switch to a US address, then check again.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: PelevoColors.textMuted, height: 1.45),
+                style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
               ),
               const SizedBox(height: PelevoSpacing.xl),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(PelevoSpacing.md),
                 decoration: BoxDecoration(
-                  color: PelevoColors.surface,
+                  color: context.pelevo.surface,
                   borderRadius: BorderRadius.circular(PelevoRadii.large),
-                  border: Border.all(color: PelevoColors.border),
+                  border: Border.all(color: context.pelevo.border),
                 ),
                 child: const Column(
                   children: [
@@ -485,7 +485,7 @@ class EarnOutsideUsScreen extends ConsumerWidget {
                 label: 'Back to Home',
                 outlined: true,
                 color: PelevoColors.green,
-                foregroundColor: PelevoColors.text,
+                foregroundColor: context.pelevo.text,
                 onPressed: () => context.go('/screen/home-feed'),
               ),
             ],
@@ -522,8 +522,8 @@ class _UsConnectionMark extends StatelessWidget {
             height: 112,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: PelevoColors.surface,
-              border: Border.all(color: PelevoColors.border),
+              color: context.pelevo.surface,
+              border: Border.all(color: context.pelevo.border),
             ),
             child: const Icon(
               Icons.location_on_rounded,
@@ -567,8 +567,8 @@ class _UsHint extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 body,
-                style: const TextStyle(
-                  color: PelevoColors.textMuted,
+                style: TextStyle(
+                  color: context.pelevo.textMuted,
                   fontSize: 13,
                   height: 1.35,
                 ),
@@ -799,7 +799,7 @@ class _EarnAllScreenState extends ConsumerState<EarnAllScreen> {
                               : 'Search episodes in this podcast',
                       prefixIcon: const Icon(Icons.search_rounded),
                       filled: true,
-                      fillColor: PelevoColors.surface,
+                      fillColor: context.pelevo.surface,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -812,7 +812,7 @@ class _EarnAllScreenState extends ConsumerState<EarnAllScreen> {
                     _showId == null
                         ? '${_showPage?.total ?? _shows.length} podcast${(_showPage?.total ?? _shows.length) == 1 ? '' : 's'} · $episodeTotal episodes'
                         : '$episodeTotal episode${episodeTotal == 1 ? '' : 's'}',
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: PelevoSpacing.md),
                   if (_loading && _episodes.isEmpty && _shows.isEmpty)
@@ -958,7 +958,7 @@ class _ShowCard extends StatelessWidget {
           ),
           Text(
             '${show.episodeCount} episodes',
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
           ),
         ],
       ),
@@ -990,8 +990,8 @@ class _ShowHeader extends StatelessWidget {
               ),
               Text(
                 '${show.host} · ${show.episodeCount} earn episodes',
-                style: const TextStyle(
-                  color: PelevoColors.textMuted,
+                style: TextStyle(
+                  color: context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -1227,7 +1227,7 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                       ),
                       Text(
                         episode.showTitle,
-                        style: const TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                       const SizedBox(height: PelevoSpacing.sm),
                       Container(
@@ -1253,7 +1253,7 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                         child: LinearProgressIndicator(
                           value: fraction.clamp(0.0, 1.0),
                           minHeight: 8,
-                          backgroundColor: PelevoColors.border,
+                          backgroundColor: context.pelevo.border,
                           color: PelevoColors.green,
                         ),
                       ),
@@ -1274,8 +1274,8 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                                 : playbackDuration > episode.duration
                                 ? 'Ad-adjusted'
                                 : 'Earn session',
-                            style: const TextStyle(
-                              color: PelevoColors.textMuted,
+                            style: TextStyle(
+                              color: context.pelevo.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -1283,11 +1283,11 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                         ],
                       ),
                       const SizedBox(height: PelevoSpacing.sm),
-                      const Text(
+                      Text(
                         'Pause and play only. Forward, backward, and speed changes are disabled so listening evidence stays valid. Playback keeps going when you leave this screen.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: PelevoColors.textMuted,
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -1328,11 +1328,11 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                                 : () => _play(episode),
                       ),
                       const SizedBox(height: PelevoSpacing.sm),
-                      const Text(
+                      Text(
                         'Earn progress is isolated from the general podcast player. Awards are posted only after verified heartbeats complete.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: PelevoColors.textMuted,
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -1345,8 +1345,8 @@ class _EarnPlayerScreenState extends ConsumerState<EarnPlayerScreen> {
                                   : status.message)
                               : '$status',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: PelevoColors.textMuted,
+                          style: TextStyle(
+                            color: context.pelevo.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -1451,9 +1451,9 @@ class EarnWalletScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.headlineLarge,
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             'ECN · Earn wallet',
-                            style: TextStyle(color: PelevoColors.textMuted),
+                            style: TextStyle(color: context.pelevo.textMuted),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -1476,9 +1476,9 @@ class EarnWalletScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(PelevoSpacing.md),
                       decoration: BoxDecoration(
-                        color: PelevoColors.surface,
+                        color: context.pelevo.surface,
                         borderRadius: BorderRadius.circular(PelevoRadii.large),
-                        border: Border.all(color: PelevoColors.border),
+                        border: Border.all(color: context.pelevo.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1546,7 +1546,7 @@ class EarnWalletScreen extends ConsumerWidget {
                       label: 'Continue Earning',
                       outlined: true,
                       color: PelevoColors.yellow,
-                      foregroundColor: PelevoColors.text,
+                      foregroundColor: context.pelevo.text,
                       onPressed: () => context.go('/screen/earn'),
                     ),
                   ],
@@ -1604,7 +1604,7 @@ class _EarnEpisodeTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: PelevoSpacing.sm),
       child: Material(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: BorderRadius.circular(PelevoRadii.large),
         child: InkWell(
           onTap: onPlay,
@@ -1635,8 +1635,8 @@ class _EarnEpisodeTile extends StatelessWidget {
                         '${episode.showTitle} · ${_formatDuration(episode.duration)} · $reward coin${reward == 1 ? '' : 's'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: PelevoColors.textMuted,
+                        style: TextStyle(
+                          color: context.pelevo.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -1646,7 +1646,7 @@ class _EarnEpisodeTile extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: locked ? 1 : fraction.clamp(0.0, 1.0),
                           minHeight: 4,
-                          backgroundColor: PelevoColors.border,
+                          backgroundColor: context.pelevo.border,
                           color:
                               locked ? PelevoColors.yellow : PelevoColors.green,
                         ),
@@ -1702,7 +1702,7 @@ class _EarnArt extends StatelessWidget {
       height: height,
       color: const Color(0xFF111016),
       alignment: Alignment.center,
-      child: const Icon(Icons.podcasts_rounded, color: PelevoColors.textMuted),
+      child: Icon(Icons.podcasts_rounded, color: context.pelevo.textMuted),
     );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius ?? PelevoRadii.medium),

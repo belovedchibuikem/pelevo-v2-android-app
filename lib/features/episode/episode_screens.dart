@@ -9,6 +9,11 @@ import 'package:pelevo/features/downloads/download_file_service.dart';
 import 'package:pelevo/features/downloads/download_gate.dart';
 import 'package:pelevo/features/downloads/download_hero.dart';
 import 'package:pelevo/features/library/playlist_picker.dart';
+import 'package:pelevo/features/player/cast/pelevo_cast.dart';
+import 'package:pelevo/features/player/pelevo_audio_handler.dart';
+import 'package:pelevo/features/player/pelevo_playback.dart';
+import 'package:pelevo/features/player/playback_preferences.dart';
+import 'package:pelevo/features/player/sleep_timer.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
@@ -285,7 +290,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         const SizedBox(height: PelevoSpacing.sm),
         Text(
           episode.showTitle ?? show?.title ?? '',
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xs),
         Text(
@@ -301,17 +306,17 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
               child: Text(
                 episode.subtitle.isEmpty ? 'Podcast' : '${episode.subtitle} · ',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.headphones_rounded,
               size: 14,
-              color: PelevoColors.textMuted,
+              color: context.pelevo.textMuted,
             ),
-            const Text(
+            Text(
               ' Podcast',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           ],
         ),
@@ -396,7 +401,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           alignment: Alignment.centerLeft,
           child: Text.rich(
             TextSpan(
-              style: const TextStyle(color: PelevoColors.textMuted, height: 1.4),
+              style: TextStyle(color: context.pelevo.textMuted, height: 1.4),
               children: [
                 TextSpan(
                   text:
@@ -503,15 +508,15 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     episode.showTitle ?? show?.title ?? '',
-                    style: const TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     episode.subtitle.isEmpty
                         ? 'Podcast'
                         : '${episode.subtitle} · Podcast',
-                    style: const TextStyle(
-                      color: PelevoColors.textDim,
+                    style: TextStyle(
+                      color: context.pelevo.textDim,
                       fontSize: 12,
                     ),
                   ),
@@ -525,7 +530,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           episode.description == null || episode.description!.isEmpty
               ? 'No description is available.'
               : episode.description!,
-          style: const TextStyle(color: PelevoColors.textMuted, height: 1.45),
+          style: TextStyle(color: context.pelevo.textMuted, height: 1.45),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         const Text(
@@ -537,10 +542,10 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           episode.description == null || episode.description!.isEmpty
               ? 'No additional episode outline is available.'
               : episode.description!,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
-        const Divider(color: PelevoColors.border),
+        Divider(color: context.pelevo.border),
         const SizedBox(height: PelevoSpacing.md),
         const Text('Host', style: TextStyle(fontWeight: FontWeight.w700)),
         ListTile(
@@ -563,9 +568,9 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         const Text('Categories', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: PelevoSpacing.xs),
         if (show == null || show.categories.isEmpty)
-          const Text(
+          Text(
             'No categories are listed.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           Wrap(
@@ -590,9 +595,9 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
     }
     final chapters = chaptersAsync.requireValue;
     if (chapters.isEmpty) {
-      return const Text(
+      return Text(
         'No chapters are available.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     return Column(
@@ -656,19 +661,19 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         ),
         const SizedBox(height: PelevoSpacing.lg),
         if (content.isEmpty)
-          const Text(
+          Text(
             'No transcript is available.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (visible.isEmpty)
-          const Text(
+          Text(
             'No transcript lines match that search.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           Text(
             visible,
-            style: const TextStyle(color: PelevoColors.textMuted, height: 1.4),
+            style: TextStyle(color: context.pelevo.textMuted, height: 1.4),
           ),
       ],
     );
@@ -695,15 +700,15 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
                       : show.ratingAverage!,
                   style: Theme.of(context).textTheme.displaySmall,
                 ),
-                const Text(
+                Text(
                   'out of 5',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '(${show?.ratingCount ?? 0} Ratings)',
-                  style: const TextStyle(
-                    color: PelevoColors.textDim,
+                  style: TextStyle(
+                    color: context.pelevo.textDim,
                     fontSize: 12,
                   ),
                 ),
@@ -759,9 +764,9 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
             retry: () => ref.invalidate(catalogReviewsProvider),
           )
         else if (reviewsAsync.requireValue.isEmpty)
-          const Text(
+          Text(
             'No reviews are published yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final review in sortedCatalogReviews(
@@ -769,7 +774,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
             _reviewFilter,
           ))
             Card(
-              color: PelevoColors.surface,
+              color: context.pelevo.surface,
               margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
               child: Padding(
                 padding: const EdgeInsets.all(PelevoSpacing.md),
@@ -785,8 +790,8 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
                         const Spacer(),
                         Text(
                           review.createdAt.toIso8601String().split('T').first,
-                          style: const TextStyle(
-                            color: PelevoColors.textDim,
+                          style: TextStyle(
+                            color: context.pelevo.textDim,
                             fontSize: 12,
                           ),
                         ),
@@ -807,7 +812,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
                       const SizedBox(height: PelevoSpacing.xs),
                       Text(
                         review.body!,
-                        style: const TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     ],
                   ],
@@ -842,10 +847,10 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         const SizedBox(height: PelevoSpacing.md),
         Text('Take Notes', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: PelevoSpacing.xs),
-        const Text(
+        Text(
           'Capture your thoughts while you listen.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         PelevoButton(
@@ -859,13 +864,13 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           child: PelevoSectionHeader(title: 'Your Notes'),
         ),
         if (!hasBody)
-          const Text(
+          Text(
             'No notes are saved for this episode.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: ListTile(
               title: Text(note.body!),
@@ -899,14 +904,14 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
               ? 'This episode is saved for offline listening on this device.'
               : 'Authorize and save this episode to offline storage on this device.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(PelevoSpacing.md),
           decoration: BoxDecoration(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             borderRadius: BorderRadius.circular(PelevoRadii.large),
           ),
           child: Column(
@@ -957,15 +962,15 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
                 LinearProgressIndicator(
                   value: progress <= 0 || progress > 1 ? null : progress,
                   color: PelevoColors.green,
-                  backgroundColor: PelevoColors.border,
+                  backgroundColor: context.pelevo.border,
                 ),
                 const SizedBox(height: PelevoSpacing.xs),
                 Text(
                   progress > 0 && progress <= 1
                       ? 'Downloading ${(progress * 100).clamp(0, 100).toStringAsFixed(0)}%'
                       : 'Downloading…',
-                  style: const TextStyle(
-                    color: PelevoColors.textMuted,
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -1007,7 +1012,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         width: 42,
         height: 4,
         decoration: BoxDecoration(
-          color: PelevoColors.border,
+          color: context.pelevo.border,
           borderRadius: BorderRadius.circular(99),
         ),
       ),
@@ -1021,10 +1026,10 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
       const SizedBox(height: PelevoSpacing.md),
       Text('Add to Queue', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: PelevoSpacing.xs),
-      const Text(
+      Text(
         'Play this episode next or add it to your queue.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final option in const [
@@ -1067,14 +1072,14 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           width: 42,
           height: 4,
           decoration: BoxDecoration(
-            color: PelevoColors.border,
+            color: context.pelevo.border,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       Card(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         child: ListTile(
           leading: CatalogArtwork(
             url: episode.artworkUrl,
@@ -1154,7 +1159,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           width: 42,
           height: 4,
           decoration: BoxDecoration(
-            color: PelevoColors.border,
+            color: context.pelevo.border,
             borderRadius: BorderRadius.circular(99),
           ),
         ),
@@ -1254,7 +1259,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         width: 42,
         height: 4,
         decoration: BoxDecoration(
-          color: PelevoColors.border,
+          color: context.pelevo.border,
           borderRadius: BorderRadius.circular(99),
         ),
       ),
@@ -1268,10 +1273,10 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
       const SizedBox(height: PelevoSpacing.md),
       Text('Sleep Timer', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: PelevoSpacing.xs),
-      const Text(
-        'This timer stays on the device and does not stop server playback.',
+      Text(
+        'Playback pauses on this device when the timer ends.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       for (final option in const [
@@ -1293,8 +1298,16 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         label: 'Start Timer',
         color: PelevoColors.green,
         onPressed: () {
+          final choice = switch (_timerChoice) {
+            0 => '15 min',
+            1 => '30 min',
+            2 => '45 min',
+            3 => '1 hour',
+            _ => 'End of episode',
+          };
+          ref.read(sleepTimerProvider.notifier).select(choice);
           context.showPelevoMessage(
-            'Sleep timer is on this device only and does not stop playback.',
+            'Sleep timer set. Playback will pause when it ends.',
           );
           context.go('/screen/player-sleep');
         },
@@ -1314,7 +1327,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
         width: 42,
         height: 4,
         decoration: BoxDecoration(
-          color: PelevoColors.border,
+          color: context.pelevo.border,
           borderRadius: BorderRadius.circular(99),
         ),
       ),
@@ -1328,10 +1341,10 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
       const SizedBox(height: PelevoSpacing.md),
       Text('Playback Speed', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: PelevoSpacing.xs),
-      const Text(
+      Text(
         'Adjust playback speed to your preference.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.xl),
       Wrap(
@@ -1346,7 +1359,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
               selectedColor: PelevoColors.green,
               side: BorderSide(
                 color:
-                    _speed == speed ? PelevoColors.yellow : PelevoColors.border,
+                    _speed == speed ? PelevoColors.yellow : context.pelevo.border,
               ),
               onSelected:
                   _busy ? null : (_) => _setSpeed(episode, speed),
@@ -1378,7 +1391,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
           padding: const EdgeInsets.all(PelevoSpacing.xs),
           child: Column(
             children: [
-              Icon(icon, color: PelevoColors.text),
+              Icon(icon, color: context.pelevo.text),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -1413,7 +1426,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
     VoidCallback onTap,
   ) => ListTile(
     contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: PelevoColors.text),
+    leading: Icon(icon, color: context.pelevo.text),
     title: Text(title),
     subtitle: Text(subtitle),
     onTap: onTap,
@@ -1625,16 +1638,26 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
   Future<void> _setSpeed(CatalogEpisode episode, double speed) async {
     setState(() => _busy = true);
     try {
-      final session = await ref.read(catalogPlayerSessionProvider.future);
-      await ref
-          .read(catalogRepositoryProvider)
-          .savePlayerSession(
-            episodeId: episode.id,
-            playing: session.playing,
-            playbackRate: speed,
-            version: session.version,
-          );
-      ref.invalidate(catalogPlayerSessionProvider);
+      final live =
+          pelevoAudioHandler != null ||
+          ref.read(pelevoCastControllerProvider).isConnected;
+      if (live) {
+        await ref
+            .read(pelevoPlaybackControllerProvider)
+            .setSpeed(episode, speed);
+      } else {
+        ref.read(playbackPreferencesProvider.notifier).setSpeed(speed);
+        final session = await ref.read(catalogPlayerSessionProvider.future);
+        await ref
+            .read(catalogRepositoryProvider)
+            .savePlayerSession(
+              episodeId: episode.id,
+              playing: session.playing,
+              playbackRate: speed,
+              version: session.version,
+            );
+        ref.invalidate(catalogPlayerSessionProvider);
+      }
       if (!mounted) return;
       setState(() => _speed = speed);
     } catch (error) {
@@ -1655,7 +1678,7 @@ class _EpisodeScreenState extends ConsumerState<_EpisodeScreen> {
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            backgroundColor: PelevoColors.surface,
+            backgroundColor: context.pelevo.surface,
             title: const Text('New note'),
             content: TextField(
               controller: _noteController,
@@ -1769,7 +1792,7 @@ class _RatingBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: value,
               minHeight: 6,
-              backgroundColor: PelevoColors.surfaceHigh,
+              backgroundColor: context.pelevo.surfaceHigh,
               color: PelevoColors.yellow,
             ),
           ),

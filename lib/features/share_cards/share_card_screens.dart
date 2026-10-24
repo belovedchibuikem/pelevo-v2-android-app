@@ -656,7 +656,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
           spacing: PelevoSpacing.md,
           runSpacing: PelevoSpacing.lg,
           children: [
-            for (final item in const [
+            for (final item in [
               (Icons.ios_share_rounded, 'AirDrop', PelevoColors.blue),
               (Icons.chat_rounded, 'WhatsApp', Color(0xFF25D366)),
               (Icons.camera_alt_outlined, 'Instagram', Color(0xFFE1306C)),
@@ -664,8 +664,8 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
               (Icons.alternate_email_rounded, 'Twitter', Color(0xFF1DA1F2)),
               (Icons.send_rounded, 'Telegram', Color(0xFF229ED9)),
               (Icons.music_note_rounded, 'TikTok', Colors.white),
-              (Icons.link_rounded, 'Copy Link', PelevoColors.textMuted),
-              (Icons.more_horiz_rounded, 'More', PelevoColors.textMuted),
+              (Icons.link_rounded, 'Copy Link', context.pelevo.textMuted),
+              (Icons.more_horiz_rounded, 'More', context.pelevo.textMuted),
             ])
               SizedBox(
                 width: 72,
@@ -1113,7 +1113,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
               : (save?.message ??
                   'Save a share card image first to write it to your gallery.'),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xxl),
         PelevoButton(
@@ -1154,9 +1154,9 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
                 () => _quality = value == 'Print Ready (CMYK)' ? 0 : 1,
               ),
         ),
-      const Text(
+      Text(
         'Exports are RGB PNG files. CMYK PDF is not offered.',
-        style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
       ),
       const SizedBox(height: PelevoSpacing.md),
       PelevoButton(
@@ -1205,7 +1205,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color, PelevoColors.surface, Colors.black],
+              colors: [color, context.pelevo.surface, Colors.black],
             ),
             border: Border.all(color: color.withValues(alpha: .8)),
           ),
@@ -1292,7 +1292,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color, PelevoColors.surface, Colors.black],
+          colors: [color, context.pelevo.surface, Colors.black],
         ),
       ),
       child: Column(
@@ -1326,7 +1326,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
             subject?.title ?? 'Pelevo',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 9, color: PelevoColors.textMuted),
+            style: TextStyle(fontSize: 9, color: context.pelevo.textMuted),
           ),
         ],
       ),
@@ -1340,7 +1340,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
     VoidCallback onTap, {
     Widget? trailing,
   }) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     margin: const EdgeInsets.only(bottom: PelevoSpacing.xs),
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: PelevoSpacing.sm),
@@ -1374,7 +1374,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
       child: Column(
         children: [
           CircleAvatar(
-            backgroundColor: PelevoColors.surfaceHigh,
+            backgroundColor: context.pelevo.surfaceHigh,
             child: Icon(icon, color: PelevoColors.green),
           ),
           const SizedBox(height: 4),
@@ -1441,7 +1441,7 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
           onTap: () => setState(() => _color = index),
           child: CircleAvatar(
             radius: 15,
-            backgroundColor: _color == index ? PelevoColors.text : color,
+            backgroundColor: _color == index ? context.pelevo.text : color,
             child: CircleAvatar(radius: 11, backgroundColor: color),
           ),
         ),
@@ -1487,13 +1487,13 @@ class _ShareCardScreenState extends ConsumerState<_ShareCardScreen> {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: PelevoColors.textMuted.withValues(alpha: .15),
-        border: Border.all(color: PelevoColors.textMuted),
+        color: context.pelevo.textMuted.withValues(alpha: .15),
+        border: Border.all(color: context.pelevo.textMuted),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.photo_library_outlined,
         size: 48,
-        color: PelevoColors.textMuted,
+        color: context.pelevo.textMuted,
       ),
     ),
   );
@@ -1913,8 +1913,8 @@ class _Section extends StatelessWidget {
     ),
     child: Text(
       title,
-      style: const TextStyle(
-        color: PelevoColors.textMuted,
+      style: TextStyle(
+        color: context.pelevo.textMuted,
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -1934,7 +1934,7 @@ class _Metric extends StatelessWidget {
       Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
       ),
     ],
   );

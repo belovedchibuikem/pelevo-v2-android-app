@@ -101,13 +101,13 @@ const _statsInventory =
       ),
     ];
 
-const _palette = [
+List<Color> _palette(BuildContext context) => [
   PelevoColors.green,
   PelevoColors.orange,
   PelevoColors.red,
-  Color(0xFF8B5CF6),
+  const Color(0xFF8B5CF6),
   PelevoColors.blue,
-  PelevoColors.textDim,
+  context.pelevo.textDim,
 ];
 
 final List<PelevoScreenSpec> podcastStatsScreens = List.unmodifiable(
@@ -394,9 +394,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     final session = ref.watch(catalogPlayerSessionProvider).asData?.value;
     final episodeId = session?.episodeId;
     if (episodeId == null || episodeId.isEmpty) {
-      return const Text(
+      return Text(
         'Nothing in progress.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       );
     }
     final episode = ref.watch(catalogEpisodeByIdProvider(episodeId)).asData?.value;
@@ -421,7 +421,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     required String subtitle,
     required String? artworkUrl,
   }) => Card(
-    color: PelevoColors.surface,
+    color: context.pelevo.surface,
     child: ListTile(
       leading: CatalogArtwork(url: artworkUrl, width: 48, height: 48),
       title: Text(title),
@@ -469,6 +469,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                   for (final row in daily) '${row.date.month}/${row.date.day}',
                 ],
                 color: PelevoColors.green,
+                labelColor: context.pelevo.textMuted,
               ),
               child: const SizedBox.expand(),
             ),
@@ -492,9 +493,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         const SizedBox(height: PelevoSpacing.lg),
         Text('Time by Range', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
+        Text(
           'Episode length buckets are not available yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     );
@@ -523,6 +524,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                   for (final row in daily) '${row.date.month}/${row.date.day}',
                 ],
                 color: PelevoColors.red,
+                labelColor: context.pelevo.textMuted,
               ),
               child: const SizedBox.expand(),
             ),
@@ -541,9 +543,10 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                   segments: [
                     (ratio == 0 ? 1 : ratio, PelevoColors.red),
                     if (ratio > 0 && ratio < 1)
-                      (1 - ratio, PelevoColors.surfaceHigh),
+                      (1 - ratio, context.pelevo.surfaceHigh),
                   ],
                   centerLabel: total == 0 ? '0%' : '${(ratio * 100).round()}%',
+                  labelColor: context.pelevo.text,
                 ),
               ),
             ),
@@ -577,9 +580,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         Text('Most Played', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
         if (stats.shows.isEmpty)
-          const Text(
+          Text(
             'No played shows yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final show in stats.shows)
@@ -613,7 +616,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                                       : show.listeningSeconds / total,
                               minHeight: 6,
                               color: PelevoColors.orange,
-                              backgroundColor: PelevoColors.surfaceHigh,
+                              backgroundColor: context.pelevo.surfaceHigh,
                             ),
                           ),
                         ],
@@ -622,7 +625,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                     const SizedBox(width: PelevoSpacing.sm),
                     Text(
                       formatStatsDuration(show.listeningSeconds),
-                      style: const TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     ),
                   ],
                 ),
@@ -640,6 +643,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                 painter: _DonutPainter(
                   segments: _donut(stats.shows.map((show) => show.listeningSeconds)),
                   centerLabel: formatStatsDuration(total),
+                  labelColor: context.pelevo.text,
                 ),
               ),
             ),
@@ -649,9 +653,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (stats.shows.isEmpty)
-                    const Text(
+                    Text(
                       'No played shows yet.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     )
                   else
                     for (final show in stats.shows)
@@ -733,9 +737,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         const SizedBox(height: PelevoSpacing.md),
         Text('$current Days', style: Theme.of(context).textTheme.displaySmall),
         const SizedBox(height: PelevoSpacing.xs),
-        const Text(
+        Text(
           'Current Streak — Keep it up!',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         Row(
@@ -748,7 +752,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
                     byDate[DateTime(start.year, start.month, start.day + i)] ==
                             true
                         ? PelevoColors.green
-                        : PelevoColors.surfaceHigh,
+                        : context.pelevo.surfaceHigh,
                 child: Text(
                   labels[i],
                   style: const TextStyle(
@@ -795,21 +799,26 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
             painter: _DonutPainter(
               segments: _donut(stats.categories.map((row) => row.listeningSeconds)),
               centerLabel: '${formatStatsDuration(total)}\nTotal',
+              labelColor: context.pelevo.text,
             ),
             child: const SizedBox.expand(),
           ),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         if (stats.categories.isEmpty)
-          const Text(
+          Text(
             'No category totals yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (var i = 0; i < stats.categories.length; i++)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.circle, size: 14, color: _palette[i % _palette.length]),
+              leading: Icon(
+                Icons.circle,
+                size: 14,
+                color: _palette(context)[i % _palette(context).length],
+              ),
               title: Text(stats.categories[i].name),
               subtitle: Text(
                 formatStatsDuration(stats.categories[i].listeningSeconds),
@@ -879,14 +888,14 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         Text('Monthly Breakdown', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
         if (months.isEmpty)
-          const Text(
+          Text(
             'No monthly totals yet.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           for (final row in months)
             Card(
-              color: PelevoColors.surface,
+              color: context.pelevo.surface,
               margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
               child: ListTile(
                 title: Text(names[int.parse(row.key.split('-')[1]) - 1]),
@@ -900,11 +909,11 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
 
   Widget _achievements(BuildContext context, ListenerStats stats) {
     if (stats.achievements.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: PelevoSpacing.xl),
         child: Text(
           'No achievements yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       );
     }
@@ -912,7 +921,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
       children: [
         for (final item in stats.achievements)
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: ListTile(
               leading: CircleAvatar(
@@ -963,9 +972,9 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
       const SizedBox(height: PelevoSpacing.xl),
       Text('By Quality', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: PelevoSpacing.md),
-      const Text(
+      Text(
         'Download quality split is not available yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
       PelevoButton(
@@ -982,16 +991,17 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         height: 200,
         child: CustomPaint(
           painter: _DonutPainter(
-            segments: const [(1, PelevoColors.surfaceHigh)],
+            segments: [(1, context.pelevo.surfaceHigh)],
             centerLabel: '${formatStatsDuration(stats.listeningSeconds)}\nTotal',
+            labelColor: context.pelevo.text,
           ),
           child: const SizedBox.expand(),
         ),
       ),
       const SizedBox(height: PelevoSpacing.xl),
-      const Text(
+      Text(
         'Device split is not available yet.',
-        style: TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
       ),
     ],
   );
@@ -1069,7 +1079,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
         const SizedBox(height: PelevoSpacing.xl),
         for (final item in rows)
           Card(
-            color: PelevoColors.surface,
+            color: context.pelevo.surface,
             margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
             child: ListTile(
               title: Text(item.$1),
@@ -1149,7 +1159,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null)
-          Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+          Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         Text(value, style: Theme.of(context).textTheme.displaySmall),
         if (delta != null && delta.isNotEmpty) ...[
           const SizedBox(height: 4),
@@ -1171,16 +1181,16 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     child: Container(
       padding: const EdgeInsets.all(PelevoSpacing.md),
       decoration: BoxDecoration(
-        color: PelevoColors.surface,
+        color: context.pelevo.surface,
         borderRadius: BorderRadius.circular(PelevoRadii.medium),
-        border: Border.all(color: PelevoColors.border),
+        border: Border.all(color: context.pelevo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
           ),
           const Spacer(),
           Text(
@@ -1196,13 +1206,13 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     width: double.infinity,
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: BorderRadius.circular(PelevoRadii.medium),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+        Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         const SizedBox(height: 6),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
@@ -1213,7 +1223,7 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     width: double.infinity,
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: BorderRadius.circular(PelevoRadii.large),
     ),
     child: child,
@@ -1237,11 +1247,11 @@ class _StatsScreenState extends ConsumerState<_StatsScreen> {
     final values = raw.toList(growable: false);
     final total = values.fold<int>(0, (sum, value) => sum + value);
     if (values.isEmpty || total <= 0) {
-      return const [(1, PelevoColors.surfaceHigh)];
+      return [(1, context.pelevo.surfaceHigh)];
     }
     return [
       for (var i = 0; i < values.length; i++)
-        (values[i] / total, _palette[i % _palette.length]),
+        (values[i] / total, _palette(context)[i % _palette(context).length]),
     ];
   }
 }
@@ -1255,13 +1265,13 @@ class _UnavailableMetric extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(PelevoSpacing.md),
     decoration: BoxDecoration(
-      color: PelevoColors.surface,
+      color: context.pelevo.surface,
       borderRadius: BorderRadius.circular(PelevoRadii.medium),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: PelevoColors.textMuted)),
+        Text(label, style: TextStyle(color: context.pelevo.textMuted)),
         const SizedBox(height: 6),
         const Text(
           'Not available yet',
@@ -1330,11 +1340,13 @@ class _BarChartPainter extends CustomPainter {
     required this.values,
     required this.labels,
     required this.color,
+    required this.labelColor,
   });
 
   final List<double> values;
   final List<String> labels;
   final Color color;
+  final Color labelColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1354,7 +1366,7 @@ class _BarChartPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
             text: labels[i],
-            style: const TextStyle(color: PelevoColors.textMuted, fontSize: 11),
+            style: TextStyle(color: labelColor, fontSize: 11),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
@@ -1368,14 +1380,21 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BarChartPainter oldDelegate) =>
-      oldDelegate.values != values || oldDelegate.color != color;
+      oldDelegate.values != values ||
+      oldDelegate.color != color ||
+      oldDelegate.labelColor != labelColor;
 }
 
 class _DonutPainter extends CustomPainter {
-  _DonutPainter({required this.segments, required this.centerLabel});
+  _DonutPainter({
+    required this.segments,
+    required this.centerLabel,
+    required this.labelColor,
+  });
 
   final List<(double, Color)> segments;
   final String centerLabel;
+  final Color labelColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1397,8 +1416,8 @@ class _DonutPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: centerLabel,
-        style: const TextStyle(
-          color: PelevoColors.text,
+        style: TextStyle(
+          color: labelColor,
           fontWeight: FontWeight.w700,
           fontSize: 13,
           height: 1.2,
@@ -1413,7 +1432,8 @@ class _DonutPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
       oldDelegate.segments != segments ||
-      oldDelegate.centerLabel != centerLabel;
+      oldDelegate.centerLabel != centerLabel ||
+      oldDelegate.labelColor != labelColor;
 }
 
 class _HeatmapPainter extends CustomPainter {

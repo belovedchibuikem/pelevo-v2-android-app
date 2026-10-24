@@ -50,10 +50,10 @@ Map<String, dynamic> premiumInvoiceFixture({
 Map<String, dynamic> premiumCheckoutFixture({
   String id = 'checkout-1',
   String state = 'pending',
-  String? checkoutUrl = 'https://paystack.test/pay',
+  String? checkoutUrl = 'https://flutterwave.test/pay',
   int amountMinor = 2500,
   String currency = 'NGN',
-  String provider = 'paystack',
+  String provider = 'flutterwave',
 }) => {
   'id': id,
   'state': state,

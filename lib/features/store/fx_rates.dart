@@ -1,9 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
-import 'package:pelevo/core/network/api_environment.dart';
 import 'package:pelevo/core/services/app_services.dart';
-import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/store/country_currency.dart';
 import 'package:pelevo/features/store/fx_auto_io.dart'
     if (dart.library.html) 'package:pelevo/features/store/fx_auto_web.dart';
@@ -109,11 +107,6 @@ class FxRateBook {
   }
 }
 
-String _rateText(double value) {
-  if (value == value.roundToDouble()) return value.round().toString();
-  return value.toString();
-}
-
 double? _rate(Object? value) {
   final parsed = value is num ? value.toDouble() : double.tryParse('$value');
   if (parsed == null || parsed <= 0 || !parsed.isFinite) return null;
@@ -215,15 +208,9 @@ String localPriceFromUsd({
 }
 
 class FxRateRepository {
-  FxRateRepository(this._dio, {Uri? adminFxUri})
-    : adminFxUri =
-          adminFxUri ??
-          Uri.parse(
-            '${ApiEnvironment.publicWebBase}/api/admin/v1/settings/fx',
-          );
+  FxRateRepository(this._dio);
 
   final Dio _dio;
-  final Uri adminFxUri;
   FxRateBook? _cached;
   DateTime? _cachedAt;
 
@@ -250,40 +237,6 @@ class FxRateRepository {
   void clearCache() {
     _cached = null;
     _cachedAt = null;
-  }
-
-  /// Saves currencies an admin has reviewed. One unit of USD equals each rate.
-  Future<FxRateBook> saveReviewed(Map<String, double> rates) async {
-    final cleaned = <String, String>{};
-    for (final entry in rates.entries) {
-      final code = entry.key.trim().toUpperCase();
-      if (!RegExp(r'^[A-Z]{3}$').hasMatch(code) || code == 'USD') continue;
-      if (entry.value <= 0 || !entry.value.isFinite) continue;
-      cleaned[code] = _rateText(entry.value);
-    }
-    if (cleaned.isEmpty) {
-      throw const ApiFailure(
-        code: 'INVALID_RESPONSE',
-        message: 'Enter a reviewed rate for at least one currency.',
-      );
-    }
-    try {
-      final response = await _dio.put<Map<String, dynamic>>(
-        adminFxUri.toString(),
-        data: {
-          'base': 'USD',
-          'source': 'reviewed',
-          'reviewed': cleaned.keys.toList(),
-          'rates': cleaned,
-        },
-      );
-      clearCache();
-      return FxRateBook.parse(requireApiData(response.data));
-    } on ApiFailure {
-      rethrow;
-    } on DioException catch (error) {
-      throw apiFailureFromDio(error);
-    }
   }
 
   Future<FxRateBook?> _fetchReviewed() async {

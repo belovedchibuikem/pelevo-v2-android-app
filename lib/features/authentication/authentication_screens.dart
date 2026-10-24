@@ -81,17 +81,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         onPressed: () => context.go('/screen/auth-verify-number'),
         child: const Text('Sign in with an email code'),
       ),
-      const _DividerLabel('or continue with'),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (showsGoogleSignIn)
-            const _SocialButton('Google', Icons.g_mobiledata_rounded),
-          if (showsAppleSignIn)
-            const _SocialButton('Apple', Icons.apple_rounded),
-          const _SocialButton('Facebook', Icons.facebook_rounded),
-        ],
-      ),
+      if (showsGoogleSignIn || showsAppleSignIn) ...[
+        const _DividerLabel('or continue with'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (showsGoogleSignIn)
+              const _SocialButton('Google', Icons.g_mobiledata_rounded),
+            if (showsAppleSignIn)
+              const _SocialButton('Apple', Icons.apple_rounded),
+          ],
+        ),
+      ],
       _TextAction(
         prefix: "Don't have an account? ",
         action: 'Create one',
@@ -125,6 +126,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       return;
     }
     if (success && mounted) {
+      final welcomeCoins = ref.read(welcomeBonusNoticeProvider);
+      if (welcomeCoins != null) {
+        context.showPelevoMessage(welcomeBonusMessage(welcomeCoins));
+      }
       await applyPendingOnboardingDraft(ref);
       if (!mounted) return;
       final destination = GoRouterState.of(context).uri.queryParameters['from'];
@@ -479,17 +484,22 @@ class _AccountCreatedScreenState extends ConsumerState<AccountCreatedScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => _ResultPage(
-    icon: Icons.check_rounded,
-    assetPath: 'assets/authentication/account_created.png',
-    color: PelevoColors.red,
-    eyebrow: 'Account Created',
-    title: 'Welcome to Pelevo',
-    body:
-        "Your account has been created successfully.\nLet's personalize your experience.",
-    button: _continuing ? 'Please wait…' : 'Start Exploring',
-    onPressed: _continue,
-  );
+  Widget build(BuildContext context) {
+    final welcomeCoins = ref.watch(welcomeBonusNoticeProvider);
+    return _ResultPage(
+      icon: Icons.check_rounded,
+      assetPath: 'assets/authentication/account_created.png',
+      color: PelevoColors.red,
+      eyebrow: 'Account Created',
+      title: 'Welcome to Pelevo',
+      body:
+          welcomeCoins == null
+              ? "Your account has been created successfully.\nLet's personalize your experience."
+              : 'Your account has been created successfully.\n${welcomeBonusMessage(welcomeCoins)}',
+      button: _continuing ? 'Please wait…' : 'Start Exploring',
+      onPressed: _continue,
+    );
+  }
 }
 
 class SignInOptionsScreen extends StatelessWidget {
@@ -513,11 +523,6 @@ class SignInOptionsScreen extends StatelessWidget {
         ),
       if (showsAppleSignIn)
         _ProviderButton('Continue with Apple', Icons.apple, PelevoColors.green),
-      _ProviderButton(
-        'Continue with Facebook',
-        Icons.facebook,
-        PelevoColors.blue,
-      ),
       TextButton(
         onPressed: () => context.go('/screen/auth-sign-in'),
         child: const Text(
@@ -779,7 +784,7 @@ class _AuthPage extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.xxl),
             ...children.expand(
@@ -933,7 +938,7 @@ class _ProviderButton extends ConsumerWidget {
       icon: icon,
       outlined: true,
       color: color,
-      foregroundColor: PelevoColors.text,
+      foregroundColor: context.pelevo.text,
       onPressed:
           ref.watch(authFormProvider).submitting
               ? null
@@ -1002,6 +1007,10 @@ Future<void> _continueWithSocial(
       );
       return;
     }
+    final welcomeCoins = ref.read(welcomeBonusNoticeProvider);
+    if (welcomeCoins != null && context.mounted) {
+      context.showPelevoMessage(welcomeBonusMessage(welcomeCoins));
+    }
     await applyPendingOnboardingDraft(ref);
     if (!context.mounted) return;
     context.go('/screen/home-feed');
@@ -1065,7 +1074,7 @@ class _TextAction extends StatelessWidget {
     child: Text.rich(
       TextSpan(
         text: prefix,
-        style: const TextStyle(color: PelevoColors.textMuted),
+        style: TextStyle(color: context.pelevo.textMuted),
         children: [
           TextSpan(
             text: action,
@@ -1154,7 +1163,7 @@ class _ResultPage extends StatelessWidget {
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.xxl),
             PelevoButton(label: button, color: color, onPressed: onPressed),

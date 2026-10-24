@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/config/app_config.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
-import 'package:pelevo/features/admin/admin_fx_screen.dart';
 import 'package:pelevo/features/authentication/authentication_screens.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/creator/creator_audience_screens.dart';
@@ -210,12 +211,6 @@ final List<PelevoScreenSpec> entryFlowScreens = [
     builder: _buildSettingsAccount,
   ),
   const PelevoScreenSpec(
-    id: 'admin-fx-rates',
-    section: 'Admin',
-    title: 'Exchange rates',
-    builder: _buildAdminFx,
-  ),
-  const PelevoScreenSpec(
     id: 'reels',
     section: 'Reels',
     title: 'Reels For You',
@@ -322,12 +317,6 @@ final List<PelevoScreenSpec> entryFlowScreens = [
     section: 'Earn',
     title: 'Withdraw Earnings',
     builder: _buildWithdraw,
-  ),
-  const PelevoScreenSpec(
-    id: 'withdraw-setup-paystack',
-    section: 'Earn',
-    title: 'Paystack Setup',
-    builder: _buildWithdrawPaystack,
   ),
   const PelevoScreenSpec(
     id: 'withdraw-setup-paypal',
@@ -536,7 +525,6 @@ Widget _buildPlaylists(BuildContext context) => const PlaylistsScreen();
 Widget _buildProfile(BuildContext context) => const ProfileScreen();
 Widget _buildSettingsAccount(BuildContext context) =>
     const SettingsAccountScreen();
-Widget _buildAdminFx(BuildContext context) => const AdminFxScreen();
 Widget _buildReels(BuildContext context) => const ReelsScreen();
 Widget _buildSavedReels(BuildContext context) => const SavedReelsScreen();
 Widget _buildReelsCreate(BuildContext context) => const CreateReelHubScreen();
@@ -563,8 +551,6 @@ Widget _buildEarnAll(BuildContext context) => const EarnAllScreen();
 Widget _buildEarnPlayer(BuildContext context) => const EarnPlayerScreen();
 Widget _buildEarnWallet(BuildContext context) => const EarnWalletScreen();
 Widget _buildWithdraw(BuildContext context) => const WithdrawHomeScreen();
-Widget _buildWithdrawPaystack(BuildContext context) =>
-    const WithdrawSetupPaystackScreen();
 Widget _buildWithdrawPaypal(BuildContext context) =>
     const WithdrawSetupPaypalScreen();
 Widget _buildWithdrawFlutterwave(BuildContext context) =>
@@ -645,33 +631,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Semantics(
-      label: 'Pelevo splash screen. New Africa. Discover the world.',
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const _PatternBackground(),
-          SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(),
-                Image.asset(
-                  'assets/onboarding/splash_brand.png',
-                  width: 190,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-                const Spacer(),
-                const SizedBox(height: 30),
-              ],
+  Widget build(BuildContext context) {
+    final light = Theme.of(context).brightness == Brightness.light;
+    return Scaffold(
+      backgroundColor: context.pelevo.background,
+      body: Semantics(
+        label: 'Pelevo splash screen. New Africa. Discover the world.',
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const _PatternBackground(),
+            SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  if (light)
+                    const _LightSplashMark()
+                  else
+                    Image.asset(
+                      'assets/onboarding/splash_brand.png',
+                      width: 190,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  const Spacer(),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class OnboardingFeatureScreen extends StatelessWidget {
@@ -721,7 +714,7 @@ class OnboardingFeatureScreen extends StatelessWidget {
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.lg),
             _OnboardingDots(active: step),
@@ -870,9 +863,9 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: PelevoSpacing.xs),
-            const Text(
+            Text(
               'Select all that apply',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
             const SizedBox(height: PelevoSpacing.lg),
             LayoutBuilder(
@@ -884,16 +877,13 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
                         onboardingInterestCatalog.map((interest) {
                           final selected = _selected.contains(interest);
                           return FilterChip(
-                            avatar: Icon(
-                              _interestIcons[interest],
-                              size: 18,
-                            ),
+                            avatar: Icon(_interestIcons[interest], size: 18),
                             label: Text(interest),
                             selected: selected,
                             selectedColor: PelevoColors.red.withValues(
                               alpha: .3,
                             ),
-                            checkmarkColor: PelevoColors.text,
+                            checkmarkColor: context.pelevo.text,
                             onSelected:
                                 _continuing
                                     ? null
@@ -929,7 +919,8 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
               onChanged:
                   _continuing
                       ? null
-                      : (value) => setState(() => _language = value ?? _language),
+                      : (value) =>
+                          setState(() => _language = value ?? _language),
             ),
             const SizedBox(height: PelevoSpacing.xl),
             if (_failure case final failure?)
@@ -960,10 +951,10 @@ class _InterestsScreenState extends ConsumerState<InterestsScreen> {
                       : _continueToSignIn,
             ),
             const SizedBox(height: PelevoSpacing.xs),
-            const Text(
+            Text(
               'You can change this later',
               textAlign: TextAlign.center,
-              style: TextStyle(color: PelevoColors.textDim),
+              style: TextStyle(color: context.pelevo.textDim),
             ),
           ],
         ),
@@ -987,11 +978,184 @@ class _PatternBackground extends StatelessWidget {
         itemBuilder:
             (context, index) => Transform.rotate(
               angle: index.isEven ? .5 : -.5,
-              child: const Icon(Icons.change_history_rounded, size: 48),
+              child: Icon(
+                Icons.change_history_rounded,
+                size: 48,
+                color: context.pelevo.text,
+              ),
             ),
       ),
     ),
   );
+}
+
+class _LightSplashMark extends StatelessWidget {
+  const _LightSplashMark();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 36),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _KnockoutLogo(
+          asset: 'assets/branding/app_icon_foreground.png',
+          width: 148,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'pelevo',
+          style: TextStyle(
+            color: context.pelevo.text,
+            fontSize: 46,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.4,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'New Africa.',
+          style: TextStyle(
+            color: PelevoColors.red,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Discover the World.',
+          style: TextStyle(
+            color: context.pelevo.textMuted,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 20),
+        const _SplashWave(),
+      ],
+    ),
+  );
+}
+
+class _SplashWave extends StatelessWidget {
+  const _SplashWave();
+
+  static const _bars = <(double, Color)>[
+    (7, PelevoColors.red),
+    (16, PelevoColors.red),
+    (10, PelevoColors.orange),
+    (22, PelevoColors.yellow),
+    (12, PelevoColors.yellow),
+    (18, PelevoColors.green),
+    (8, PelevoColors.green),
+    (14, PelevoColors.green),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      for (final bar in _bars)
+        Container(
+          width: 3,
+          height: bar.$1,
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          decoration: BoxDecoration(
+            color: bar.$2,
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+    ],
+  );
+}
+
+/// Drops the black plate baked into the brand artwork so the mark sits on
+/// the light background instead of a dark rectangle.
+class _KnockoutLogo extends StatefulWidget {
+  const _KnockoutLogo({required this.asset, required this.width});
+
+  final String asset;
+  final double width;
+
+  @override
+  State<_KnockoutLogo> createState() => _KnockoutLogoState();
+}
+
+class _KnockoutLogoState extends State<_KnockoutLogo> {
+  ui.Image? _image;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _image?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await rootBundle.load(widget.asset);
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      final source = frame.image;
+      final bytes = await source.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (bytes == null) {
+        source.dispose();
+        return;
+      }
+      final pixels = bytes.buffer.asUint8List();
+      for (var i = 0; i < pixels.length; i += 4) {
+        final maxChannel = _maxChannel(pixels[i], pixels[i + 1], pixels[i + 2]);
+        if (maxChannel < 22) {
+          pixels[i + 3] = 0;
+        } else if (maxChannel < 48) {
+          pixels[i + 3] = (pixels[i + 3] * (maxChannel - 22) / 26).round();
+        }
+      }
+      final completer = Completer<ui.Image>();
+      ui.decodeImageFromPixels(
+        pixels,
+        source.width,
+        source.height,
+        ui.PixelFormat.rgba8888,
+        completer.complete,
+      );
+      final image = await completer.future;
+      source.dispose();
+      if (!mounted) {
+        image.dispose();
+        return;
+      }
+      setState(() => _image = image);
+    } catch (_) {}
+  }
+
+  int _maxChannel(int red, int green, int blue) {
+    var maxChannel = red;
+    if (green > maxChannel) maxChannel = green;
+    if (blue > maxChannel) maxChannel = blue;
+    return maxChannel;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _image;
+    final height = widget.width;
+    if (image == null) return SizedBox(width: widget.width, height: height);
+    return RawImage(
+      image: image,
+      width: widget.width,
+      height: height,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+    );
+  }
 }
 
 class _PortraitIllustration extends StatelessWidget {
@@ -1013,7 +1177,7 @@ class _PortraitIllustration extends StatelessWidget {
       constraints: const BoxConstraints(maxHeight: 285),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(PelevoRadii.large),
-        color: PelevoColors.background,
+        color: context.pelevo.background,
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.asset(
@@ -1051,7 +1215,7 @@ class _OnboardingDots extends StatelessWidget {
                       PelevoColors.green,
                       PelevoColors.red,
                     ][index]
-                    : PelevoColors.border,
+                    : context.pelevo.border,
             borderRadius: BorderRadius.circular(4),
           ),
         ),

@@ -37,7 +37,7 @@ Future<bool> confirmDownloadOnMobileData(BuildContext context) async {
     context: context,
     builder:
         (dialogContext) => AlertDialog(
-          backgroundColor: PelevoColors.surface,
+          backgroundColor: context.pelevo.surface,
           title: const Text('Download on mobile data?'),
           content: const Text(
             'Downloads are set to Wi-Fi only, and this device is using mobile data.',

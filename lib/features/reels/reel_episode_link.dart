@@ -152,7 +152,7 @@ class _LinkedEpisodeSheet extends StatelessWidget {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: PelevoColors.border,
+                  color: context.pelevo.border,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -163,9 +163,9 @@ class _LinkedEpisodeSheet extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Open this episode or link the reel to a different one.',
-              style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+              style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
             ),
             const SizedBox(height: 14),
             InkWell(
@@ -230,7 +230,7 @@ Future<LinkedPodcastEpisode?> showChangeLinkedEpisodeSheet(
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: PelevoColors.border,
+                    color: context.pelevo.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -241,9 +241,9 @@ Future<LinkedPodcastEpisode?> showChangeLinkedEpisodeSheet(
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Choose the podcast episode this reel should open.',
-                style: TextStyle(color: PelevoColors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -280,10 +280,10 @@ class _EpisodePreview extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: PelevoColors.surfaceHigh,
+      color: context.pelevo.surfaceHigh,
       borderRadius: PelevoRadii.card,
       border: Border.all(
-        color: selected ? PelevoColors.purple : PelevoColors.border,
+        color: selected ? PelevoColors.purple : context.pelevo.border,
         width: selected ? 1.5 : 1,
       ),
     ),
@@ -300,7 +300,7 @@ class _EpisodePreview extends StatelessWidget {
                 (_, __, ___) => Container(
                   width: 58,
                   height: 58,
-                  color: PelevoColors.surface,
+                  color: context.pelevo.surface,
                   child: const Icon(Icons.podcasts_rounded),
                 ),
           ),
@@ -319,15 +319,15 @@ class _EpisodePreview extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 episode.show,
-                style: const TextStyle(
-                  color: PelevoColors.textMuted,
+                style: TextStyle(
+                  color: context.pelevo.textMuted,
                   fontSize: 12,
                 ),
               ),
               Text(
                 episode.metadata,
-                style: const TextStyle(
-                  color: PelevoColors.textDim,
+                style: TextStyle(
+                  color: context.pelevo.textDim,
                   fontSize: 11,
                 ),
               ),
@@ -336,7 +336,7 @@ class _EpisodePreview extends StatelessWidget {
         ),
         Icon(
           selected ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-          color: selected ? PelevoColors.purple : PelevoColors.textDim,
+          color: selected ? PelevoColors.purple : context.pelevo.textDim,
         ),
       ],
     ),

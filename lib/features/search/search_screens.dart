@@ -480,11 +480,11 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               ),
           data: (value) {
             if (value.podcasts.isEmpty) {
-              return const Padding(
+              return Padding(
                 padding: EdgeInsets.only(bottom: PelevoSpacing.md),
                 child: Text(
                   'No trending shows are published yet.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 ),
               );
             }
@@ -531,14 +531,14 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
         ),
         const SizedBox(height: PelevoSpacing.sm),
         if (!ready)
-          const Text(
+          Text(
             'Type at least 3 characters to search podcasts.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else if (page == null)
-          const Text(
+          Text(
             'Type at least 3 characters to search podcasts.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           )
         else
           page.when(
@@ -596,9 +596,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               final episodesOnly = ref.watch(searchUiProvider).chip == 2;
               if (episodesOnly) {
                 if (value.episodes.isEmpty) {
-                  return const Text(
+                  return Text(
                     'No matching episodes yet.',
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   );
                 }
                 return Column(
@@ -625,9 +625,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                 );
               }
               if (value.shows.isEmpty) {
-                return const Text(
+                return Text(
                   'No matching podcasts yet.',
-                  style: TextStyle(color: PelevoColors.textMuted),
+                  style: TextStyle(color: context.pelevo.textMuted),
                 );
               }
               return Column(
@@ -644,9 +644,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
           for (final suggestion in page!.asData!.value.suggestions)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
+              leading: Icon(
                 Icons.search_rounded,
-                color: PelevoColors.textMuted,
+                color: context.pelevo.textMuted,
               ),
               title: Text(suggestion),
               onTap: () => _submit(suggestion),
@@ -679,9 +679,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               ),
           data: (items) {
             if (items.isEmpty) {
-              return const Text(
+              return Text(
                 'No recent searches yet.',
-                style: TextStyle(color: PelevoColors.textMuted),
+                style: TextStyle(color: context.pelevo.textMuted),
               );
             }
             return Column(
@@ -729,9 +729,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
           ),
         if (page == null) ...[
           const PelevoSectionHeader(title: 'Podcasts'),
-          const Text(
+          Text(
             'Enter at least 3 characters to search.',
-            style: TextStyle(color: PelevoColors.textMuted),
+            style: TextStyle(color: context.pelevo.textMuted),
           ),
         ] else
           page.when(
@@ -815,11 +815,11 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                 children: [
                   const PelevoSectionHeader(title: 'Podcasts'),
                   if (podcastTiles.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(bottom: PelevoSpacing.md),
                       child: Text(
                         'No matching shows.',
-                        style: TextStyle(color: PelevoColors.textMuted),
+                        style: TextStyle(color: context.pelevo.textMuted),
                       ),
                     )
                   else
@@ -827,9 +827,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                   const SizedBox(height: PelevoSpacing.lg),
                   const PelevoSectionHeader(title: 'Episodes'),
                   if (episodeTiles.isEmpty)
-                    const Text(
+                    Text(
                       'No matching episodes.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     )
                   else
                     ...(podcastTiles.isNotEmpty
@@ -841,9 +841,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                   const SizedBox(height: PelevoSpacing.lg),
                   const PelevoSectionHeader(title: 'Playlists'),
                   if (playlistTiles.isEmpty)
-                    const Text(
+                    Text(
                       'No matching playlists.',
-                      style: TextStyle(color: PelevoColors.textMuted),
+                      style: TextStyle(color: context.pelevo.textMuted),
                     )
                   else
                     ...(podcastTiles.isEmpty && episodeTiles.isEmpty
@@ -869,9 +869,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
         const SizedBox(height: PelevoSpacing.md),
         Text('People', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
+        Text(
           'People search is not available yet.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
       ],
     );
@@ -886,11 +886,11 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
         const SizedBox(height: PelevoSpacing.md),
         Text('Playlists', style: Theme.of(context).textTheme.titleLarge),
         if (page == null)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: PelevoSpacing.sm),
             child: Text(
               'Search to see matching playlists.',
-              style: TextStyle(color: PelevoColors.textMuted),
+              style: TextStyle(color: context.pelevo.textMuted),
             ),
           )
         else
@@ -910,11 +910,11 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                 }),
             data: (value) {
               if (value.playlists.isEmpty) {
-                return const Padding(
+                return Padding(
                   padding: EdgeInsets.only(top: PelevoSpacing.sm),
                   child: Text(
                     'No matching playlists.',
-                    style: TextStyle(color: PelevoColors.textMuted),
+                    style: TextStyle(color: context.pelevo.textMuted),
                   ),
                 );
               }
@@ -972,10 +972,10 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
           color: PelevoColors.yellow,
         ),
         const SizedBox(height: PelevoSpacing.lg),
-        const Text(
+        Text(
           'Voice capture is not available in this build. Type a search instead.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -1078,9 +1078,9 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
           },
         ),
         const SizedBox(height: PelevoSpacing.sm),
-        const Text(
+        Text(
           'Date, unplayed and explicit filters are not offered by search yet. Results still follow your query.',
-          style: TextStyle(color: PelevoColors.textMuted),
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
         const SizedBox(height: PelevoSpacing.lg),
         PelevoButton(
@@ -1196,7 +1196,7 @@ class _SearchCategoryGrid extends StatelessWidget {
       _SearchCategory(
         label: 'More',
         icon: Icons.grid_view_rounded,
-        color: PelevoColors.surfaceHigh,
+        color: context.pelevo.surfaceHigh,
         onTap: () => context.go('/screen/browse'),
       ),
     ],

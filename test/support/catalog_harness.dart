@@ -224,16 +224,22 @@ class CatalogHarness extends StatelessWidget {
           if (request.path == '/earn/episodes') {
             return jsonResponse(earnEpisodesFixture());
           }
-          if (RegExp(r'^/earn/episodes/[^/]+/sessions$').hasMatch(request.path)) {
+          if (RegExp(
+            r'^/earn/episodes/[^/]+/sessions$',
+          ).hasMatch(request.path)) {
             return jsonResponse(
               earnSessionFixture(episodeId: request.path.split('/')[3]),
               status: 201,
             );
           }
-          if (RegExp(r'^/earn/sessions/[^/]+/heartbeat$').hasMatch(request.path)) {
+          if (RegExp(
+            r'^/earn/sessions/[^/]+/heartbeat$',
+          ).hasMatch(request.path)) {
             return jsonResponse({'accepted': true});
           }
-          if (RegExp(r'^/earn/sessions/[^/]+/complete$').hasMatch(request.path)) {
+          if (RegExp(
+            r'^/earn/sessions/[^/]+/complete$',
+          ).hasMatch(request.path)) {
             return jsonResponse(earnAwardFixture(), status: 201);
           }
           if (request.path == '/me/invite') {
@@ -255,7 +261,9 @@ class CatalogHarness extends StatelessWidget {
               meta: {'user_id': 'test-user'},
             );
           }
-          if (RegExp(r'^/me/connected-accounts/[^/]+$').hasMatch(request.path)) {
+          if (RegExp(
+            r'^/me/connected-accounts/[^/]+$',
+          ).hasMatch(request.path)) {
             return jsonResponse({'disconnected': true});
           }
           if (request.path == '/withdrawals') {
@@ -330,24 +338,28 @@ class CatalogHarness extends StatelessWidget {
             return jsonResponse(studioPayoutSettingsFixture());
           }
           if (request.path == '/studio/live') {
-            return jsonResponse(studioLiveFixture(state: 'scheduled'), status: 201);
+            return jsonResponse(
+              studioLiveFixture(state: 'scheduled'),
+              status: 201,
+            );
           }
           if (RegExp(r'^/studio/live/[^/]+$').hasMatch(request.path)) {
             return jsonResponse(studioLiveFixture());
           }
           if (request.path == '/payout-methods') {
             if (request.method == 'POST') {
-              final provider = request.data is Map
-                  ? '${request.data['provider']}'
-                  : 'paystack';
+              final provider =
+                  request.data is Map
+                      ? '${request.data['provider']}'
+                      : 'flutterwave';
               return jsonResponse(
                 provider == 'paypal'
                     ? earnPayoutMethodFixture(
-                        provider: 'paypal',
-                        kind: 'paypal',
-                        label: 'PayPal',
-                        lastFour: '.com',
-                      )
+                      provider: 'paypal',
+                      kind: 'paypal',
+                      label: 'PayPal',
+                      lastFour: '.com',
+                    )
                     : earnPayoutMethodFixture(),
                 status: 201,
               );
@@ -429,10 +441,9 @@ class CatalogHarness extends StatelessWidget {
             });
           }
           if (RegExp(r'^/creators/[^/]+/follow$').hasMatch(request.path)) {
-            return jsonResponse(
-              {'following': request.method == 'POST'},
-              status: request.method == 'POST' ? 201 : 200,
-            );
+            return jsonResponse({
+              'following': request.method == 'POST',
+            }, status: request.method == 'POST' ? 201 : 200);
           }
           if (request.path == '/reels/drafts') {
             if (request.method == 'POST') {
@@ -444,7 +455,9 @@ class CatalogHarness extends StatelessWidget {
             if (request.method == 'DELETE') {
               return jsonResponse({'deleted': true});
             }
-            return jsonResponse(reelDraftFixture(id: request.path.split('/').last));
+            return jsonResponse(
+              reelDraftFixture(id: request.path.split('/').last),
+            );
           }
           if (request.path == '/gifts/wallet') {
             return jsonResponse(giftWalletFixture());
@@ -497,13 +510,14 @@ class CatalogHarness extends StatelessWidget {
             }
             final type = '${request.queryParameters['commentable_type']}';
             return jsonResponse(
-              type == 'reel'
-                  ? reelCommentsFixture()
-                  : episodeCommentsFixture(),
+              type == 'reel' ? reelCommentsFixture() : episodeCommentsFixture(),
             );
           }
           if (request.path == '/reports') {
-            return jsonResponse({'id': 'report-1', 'state': 'open'}, status: 201);
+            return jsonResponse({
+              'id': 'report-1',
+              'state': 'open',
+            }, status: 201);
           }
           if (request.path == '/browse' ||
               request.path == '/browse/categories') {
@@ -515,7 +529,9 @@ class CatalogHarness extends StatelessWidget {
                 id: '2',
                 name: 'Music',
                 slug: 'music',
-                shows: [browseShowFixture(id: 'show-music', title: 'Lagos Mix')],
+                shows: [
+                  browseShowFixture(id: 'show-music', title: 'Lagos Mix'),
+                ],
               ),
             );
           }
@@ -572,9 +588,8 @@ class CatalogHarness extends StatelessWidget {
           }
           if (RegExp(r'^/shows/[^/]+/notifications$').hasMatch(request.path)) {
             return jsonResponse({
-              'notifications_enabled': request.data is Map
-                  ? request.data['enabled'] == true
-                  : false,
+              'notifications_enabled':
+                  request.data is Map ? request.data['enabled'] == true : false,
             });
           }
           if (RegExp(r'^/shows/[^/]+/episodes$').hasMatch(request.path)) {
@@ -876,13 +891,15 @@ class CatalogHarness extends StatelessWidget {
           if (request.path == '/devices') {
             return jsonResponse([syncDeviceFixture()]);
           }
-          if (request.path == '/devices/pairing-code' && request.method == 'POST') {
+          if (request.path == '/devices/pairing-code' &&
+              request.method == 'POST') {
             return jsonResponse(pairingCodeFixture(), status: 201);
           }
           if (request.path == '/devices/pair' && request.method == 'POST') {
             return jsonResponse({'paired': true}, status: 201);
           }
-          if (request.path == '/devices/sign-out-all' && request.method == 'POST') {
+          if (request.path == '/devices/sign-out-all' &&
+              request.method == 'POST') {
             return jsonResponse({'signed_out': true});
           }
           if (RegExp(r'^/devices/[^/]+$').hasMatch(request.path) &&
