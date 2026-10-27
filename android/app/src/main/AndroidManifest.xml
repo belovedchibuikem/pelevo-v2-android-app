@@ -44,7 +44,8 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- App Links: https://pelevo.com/s/... episodes shows reels -->
+            <!-- Verified App Links. HTTPS only: Android 12+ ignores autoVerify
+                 when an http data element shares this filter. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -55,6 +56,7 @@
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/playlists"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/collections"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/reels"/>
+                <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/creator"/>
                 <data android:scheme="https" android:host="pelevo.com" android:pathPrefix="/creators"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/episodes"/>
@@ -62,7 +64,13 @@
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/playlists"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/collections"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/reels"/>
+                <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/creator"/>
                 <data android:scheme="https" android:host="www.pelevo.com" android:pathPrefix="/creators"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="http" android:host="pelevo.com" android:pathPrefix="/s"/>
                 <data android:scheme="http" android:host="pelevo.com" android:pathPrefix="/episodes"/>
             </intent-filter>

@@ -11,6 +11,7 @@ import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/reels/reel_data.dart';
 import 'package:pelevo/features/profile/profile_support_screens.dart';
 import 'package:pelevo/features/profile/support_data.dart';
+import 'package:pelevo/core/deep_links/pelevo_deep_links.dart';
 import 'package:pelevo/features/share_cards/share_link_resolver_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
@@ -57,7 +58,11 @@ bool _isPublicPath(String path, String? screenId) {
       path.startsWith('/s/') ||
       path.startsWith('/episodes/') ||
       path.startsWith('/shows/') ||
-      path.startsWith('/reels/')) {
+      path.startsWith('/playlists/') ||
+      path.startsWith('/collections/') ||
+      path.startsWith('/reels/') ||
+      path.startsWith('/creator/') ||
+      path.startsWith('/creators/')) {
     return true;
   }
   return screenId == 'splash' ||
@@ -66,11 +71,29 @@ bool _isPublicPath(String path, String? screenId) {
           screenId != 'auth-account-created');
 }
 
+String? _openCreatorProfile(BuildContext context, GoRouterState state) {
+  final id = state.pathParameters['id']?.trim() ?? '';
+  if (id.isEmpty) return '/screen/home-feed';
+  ProviderScope.containerOf(
+    context,
+  ).read(selectedCreatorProfileIdProvider.notifier).select(id);
+  return Uri(
+    path: '/screen/creator-profile',
+    queryParameters: {'id': id},
+  ).toString();
+}
+
 final GoRouter pelevoRouter = GoRouter(
   initialLocation: '/screen/splash',
   refreshListenable: PodcastCreatorService.instance,
   observers: [pelevoRouteObserver],
   redirect: (context, state) {
+    // pelevo://creator/{id} has path /{id}. Rewrite it before route matching
+    // gives up with "no routes for location: pelevo://...".
+    if (state.uri.scheme.toLowerCase() == 'pelevo') {
+      final mapped = PelevoDeepLinks.routeLocation(state.uri);
+      if (mapped != null && mapped != state.uri.path) return mapped;
+    }
     final container = ProviderScope.containerOf(context, listen: false);
     final session = container.read(authSessionProvider);
     final preview = kDebugMode && container.read(catalogPreviewProvider);
@@ -172,19 +195,8 @@ final GoRouter pelevoRouter = GoRouter(
         ).toString();
       },
     ),
-    GoRoute(
-      path: '/creators/:id',
-      redirect: (context, state) {
-        final id = state.pathParameters['id']!;
-        ProviderScope.containerOf(
-          context,
-        ).read(selectedCreatorProfileIdProvider.notifier).select(id);
-        return Uri(
-          path: '/screen/creator-profile',
-          queryParameters: {'id': id},
-        ).toString();
-      },
-    ),
+    GoRoute(path: '/creators/:id', redirect: _openCreatorProfile),
+    GoRoute(path: '/creator/:id', redirect: _openCreatorProfile),
     if (kDebugMode)
       GoRoute(
         path: '/catalog',

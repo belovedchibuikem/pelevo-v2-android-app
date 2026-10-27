@@ -42,7 +42,11 @@ abstract final class PelevoDeepLinks {
   }
 
   /// Converts an incoming URI into a go_router location.
-  static Future<String?> locationFor(Uri uri) async {
+  ///
+  /// Custom schemes such as `pelevo://creator/{id}` use the host as the kind
+  /// and the path as the id. go_router matches [Uri.path] only, so that link
+  /// must be rewritten to `/creators/{id}` before routing.
+  static String? routeLocation(Uri uri) {
     final scheme = uri.scheme.toLowerCase();
     if (scheme == 'pelevo') {
       return _fromCustomScheme(uri);
@@ -52,6 +56,8 @@ abstract final class PelevoDeepLinks {
     }
     return null;
   }
+
+  static Future<String?> locationFor(Uri uri) async => routeLocation(uri);
 
   static String? _fromCustomScheme(Uri uri) {
     final host = uri.host.toLowerCase();
@@ -76,7 +82,7 @@ abstract final class PelevoDeepLinks {
     };
   }
 
-  static Future<String?> _fromHttps(Uri uri) async {
+  static String? _fromHttps(Uri uri) {
     final host = uri.host.toLowerCase();
     if (host != 'pelevo.com' &&
         host != 'www.pelevo.com' &&

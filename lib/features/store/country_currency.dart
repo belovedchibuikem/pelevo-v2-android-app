@@ -5,6 +5,36 @@
 String currencyForCountry(String countryCode) =>
     _currency[countryCode.trim().toUpperCase()] ?? 'USD';
 
+/// A readable country for profile details. Unknown codes stay as the code.
+String countryLabel(String? countryCode) {
+  final code = countryCode?.trim().toUpperCase() ?? '';
+  if (!RegExp(r'^[A-Z]{2}$').hasMatch(code)) return 'Not set';
+  return _countryNames[code] ?? code;
+}
+
+const _countryNames = <String, String>{
+  'CA': 'Canada',
+  'CI': 'Côte d’Ivoire',
+  'CM': 'Cameroon',
+  'DE': 'Germany',
+  'EG': 'Egypt',
+  'ET': 'Ethiopia',
+  'FR': 'France',
+  'GB': 'United Kingdom',
+  'GH': 'Ghana',
+  'IN': 'India',
+  'KE': 'Kenya',
+  'MA': 'Morocco',
+  'NG': 'Nigeria',
+  'RW': 'Rwanda',
+  'SN': 'Senegal',
+  'TZ': 'Tanzania',
+  'UG': 'Uganda',
+  'US': 'United States',
+  'ZA': 'South Africa',
+  'ZM': 'Zambia',
+};
+
 const _currency = <String, String>{
   'AD': 'EUR',
   'AE': 'AED',

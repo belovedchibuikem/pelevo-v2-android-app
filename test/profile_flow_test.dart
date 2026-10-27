@@ -189,7 +189,7 @@ void main() {
       );
       expect(find.text('Test listener'), findsOneWidget);
       expect(find.text('listener@example.invalid'), findsOneWidget);
-      expect(find.text('NG'), findsOneWidget);
+      expect(find.text('Nigeria'), findsOneWidget);
       expect(find.text('Not set'), findsOneWidget);
       expect(find.text('+234 801 234 5678'), findsNothing);
     },

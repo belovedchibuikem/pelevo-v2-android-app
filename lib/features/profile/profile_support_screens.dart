@@ -14,6 +14,7 @@ import 'package:pelevo/features/authentication/social_auth.dart';
 import 'package:pelevo/features/profile/connected_accounts_data.dart';
 import 'package:pelevo/features/profile/invite_data.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
+import 'package:pelevo/features/store/country_currency.dart';
 import 'package:pelevo/features/profile/profile_widgets.dart';
 import 'package:pelevo/features/reels/reel_ad_service.dart';
 import 'package:pelevo/features/reels/reel_data.dart';
@@ -21,6 +22,17 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
+
+bool _fieldOwnsMessage(ApiFailure failure) {
+  const keys = ['name', 'handle', 'bio'];
+  final shown = [
+    for (final key in keys)
+      if ((failure.fields[key] ?? '').trim().isNotEmpty)
+        failure.fields[key]!.trim(),
+  ];
+  if (shown.isEmpty) return false;
+  return shown.join('\n') == failure.message.trim();
+}
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -200,7 +212,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                           ),
                           const SizedBox(height: PelevoSpacing.xl),
                           if (_saving) const LinearProgressIndicator(),
-                          if (_failure != null)
+                          if (_failure != null && !_fieldOwnsMessage(_failure!))
                             Padding(
                               padding: const EdgeInsets.only(
                                 bottom: PelevoSpacing.sm,
@@ -697,7 +709,7 @@ class ProfilePersonalInfoScreen extends ConsumerWidget {
                     _AboutRow(label: 'Phone', value: user.phone ?? 'Not set'),
                     _AboutRow(
                       label: 'Country',
-                      value: user.countryCode ?? 'Not set',
+                      value: countryLabel(user.countryCode),
                     ),
                     _AboutRow(
                       label: 'Language',

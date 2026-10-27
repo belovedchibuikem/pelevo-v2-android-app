@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
+import 'package:pelevo/features/authentication/signup_country.dart';
 
 /// Strips @ / spaces and lowercases a public handle for registration.
 String? normalizeHandle(String? value) {
@@ -235,14 +236,14 @@ class AuthRepository {
     final normalizedHandle = normalizeHandle(handle);
     final response = await _dio.post<dynamic>(
       '/auth/register',
-      data: {
+      data: await _withCountry({
         'name': name.trim(),
         if (normalizedHandle != null) 'handle': normalizedHandle,
         'email': email.trim().toLowerCase(),
         'password': password,
         'password_confirmation': confirmation,
         'device_name': await _deviceName(),
-      },
+      }),
     );
     final data = requireApiData(asApiJsonMap(response.data));
     if (data['verification_required'] != true) {
@@ -259,11 +260,11 @@ class AuthRepository {
   }) async {
     final response = await _dio.post<dynamic>(
       '/auth/login',
-      data: {
+      data: await _withCountry({
         'email': email.trim().toLowerCase(),
         'password': password,
         'device_name': await _deviceName(),
-      },
+      }),
     );
     return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
   }
@@ -317,12 +318,12 @@ class AuthRepository {
   }) async {
     final response = await _dio.post<dynamic>(
       '/auth/otp/verify',
-      data: {
+      data: await _withCountry({
         'email': email.trim().toLowerCase(),
         'code': code,
         'purpose': purpose == 'email_verification' ? purpose : 'login',
         'device_name': await _deviceName(),
-      },
+      }),
     );
     return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
   }
@@ -334,14 +335,20 @@ class AuthRepository {
   }) async {
     final response = await _dio.post<dynamic>(
       '/auth/social',
-      data: {
+      data: await _withCountry({
         'provider': provider,
         'token': token,
         if (nonce != null && nonce.isNotEmpty) 'nonce': nonce,
         'device_name': await _deviceName(),
-      },
+      }),
     );
     return AuthSignIn.fromApi(requireApiData(asApiJsonMap(response.data)));
+  }
+
+  Future<Map<String, dynamic>> _withCountry(Map<String, dynamic> data) async {
+    final country = await detectSignupCountry();
+    if (country != null) data['country_code'] = country;
+    return data;
   }
 
   Future<String> _deviceName() async {

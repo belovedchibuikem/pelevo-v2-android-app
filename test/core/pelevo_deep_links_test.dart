@@ -21,5 +21,17 @@ void main() {
       ),
       '/creators/ada_creator',
     );
+    expect(
+      PelevoDeepLinks.routeLocation(Uri.parse('pelevo://playlist/playlist-1')),
+      '/playlists/playlist-1',
+    );
+    expect(
+      PelevoDeepLinks.routeLocation(Uri.parse('pelevo://reel/reel-1')),
+      '/reels/reel-1',
+    );
+    expect(
+      PelevoDeepLinks.routeLocation(Uri.parse('pelevo://episode/episode-1')),
+      '/episodes/episode-1',
+    );
   });
 }

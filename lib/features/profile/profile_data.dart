@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/authentication/signup_country.dart';
 
 const _invalidProfile = ApiFailure(
   code: 'INVALID_RESPONSE',
@@ -210,6 +211,19 @@ class ProfileRepository {
     );
   }
 
+  Future<UserProfile> saveCountry(UserProfile previous, String countryCode) async {
+    requireApiData(
+      (await dio.patch<Map<String, dynamic>>(
+        '/me',
+        data: {'country_code': countryCode},
+      )).data,
+    );
+    return UserProfile.fromApi({
+      ...previous.toApi(),
+      'country_code': countryCode,
+    });
+  }
+
   Future<EarnBalance> balance({CancelToken? cancelToken}) async =>
       EarnBalance.fromApi(
         requireApiData(
@@ -233,7 +247,16 @@ class ProfileController extends AsyncNotifier<UserProfile> {
     ref.watch(authSessionProvider.select((session) => session.userId));
     final token = CancelToken();
     ref.onDispose(() => token.cancel());
-    return ref.read(profileRepositoryProvider).fetch(cancelToken: token);
+    final loaded = await ref.read(profileRepositoryProvider).fetch(cancelToken: token);
+    final country = loaded.countryCode?.trim();
+    if (country != null && country.isNotEmpty) return loaded;
+    final detected = await detectSignupCountry();
+    if (detected == null || !ref.mounted) return loaded;
+    try {
+      return await ref.read(profileRepositoryProvider).saveCountry(loaded, detected);
+    } on ApiFailure {
+      return loaded;
+    }
   }
 
   Future<void> saveProfile({

@@ -8,6 +8,40 @@ import 'package:pelevo/features/creator/creator_studio_screens.dart';
 import '../support/api_adapter.dart';
 
 void main() {
+  testWidgets('custom scheme creator and playlist links have routes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: PelevoApp()));
+    pelevoRouter.go('pelevo://creator/creator-1');
+    await tester.pump();
+    final creator = pelevoRouter.routeInformationProvider.value.uri;
+    expect(creator.path, '/screen/creator-profile');
+    expect(creator.queryParameters['id'], 'creator-1');
+
+    pelevoRouter.go('https://pelevo.com/creator/ada_creator');
+    await tester.pump();
+    final httpsCreator = pelevoRouter.routeInformationProvider.value.uri;
+    expect(httpsCreator.path, '/screen/creator-profile');
+    expect(httpsCreator.queryParameters['id'], 'ada_creator');
+
+    pelevoRouter.go('pelevo://playlist/playlist-1');
+    await tester.pump();
+    final playlist = pelevoRouter.routeInformationProvider.value.uri;
+    expect(playlist.path, '/screen/library-3');
+    expect(playlist.queryParameters['id'], 'playlist-1');
+
+    pelevoRouter.go('/playlists/playlist-2');
+    await tester.pump();
+    expect(
+      pelevoRouter.routeInformationProvider.value.uri.queryParameters['id'],
+      'playlist-2',
+    );
+    expect(
+      pelevoRouter.routerDelegate.currentConfiguration.isError,
+      isFalse,
+    );
+  });
+
   testWidgets(
     'signed-out content links preserve their destination through sign-in',
     (tester) async {

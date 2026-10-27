@@ -147,7 +147,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           path.startsWith('/screen/') ||
           path.startsWith('/episodes/') ||
           path.startsWith('/shows/') ||
+          path.startsWith('/playlists/') ||
+          path.startsWith('/collections/') ||
           path.startsWith('/reels/') ||
+          path.startsWith('/creator/') ||
           path.startsWith('/creators/') ||
           path.startsWith('/s/');
       context.go(
