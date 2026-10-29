@@ -41,7 +41,8 @@ android {
 
     defaultConfig {
         applicationId = "com.Podemeraldltd.pelevo"
-        minSdk = maxOf(flutter.minSdkVersion, 23)
+        // Play Automatic Protection requires minSdk 24+.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -65,11 +66,22 @@ android {
                 "ca-app-pub-3940256099942544~3347511713"
         }
         release {
+            val playUploadRequested =
+                gradle.startParameter.taskNames.any { task ->
+                    val name = task.lowercase()
+                    name.contains("bundlerelease") ||
+                        name.contains("assemblerelease") ||
+                        (name.contains("bundle") && name.contains("release"))
+                }
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
+            } else if (playUploadRequested) {
+                throw GradleException(
+                    "android/key.properties is required for Play Store release builds. " +
+                        "Copy android/key.properties.example and point storeFile at your upload keystore.",
+                )
             } else {
-                // Falls back to debug so local `flutter run --release` still works.
-                // Production Play uploads require android/key.properties + a release keystore.
+                // Local `flutter run --release` only — never upload a debug-signed AAB/APK.
                 signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true

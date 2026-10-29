@@ -233,6 +233,98 @@ class ProfileRepository {
           )).data,
         ),
       );
+
+  /// Queues a personal data export (NDPR / store account-deletion companion).
+  Future<PrivacyExportRequest> requestDataExport() async =>
+      PrivacyExportRequest.fromApi(
+        requireApiData(
+          (await dio.post<Map<String, dynamic>>('/me/data-export')).data,
+        ),
+      );
+
+  Future<PrivacyExportRequest> dataExportStatus(String id) async =>
+      PrivacyExportRequest.fromApi(
+        requireApiData(
+          (await dio.get<Map<String, dynamic>>('/me/data-export/$id')).data,
+        ),
+      );
+
+  /// Schedules account anonymization (typically after a 30-day cooling-off).
+  Future<AccountDeletionRequest> requestAccountDeletion({
+    String? password,
+    String? confirmation,
+    String? reason,
+  }) async =>
+      AccountDeletionRequest.fromApi(
+        requireApiData(
+          (await dio.post<Map<String, dynamic>>(
+            '/me/delete',
+            data: {
+              if (password != null && password.isNotEmpty) 'password': password,
+              if (confirmation != null && confirmation.isNotEmpty)
+                'confirmation': confirmation,
+              if (reason != null && reason.trim().isNotEmpty)
+                'reason': reason.trim(),
+            },
+          )).data,
+        ),
+      );
+}
+
+class PrivacyExportRequest {
+  const PrivacyExportRequest({
+    required this.id,
+    required this.state,
+    this.downloadUrl,
+    this.completedAt,
+    this.expiresAt,
+  });
+
+  factory PrivacyExportRequest.fromApi(Map<String, dynamic> data) {
+    final id = data['id'];
+    final state = data['state'];
+    if (id is! String || id.isEmpty || state is! String || state.isEmpty) {
+      throw _invalidProfile;
+    }
+    return PrivacyExportRequest(
+      id: id,
+      state: state,
+      downloadUrl: _optionalText(data, 'download_url'),
+      completedAt: _optionalText(data, 'completed_at'),
+      expiresAt: _optionalText(data, 'expires_at'),
+    );
+  }
+
+  final String id;
+  final String state;
+  final String? downloadUrl;
+  final String? completedAt;
+  final String? expiresAt;
+}
+
+class AccountDeletionRequest {
+  const AccountDeletionRequest({
+    required this.id,
+    required this.state,
+    this.scheduledFor,
+  });
+
+  factory AccountDeletionRequest.fromApi(Map<String, dynamic> data) {
+    final id = data['id'];
+    final state = data['state'];
+    if (id is! String || id.isEmpty || state is! String || state.isEmpty) {
+      throw _invalidProfile;
+    }
+    return AccountDeletionRequest(
+      id: id,
+      state: state,
+      scheduledFor: _optionalText(data, 'scheduled_for'),
+    );
+  }
+
+  final String id;
+  final String state;
+  final String? scheduledFor;
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>(

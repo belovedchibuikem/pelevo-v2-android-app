@@ -77,18 +77,6 @@ void main() {
           builder: (_, _) => const CreatorGoLiveScreen(),
         ),
         GoRoute(
-          path: '/screen/creator-tax-information',
-          builder: (_, _) => const CreatorTaxInformationScreen(),
-        ),
-        GoRoute(
-          path: '/screen/creator-payout-currency',
-          builder: (_, _) => const CreatorPayoutCurrencyScreen(),
-        ),
-        GoRoute(
-          path: '/screen/creator-payout-schedule',
-          builder: (_, _) => const CreatorPayoutScheduleScreen(),
-        ),
-        GoRoute(
           path: '/screen/claim-method',
           builder: (_, _) => const ClaimMethodScreen(),
         ),
@@ -580,7 +568,10 @@ void main() {
 
       expect(find.text('Access Bank'), findsOneWidget);
       expect(find.text('•••• 1234'), findsOneWidget);
-      expect(find.text('NGN'), findsOneWidget);
+      expect(find.text('Tax Information'), findsNothing);
+      expect(find.text('Payout Schedule'), findsNothing);
+      expect(find.text('Payout Currency'), findsNothing);
+      expect(find.text('Automatic Payout'), findsNothing);
       expect(find.text('Noble Stan'), findsNothing);
       expect(find.text('Access Bank PLC'), findsNothing);
       expect(find.text('₦72,430.00'), findsNothing);
@@ -805,36 +796,6 @@ void main() {
     expect(find.text('Live room started'), findsNothing);
   });
 
-  testWidgets('tax currency and schedule save server slices without naira', (
-    tester,
-  ) async {
-    late RequestOptions tax;
-    tester.view.physicalSize = const Size(430, 1800);
-    await mount(
-      tester,
-      location: '/screen/creator-tax-information',
-      adapter: ApiAdapter((request) {
-        if (request.path == '/studio/payout-settings' &&
-            request.method == 'PUT') {
-          tax = request;
-          return jsonResponse(studioPayoutSettingsFixture());
-        }
-        return workspaceAdapter().fetch(request, null, null);
-      }),
-    );
-
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'NG');
-    await tester.enterText(fields.at(1), 'Ada Owner');
-    await tester.enterText(fields.at(2), 'TIN-1');
-    await tester.ensureVisible(find.text('Save Tax Information'));
-    await tester.tap(find.text('Save Tax Information'));
-    await tester.pumpAndSettle();
-    expect(tax.data['country_code'], 'NG');
-    expect(tax.data['tax_details']['legal_name'], 'Ada Owner');
-    expect(find.text('Payout Settings'), findsOneWidget);
-  });
-
   testWidgets('studios list claimed shows instead of seeded podcasts', (
     tester,
   ) async {
@@ -873,35 +834,6 @@ void main() {
     expect(find.text('Verify Ownership'), findsOneWidget);
   });
 
-  testWidgets('payout schedule saves ledger units instead of naira', (
-    tester,
-  ) async {
-    late RequestOptions saved;
-    tester.view.physicalSize = const Size(430, 1800);
-    await mount(
-      tester,
-      location: '/screen/creator-payout-schedule',
-      adapter: ApiAdapter((request) {
-        if (request.path == '/studio/payout-settings' &&
-            request.method == 'PUT') {
-          saved = request;
-          return jsonResponse(studioPayoutSettingsFixture());
-        }
-        return workspaceAdapter().fetch(request, null, null);
-      }),
-    );
-
-    expect(find.text('10000 PCN'), findsOneWidget);
-    expect(find.textContaining('₦'), findsNothing);
-    await tester.tap(find.text('Every 7 days'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Save Payout Schedule'));
-    await tester.tap(find.text('Save Payout Schedule'));
-    await tester.pumpAndSettle();
-    expect(saved.data['schedule'], 'weekly');
-    expect(saved.data['minimum_amount'], 10000);
-    expect(find.text('Payout Settings'), findsOneWidget);
-  });
 }
 
 class _ProofFilePicker extends FilePickerPlatform {

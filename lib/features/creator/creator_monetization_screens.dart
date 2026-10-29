@@ -580,11 +580,7 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
         data: (value) {
           final balance = value.monetization.primaryBalance;
           final method = value.selectedMethod;
-          final tax = value.taxProfile;
-          final currency =
-              value.config.adPayoutCurrency ?? value.config.currency;
           final minimum = value.config.minimumAmount;
-          final schedule = value.config.schedule;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -689,83 +685,6 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                       onTap: () => context.push('/screen/creator-add-payout'),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _SettingsSection(
-                title: 'Payout Schedule',
-                subtitle: 'Set how often you want to receive payouts',
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(
-                        Icons.calendar_month_outlined,
-                        color: PelevoColors.green,
-                      ),
-                      title: const Text('Automatic Payout'),
-                      subtitle: Text(
-                        schedule == null || schedule.isEmpty
-                            ? 'Payout schedule is not set yet'
-                            : 'Schedule: $schedule${minimum == null ? '' : '\nMinimum: $minimum ${balance?.unit ?? ''}'.trim()}',
-                      ),
-                      trailing: const Text(
-                        'Recommended  ›',
-                        style: TextStyle(
-                          color: PelevoColors.green,
-                          fontSize: 10,
-                        ),
-                      ),
-                      onTap:
-                          () => context.push('/screen/creator-payout-schedule'),
-                    ),
-                    const Divider(),
-                    const ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        Icons.info_outline_rounded,
-                        color: PelevoColors.green,
-                      ),
-                      title: Text(
-                        'Payouts use your saved method after finance review. This screen does not invent a payout date.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _SettingsSection(
-                title: 'Tax Information',
-                subtitle: 'Update your tax information for accurate payouts',
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Tax Information'),
-                  trailing: Text(
-                    tax == null || !tax.added
-                        ? 'Not added  ›'
-                        : '${tax.countryCode}  ›',
-                    style: TextStyle(
-                      color:
-                          tax == null || !tax.added
-                              ? PelevoColors.red
-                              : PelevoColors.green,
-                    ),
-                  ),
-                  onTap: () => context.push('/screen/creator-tax-information'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _SettingsSection(
-                title: 'Payout Currency',
-                subtitle: 'Choose USD or NGN for future ad-revenue releases',
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    currency == null || currency.isEmpty ? 'Not set' : currency,
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/screen/creator-payout-currency'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1050,18 +969,6 @@ class _CreatorAddPayoutMethodScreenState
                 ),
               ],
             ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        _SettingsSection(
-          title: 'Payout Currency',
-          subtitle: 'Currency',
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Text('🇳🇬', style: TextStyle(fontSize: 23)),
-            title: const Text('NGN - Nigerian Naira'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => context.push('/screen/creator-payout-currency'),
           ),
         ),
         const SizedBox(height: 16),

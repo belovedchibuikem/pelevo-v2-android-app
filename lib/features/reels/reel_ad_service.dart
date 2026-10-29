@@ -46,6 +46,14 @@ abstract final class ReelAds {
       }
     }
     await MobileAds.instance.initialize();
+    // Pelevo is 13+ generally; Earn/gifts/cashout are 18+. Not child-directed.
+    await MobileAds.instance.updateRequestConfiguration(
+      RequestConfiguration(
+        maxAdContentRating: MaxAdContentRating.pg,
+        tagForChildDirectedTreatment: TagForChildDirectedTreatment.no,
+        tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.no,
+      ),
+    );
     return true;
   }
 

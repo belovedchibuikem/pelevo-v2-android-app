@@ -28,6 +28,7 @@ import 'package:pelevo/features/onboarding/onboarding_progress.dart';
 import 'package:pelevo/features/notifications/notification_router.dart';
 import 'package:pelevo/features/notifications/firebase_push.dart';
 import 'package:pelevo/features/permissions/permission_screens.dart';
+import 'package:pelevo/features/profile/privacy_account_screens.dart';
 import 'package:pelevo/features/profile/profile_screens.dart';
 import 'package:pelevo/features/profile/profile_support_screens.dart';
 import 'package:pelevo/features/reels/create_reel_screens.dart';
@@ -408,6 +409,12 @@ final List<PelevoScreenSpec> entryFlowScreens = [
     title: 'Connected Accounts',
     builder: _buildProfileConnected,
   ),
+  const PelevoScreenSpec(
+    id: 'profile-privacy',
+    section: 'Profile & Settings',
+    title: 'Privacy & data',
+    builder: _buildProfilePrivacy,
+  ),
 ];
 
 Widget _buildSplash(BuildContext context) => const SplashScreen();
@@ -576,6 +583,8 @@ Widget _buildProfileInvite(BuildContext context) => const ProfileInviteScreen();
 Widget _buildProfileAbout(BuildContext context) => const ProfileAboutScreen();
 Widget _buildProfilePersonal(BuildContext context) =>
     const ProfilePersonalInfoScreen();
+Widget _buildProfilePrivacy(BuildContext context) =>
+    const PrivacyDataScreen();
 Widget _buildProfilePassword(BuildContext context) =>
     const ProfileChangePasswordScreen();
 Widget _buildProfileEmail(BuildContext context) =>

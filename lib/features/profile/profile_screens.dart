@@ -427,6 +427,12 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
                     subtitle: 'Google and Apple',
                     onTap: () => context.push('/screen/profile-connected'),
                   ),
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy & data',
+                    subtitle: 'Export data or delete your account',
+                    onTap: () => context.push('/screen/profile-privacy'),
+                  ),
                   const _SectionLabel('Appearance'),
                   const _AppearanceTile(),
                   const _SectionLabel('Playback'),

@@ -156,7 +156,8 @@ class PelevoLocalNotifications {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // Inexact avoids Play's SCHEDULE_EXACT_ALARM special-access declaration.
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     );
   }
 

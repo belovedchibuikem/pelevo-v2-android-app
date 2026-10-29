@@ -20,8 +20,12 @@ void main() {
         ])}',
       );
     }
-    expect(pelevoScreens, hasLength(352));
-    expect(pelevoScreens.map((screen) => screen.id).toSet(), hasLength(352));
+    expect(pelevoScreens, hasLength(350));
+    expect(pelevoScreens.map((screen) => screen.id).toSet(), hasLength(350));
+    final screenIds = pelevoScreens.map((screen) => screen.id).toSet();
+    expect(screenIds.contains('creator-tax-information'), isFalse);
+    expect(screenIds.contains('creator-payout-currency'), isFalse);
+    expect(screenIds.contains('creator-payout-schedule'), isFalse);
   });
 
   test('every literal screen route targets a registered screen', () {
@@ -1032,7 +1036,7 @@ void main() {
   testWidgets('Creator audience and management workflows are registered', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(430, 980);
+    tester.view.physicalSize = const Size(520, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -1054,14 +1058,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Start a live conversation'), findsOneWidget);
     expect(find.text('Go Live Now'), findsOneWidget);
-
-    pelevoRouter.go('/screen/creator-tax-information');
-    await tester.pumpAndSettle();
-    expect(find.text('Save Tax Information'), findsOneWidget);
-
-    pelevoRouter.go('/screen/creator-payout-currency');
-    await tester.pumpAndSettle();
-    expect(find.text('Save Currency'), findsOneWidget);
   });
 
   testWidgets('reel creation requires a claimed podcast', (tester) async {

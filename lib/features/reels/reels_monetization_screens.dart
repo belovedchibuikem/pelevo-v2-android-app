@@ -751,13 +751,6 @@ class _MonetizedDashboardView extends StatelessWidget {
                   ),
             ),
             _ToolTile(
-              icon: Icons.receipt_long_outlined,
-              title: 'Tax Information',
-              subtitle: 'Manage tax forms for creator earnings',
-              onTap:
-                  () => context.push('/screen/creator-tax-information'),
-            ),
-            _ToolTile(
               icon: Icons.tune_rounded,
               title: 'Monetization Settings',
               subtitle: 'Notifications and creator preferences',

@@ -1,5 +1,7 @@
 # Pelevo release checklist
 
+Full Play / App Store upload checklist (signing, privacy forms, IAP, ads, smoke tests): see [docs/STORE_RELEASE.md](docs/STORE_RELEASE.md).
+
 ## Required dart-defines (release)
 
 ```bash

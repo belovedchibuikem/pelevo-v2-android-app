@@ -86,7 +86,7 @@ class GiftWalletService extends ChangeNotifier {
   GiftPurchaseVerifier? _verifier;
   Completer<GiftPurchaseStage>? _purchaseCompleter;
 
-  int _balance = 1250;
+  int _balance = 0;
   GiftPurchaseStage _purchaseStage = GiftPurchaseStage.idle;
   Map<String, StorefrontPrice>? _quoteOverride;
   String? _purchaseError;
@@ -123,7 +123,8 @@ class GiftWalletService extends ChangeNotifier {
   }) async {
     _preferences = preferences;
     _verifier = verifier;
-    _balance = preferences.getInt(_balanceKey) ?? 1250;
+    // Local cache is never a free grant — server wallet is authoritative.
+    _balance = preferences.getInt(_balanceKey) ?? 0;
     if (!_isMobileStore) {
       _storeAvailable = true;
       return;
