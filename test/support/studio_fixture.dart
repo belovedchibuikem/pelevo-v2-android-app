@@ -85,6 +85,7 @@ Map<String, dynamic> studioMonetizationFixture({
   int giftsReceived = 1,
   int payoutsCount = 0,
   int balance = 90,
+  int giftCoins = 300,
 }) => {
   'gifts_received': giftsReceived,
   'payouts_count': payoutsCount,
@@ -97,6 +98,22 @@ Map<String, dynamic> studioMonetizationFixture({
       'balance': balance,
     },
   ],
+  'diamonds': {
+    'balance': giftCoins,
+    'min_cashout_diamonds': 2417,
+    'quotes': {
+      'USD': {'gross_minor': 38, 'net_minor': 38, 'payable': false},
+    },
+    'display': {
+      'currency': 'USD',
+      'display_available': '\$0.38 USD',
+    },
+  },
+  'ad_clearance': {
+    'available_usd': '\$0.00',
+    'cleared_ad_usd': '\$0.00',
+    'display_available': '\$0.00 USD',
+  },
   'ad_revenue_allocations': const <Map<String, dynamic>>[],
   'currency_conversions': const <Map<String, dynamic>>[],
   'tax_profiles': [
@@ -107,6 +124,44 @@ Map<String, dynamic> studioMonetizationFixture({
       'state': 'pending',
     },
   ],
+};
+
+Map<String, dynamic> creatorWithdrawalWorkspaceFixture({
+  bool verified = true,
+  int giftCoins = 300,
+  int availableUsdCents = 0,
+}) => {
+  'gifts': {
+    'balance': giftCoins,
+    'min_cashout_diamonds': 2417,
+    'threshold_usd': '\$15.00',
+    'threshold_usd_cents': 1500,
+    'eligible': false,
+    'quotes': {
+      'USD': {'gross_minor': 38, 'net_minor': 38, 'payable': false},
+    },
+    'display': {
+      'currency': 'NGN',
+      'display_available': '₦570.00',
+    },
+  },
+  'ads': {
+    'available_usd': '\$0.00',
+    'available_usd_cents': availableUsdCents,
+    'threshold_usd': '\$100.00',
+    'threshold_usd_cents': 10000,
+    'eligible': availableUsdCents >= 10000,
+    'scope': 'all_claimed_podcasts',
+    'display_available': '\$0.00 USD',
+  },
+  'payout_methods': [
+    if (verified) studioPayoutMethodFixture(),
+  ],
+  'has_verified_payout_method': verified,
+  'payout_currency': verified ? 'NGN' : null,
+  'manual_payout': true,
+  'note':
+      'Withdrawals are requested by you and paid by Pelevo finance. Nothing is sent automatically.',
 };
 
 Map<String, dynamic> studioTransactionFixture({

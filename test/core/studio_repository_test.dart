@@ -66,6 +66,8 @@ void main() {
       expect(money.giftsReceived, 1);
       expect(money.payoutsCount, 0);
       expect(money.primaryBalance?.balance, 90);
+      expect(money.gifts.balance, 300);
+      expect(money.gifts.moneyLabel, '\$0.38 USD');
       expect(money.taxProfiles.single.countryCode, 'NG');
 
       final page = await repository.transactions(

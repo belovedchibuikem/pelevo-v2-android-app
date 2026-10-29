@@ -837,8 +837,22 @@ class CreatorStudioScreen extends ConsumerWidget {
                     Icons.monetization_on_outlined,
                     PelevoColors.purple,
                     'Monetize your content',
-                    'Earn from gifts, tips and more',
+                    'Earn from gifts, ads and tips across all claimed podcasts',
                     () => context.push('/screen/creator-monetization'),
+                  ),
+                  _CreatorAction(
+                    Icons.payments_outlined,
+                    PelevoColors.green,
+                    'Request withdrawal',
+                    'Withdraw gift earnings (from \$15) or ads (from \$100)',
+                    () => context.push('/screen/creator-withdraw'),
+                  ),
+                  _CreatorAction(
+                    Icons.account_balance_rounded,
+                    PelevoColors.yellow,
+                    'Payout settings',
+                    'One payout account for all podcasts and gifts',
+                    () => context.push('/screen/creator-payout-settings'),
                   ),
                 ],
               );

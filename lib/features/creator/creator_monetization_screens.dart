@@ -11,7 +11,9 @@ import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/compliance/age_majority_gate.dart';
+import 'package:pelevo/features/creator/creator_withdrawal_data.dart';
 import 'package:pelevo/features/creator/studio_data.dart';
+import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
@@ -46,6 +48,12 @@ final List<PelevoScreenSpec> creatorMonetizationScreens = List.unmodifiable([
     title: 'Add Payout Method',
     builder: _buildAddPayout,
   ),
+  const PelevoScreenSpec(
+    id: 'creator-withdraw',
+    section: 'Creator Monetization',
+    title: 'Request Withdrawal',
+    builder: _buildWithdraw,
+  ),
 ]);
 
 Widget _buildOverview(BuildContext context) =>
@@ -58,6 +66,8 @@ Widget _buildPayoutSettings(BuildContext context) =>
     const CreatorPayoutSettingsScreen();
 Widget _buildAddPayout(BuildContext context) =>
     const CreatorAddPayoutMethodScreen();
+Widget _buildWithdraw(BuildContext context) =>
+    const CreatorWithdrawScreen();
 
 class CreatorMonetizationScreen extends ConsumerStatefulWidget {
   const CreatorMonetizationScreen({super.key});
@@ -145,11 +155,18 @@ class _CreatorMonetizationScreenState
                   Expanded(
                     child: _MoneyMetric(
                       title: 'Gifts (Coins)',
-                      value: period == null ? '—' : '${period.giftCoins}',
+                      value:
+                          period == null
+                              ? '—'
+                              : (value.gifts.balance > 0
+                                  ? '${value.gifts.balance}'
+                                  : '${period.giftCoins}'),
                       caption:
                           period == null
                               ? null
-                              : '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'} received',
+                              : value.gifts.moneyLabel == null
+                              ? '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'} received'
+                              : '≈ ${value.gifts.moneyLabel} · ${period.giftCount} gift${period.giftCount == 1 ? '' : 's'}',
                       accent: PelevoColors.yellow,
                     ),
                   ),
@@ -239,10 +256,20 @@ class _CreatorMonetizationScreenState
                 ),
                 const SizedBox(height: 10),
               ],
-              _BreakdownCard(period: period, balance: value.primaryBalance),
+              _BreakdownCard(
+                period: period,
+                balance: value.primaryBalance,
+                gifts: value.gifts,
+                adAvailableLabel: value.adAvailableLabel ?? value.adAvailableUsd,
+              ),
               const SizedBox(height: 10),
               _SupportersCard(page: supporterPage),
               const SizedBox(height: 10),
+              _NavigationCard(
+                icon: Icons.payments_outlined,
+                label: 'Request Withdrawal',
+                onTap: () => context.push('/screen/creator-withdraw'),
+              ),
               _NavigationCard(
                 icon: Icons.receipt_long_outlined,
                 label: 'Transaction History',
@@ -561,9 +588,12 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final payout = ref.watch(studioPayoutWorkspaceProvider);
+    final back =
+        GoRouterState.of(context).uri.queryParameters['return'] ??
+        '/screen/creator-monetization';
     return _MoneyPage(
       title: 'Payout Settings',
-      backRoute: '/screen/creator-monetization',
+      backRoute: back,
       action: IconButton(
         tooltip: 'Payout notifications',
         onPressed: () => context.push('/screen/notifications-1'),
@@ -578,9 +608,8 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
               onClaim: () => context.go('/screen/claim-podcast'),
             ),
         data: (value) {
-          final balance = value.monetization.primaryBalance;
+          final gifts = value.monetization.gifts;
           final method = value.selectedMethod;
-          final minimum = value.config.minimumAmount;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -589,26 +618,47 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Available Balance',
+                      'Creator payout destination',
                       style: TextStyle(color: context.pelevo.textMuted),
                     ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'One payout account covers every claimed podcast and all gift earnings.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 10),
                     Text(
-                      balance?.balanceLabel ?? '0',
+                      'Gift coins: ${gifts.balance}',
                       style: const TextStyle(
                         color: PelevoColors.green,
-                        fontSize: 28,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (minimum != null)
+                    if (gifts.moneyLabel != null)
                       Text(
-                        'Minimum payout: $minimum ${balance?.unit ?? ''}'
-                            .trim(),
+                        '≈ ${gifts.moneyLabel}',
                         style: TextStyle(
                           color: context.pelevo.textMuted,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
+                    if (value.monetization.adAvailableUsd != null)
+                      Text(
+                        'Ads available: ${value.monetization.adAvailableLabel ?? value.monetization.adAvailableUsd}',
+                        style: TextStyle(
+                          color: context.pelevo.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Gifts withdraw from \$15. Ads withdraw from \$100. Finance pays approved requests manually.',
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -661,7 +711,10 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                         ),
                         subtitle: Text(method.subtitle),
                         trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => context.push('/screen/creator-add-payout'),
+                        onTap:
+                            () => context.push(
+                              '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-payout-settings')}',
+                            ),
                       )
                     else
                       const ListTile(
@@ -682,10 +735,19 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                         'Add Payout Method',
                         style: TextStyle(color: PelevoColors.green),
                       ),
-                      onTap: () => context.push('/screen/creator-add-payout'),
+                      onTap:
+                          () => context.push(
+                            '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-payout-settings')}',
+                          ),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 12),
+              PelevoButton(
+                label: 'Request Withdrawal',
+                color: const Color(0xFF55C51F),
+                onPressed: () => context.push('/screen/creator-withdraw'),
               ),
               const SizedBox(height: 12),
               _SettingsSection(
@@ -702,10 +764,10 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
               _SettingsSection(
                 title: 'Important Information',
                 child: Text(
-                  '• Payouts are processed within 1–3 business days.\n'
-                  '• Ensure your bank details are accurate to avoid delays.\n'
-                  '• You can update your payout method anytime.\n'
-                  '• For any payout issues, contact our support team.',
+                  '• Withdrawals are requested by you and paid by Pelevo finance.\n'
+                  '• Gift withdrawals start at \$15. Ad withdrawals start at \$100.\n'
+                  '• One payout method covers all claimed podcasts and gifts.\n'
+                  '• Ensure your bank details are accurate to avoid delays.',
                   style: TextStyle(
                     color: context.pelevo.textMuted,
                     height: 1.5,
@@ -731,25 +793,23 @@ class CreatorAddPayoutMethodScreen extends ConsumerStatefulWidget {
 class _CreatorAddPayoutMethodScreenState
     extends ConsumerState<CreatorAddPayoutMethodScreen> {
   int _method = 0;
+  String? _country;
   String? _bank;
   var _saving = false;
+  var _resolving = false;
   var _ageConfirmed = false;
   String? _proofPath;
   String? _proofName;
   String? _pendingMethodId;
   final _accountNumber = TextEditingController();
   final _accountName = TextEditingController();
-
-  static const _banks = [
-    ('044', 'Access Bank'),
-    ('058', 'GTBank'),
-    ('011', 'First Bank'),
-  ];
+  final _paypalEmail = TextEditingController();
 
   @override
   void dispose() {
     _accountNumber.dispose();
     _accountName.dispose();
+    _paypalEmail.dispose();
     super.dispose();
   }
 
@@ -767,22 +827,78 @@ class _CreatorAddPayoutMethodScreenState
     }
   }
 
-  Future<void> _save() async {
-    if (_saving || !_ageConfirmed) {
+  Future<void> _resolveAccount() async {
+    final country = _country;
+    final bank = _bank;
+    final number = _accountNumber.text.trim();
+    if (_resolving ||
+        country == null ||
+        country.isEmpty ||
+        bank == null ||
+        bank.isEmpty ||
+        number.length < 8) {
       return;
     }
+    setState(() => _resolving = true);
+    try {
+      final name = await ref
+          .read(creatorWithdrawalRepositoryProvider)
+          .resolveFlutterwaveAccount(
+            country: country,
+            bankCode: bank,
+            accountNumber: number,
+          );
+      if (!mounted) return;
+      setState(() => _accountName.text = name);
+      context.showPelevoMessage('Account name verified.');
+    } on Object catch (error) {
+      if (!mounted) return;
+      final failure =
+          error is ApiFailure
+              ? error
+              : error is DioException
+              ? apiFailureFromDio(error)
+              : const ApiFailure(
+                code: 'UNEXPECTED',
+                message: 'Account verification failed. Please try again.',
+              );
+      context.showPelevoMessage(failure.message);
+    } finally {
+      if (mounted) setState(() => _resolving = false);
+    }
+  }
+
+  Future<void> _save() async {
+    if (_saving || !_ageConfirmed) return;
+    final returnTo =
+        GoRouterState.of(context).uri.queryParameters['return'] ??
+        '/screen/creator-payout-settings';
     setState(() => _saving = true);
     try {
       await ref.read(profileRepositoryProvider).confirmAgeMajority();
       if (_method == 0) {
+        final country = _country;
         final bank = _bank;
         final number = _accountNumber.text.trim();
+        final name = _accountName.text.trim();
         final proofPath = _proofPath;
         final proofName = _proofName;
-        if (bank == null || bank.isEmpty || number.isEmpty) {
+        if (country == null ||
+            country.isEmpty ||
+            bank == null ||
+            bank.isEmpty ||
+            number.isEmpty) {
           if (mounted) {
             context.showPelevoMessage(
-              'Enter a bank and account number to continue.',
+              'Select a country, bank, and account number to continue.',
+            );
+          }
+          return;
+        }
+        if (name.isEmpty) {
+          if (mounted) {
+            context.showPelevoMessage(
+              'Verify the account number so we can fill the account name.',
             );
           }
           return;
@@ -802,7 +918,12 @@ class _CreatorAddPayoutMethodScreenState
                 .createPayoutMethod(
                   provider: 'flutterwave',
                   kind: 'bank',
-                  destination: {'account_number': number, 'bank_code': bank},
+                  destination: {
+                    'account_number': number,
+                    'bank_code': bank,
+                    'country': country,
+                    'account_name': name,
+                  },
                 )).id;
         _pendingMethodId = methodId;
         await ref
@@ -813,7 +934,7 @@ class _CreatorAddPayoutMethodScreenState
               fileName: proofName,
             );
       } else {
-        final email = _accountName.text.trim();
+        final email = _paypalEmail.text.trim();
         if (email.isEmpty) {
           if (mounted) {
             context.showPelevoMessage('Enter a PayPal email to continue.');
@@ -829,19 +950,16 @@ class _CreatorAddPayoutMethodScreenState
             );
       }
       ref.invalidate(studioPayoutWorkspaceProvider);
-      if (!mounted) {
-        return;
-      }
+      ref.invalidate(creatorWithdrawalWorkspaceProvider);
+      if (!mounted) return;
       context.showPelevoMessage(
         _method == 0
-            ? 'Proof uploaded. A reviewer will check your name and account number.'
+            ? 'Proof uploaded. Finance will finish verifying your payout account.'
             : 'Payout method saved',
       );
-      context.go('/screen/creator-payout-settings');
+      context.go(returnTo);
     } on Object catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       final failure =
           error is ApiFailure
               ? error
@@ -853,152 +971,257 @@ class _CreatorAddPayoutMethodScreenState
               );
       context.showPelevoMessage(failure.message);
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => _MoneyPage(
-    title: 'Add Payout Method',
-    backRoute: '/screen/creator-payout-settings',
-    action: IconButton(
-      tooltip: 'Payout notifications',
-      onPressed: () => context.push('/screen/notifications-1'),
-      icon: const Icon(Icons.notifications_none_rounded),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Select Payout Method',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        const SizedBox(height: 12),
-        _PayoutMethodCard(
-          selected: _method == 0,
-          icon: Icons.account_balance_rounded,
-          title: 'Flutterwave',
-          subtitle:
-              'Receive your earnings directly\nto a Nigerian bank account',
-          onTap:
-              () => setState(() {
-                _method = 0;
-                _pendingMethodId = null;
-              }),
-        ),
-        const SizedBox(height: 10),
-        _PayoutMethodCard(
-          selected: _method == 1,
-          icon: Icons.paypal_rounded,
-          title: 'PayPal',
-          subtitle: 'Receive your earnings\nvia PayPal account',
-          onTap:
-              () => setState(() {
-                _method = 1;
-                _pendingMethodId = null;
-              }),
-        ),
-        const SizedBox(height: 16),
-        _SettingsSection(
-          title: _method == 0 ? 'Flutterwave bank details' : 'PayPal Details',
-          subtitle:
-              _method == 0
-                  ? 'Enter the Nigerian bank account Flutterwave should pay'
-                  : 'Enter your PayPal account details',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) {
+    final countries = ref.watch(flutterwaveCountriesProvider);
+    final banks =
+        _country == null
+            ? const AsyncValue<List<FlutterwaveBank>>.data([])
+            : ref.watch(flutterwaveBanksProvider(_country!));
+    final returnTo =
+        GoRouterState.of(context).uri.queryParameters['return'] ??
+        '/screen/creator-payout-settings';
+    return _MoneyPage(
+      title: 'Add Payout Method',
+      backRoute: returnTo,
+      action: IconButton(
+        tooltip: 'Payout notifications',
+        onPressed: () => context.push('/screen/notifications-1'),
+        icon: const Icon(Icons.notifications_none_rounded),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Select Payout Method',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+          ),
+          const SizedBox(height: 12),
+          _PayoutMethodCard(
+            selected: _method == 0,
+            icon: Icons.account_balance_rounded,
+            title: 'Flutterwave',
+            subtitle:
+                'Receive your earnings to a supported\nFlutterwave bank account',
+            onTap:
+                () => setState(() {
+                  _method = 0;
+                  _pendingMethodId = null;
+                }),
+          ),
+          const SizedBox(height: 10),
+          _PayoutMethodCard(
+            selected: _method == 1,
+            icon: Icons.paypal_rounded,
+            title: 'PayPal',
+            subtitle: 'Receive your earnings\nvia PayPal account',
+            onTap:
+                () => setState(() {
+                  _method = 1;
+                  _pendingMethodId = null;
+                }),
+          ),
+          const SizedBox(height: 16),
+          _SettingsSection(
+            title: _method == 0 ? 'Flutterwave bank details' : 'PayPal Details',
+            subtitle:
+                _method == 0
+                    ? 'Choose a supported country, then verify the bank account'
+                    : 'Enter your PayPal account details',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_method == 0) ...[
+                  const Text('Country'),
+                  const SizedBox(height: 6),
+                  countries.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error:
+                        (error, _) => TextButton(
+                          onPressed:
+                              () =>
+                                  ref.invalidate(flutterwaveCountriesProvider),
+                          child: Text(catalogFailure(error).message),
+                        ),
+                    data:
+                        (items) => DropdownButtonFormField<String>(
+                          key: const Key('payout-country'),
+                          isExpanded: true,
+                          value: _country,
+                          hint: const Text('Select country'),
+                          items: [
+                            for (final country in items)
+                              DropdownMenuItem(
+                                value: country.code,
+                                child: Text(
+                                  '${country.name} (${country.currency})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _country = value;
+                              _bank = null;
+                              _accountName.clear();
+                              _pendingMethodId = null;
+                            });
+                          },
+                        ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Bank Name'),
+                  const SizedBox(height: 6),
+                  banks.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error:
+                        (error, _) => TextButton(
+                          onPressed:
+                              _country == null
+                                  ? null
+                                  : () => ref.invalidate(
+                                    flutterwaveBanksProvider(_country!),
+                                  ),
+                          child: Text(catalogFailure(error).message),
+                        ),
+                    data:
+                        (items) => DropdownButtonFormField<String>(
+                          key: const Key('payout-bank'),
+                          isExpanded: true,
+                          value: _bank,
+                          hint: Text(
+                            _country == null
+                                ? 'Select a country first'
+                                : 'Select your bank',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          items: [
+                            for (final bank in items)
+                              DropdownMenuItem(
+                                value: bank.code,
+                                child: Text(
+                                  bank.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged:
+                              _country == null
+                                  ? null
+                                  : (value) => setState(() {
+                                    _bank = value;
+                                    _accountName.clear();
+                                    _pendingMethodId = null;
+                                  }),
+                        ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Account Number'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _accountNumber,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your account number',
+                    ),
+                    onChanged: (_) {
+                      _pendingMethodId = null;
+                      if (_accountName.text.isNotEmpty) {
+                        setState(() => _accountName.clear());
+                      }
+                    },
+                    onEditingComplete: _resolveAccount,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _resolving ? null : _resolveAccount,
+                      icon:
+                          _resolving
+                              ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.verified_outlined),
+                      label: Text(
+                        _resolving ? 'Verifying…' : 'Verify account name',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Account Name'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _accountName,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Verified name appears here',
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'We fill this from Flutterwave after you enter the account number.',
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  AccountProofUpload(fileName: _proofName, onPick: _pickProof),
+                ] else ...[
+                  const Text('PayPal Email'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _paypalEmail,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: 'you@example.com',
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AgeMajorityCheckbox(
+            value: _ageConfirmed,
+            onChanged: (value) => setState(() => _ageConfirmed = value),
+          ),
+          const SizedBox(height: 12),
+          PelevoButton(
+            label: _saving ? 'Saving…' : 'Save Payout Method',
+            color: const Color(0xFF55C51F),
+            onPressed: _saving || !_ageConfirmed ? null : _save,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (_method == 0) ...[
-                const Text('Bank Name'),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  key: const Key('payout-bank'),
-                  value: _bank,
-                  hint: const Text('Select your bank'),
-                  items: [
-                    for (final bank in _banks)
-                      DropdownMenuItem(value: bank.$1, child: Text(bank.$2)),
-                  ],
-                  onChanged:
-                      (value) => setState(() {
-                        _bank = value;
-                        _pendingMethodId = null;
-                      }),
-                ),
-                const SizedBox(height: 14),
-                const Text('Account Number'),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _accountNumber,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your account number',
-                  ),
-                  onChanged: (_) => _pendingMethodId = null,
-                ),
-                const SizedBox(height: 14),
-                const Text('Account Name'),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _accountName,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter account name',
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  'Must match the name on your bank account',
+              const Icon(Icons.lock_outline_rounded, size: 14),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'Your information is secure and encrypted',
                   style: TextStyle(
                     color: context.pelevo.textMuted,
                     fontSize: 11,
                   ),
                 ),
-                const SizedBox(height: 18),
-                AccountProofUpload(fileName: _proofName, onPick: _pickProof),
-              ] else ...[
-                const Text('PayPal Email'),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _accountName,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'you@example.com',
-                  ),
-                ),
-              ],
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        AgeMajorityCheckbox(
-          value: _ageConfirmed,
-          onChanged: (value) => setState(() => _ageConfirmed = value),
-        ),
-        const SizedBox(height: 12),
-        PelevoButton(
-          label: _saving ? 'Saving…' : 'Save Payout Method',
-          color: const Color(0xFF55C51F),
-          onPressed: _saving || !_ageConfirmed ? null : _save,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.lock_outline_rounded, size: 14),
-            SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                'Your information is secure and encrypted',
-                style: TextStyle(color: context.pelevo.textMuted, fontSize: 11),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _StudioLoadError extends StatelessWidget {
@@ -1476,11 +1699,232 @@ class _MoneyMetric extends StatelessWidget {
   );
 }
 
+class CreatorWithdrawScreen extends ConsumerStatefulWidget {
+  const CreatorWithdrawScreen({super.key});
+
+  @override
+  ConsumerState<CreatorWithdrawScreen> createState() =>
+      _CreatorWithdrawScreenState();
+}
+
+class _CreatorWithdrawScreenState extends ConsumerState<CreatorWithdrawScreen> {
+  String _source = 'gifts';
+  var _busy = false;
+
+  Future<void> _request(CreatorWithdrawalWorkspace workspace) async {
+    if (_busy) return;
+    if (!workspace.hasVerifiedPayoutMethod) {
+      context.showPelevoMessage(
+        'Set up a verified payout method before requesting a withdrawal.',
+      );
+      context.push(
+        '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-withdraw')}',
+      );
+      return;
+    }
+    final method = workspace.verifiedMethod;
+    if (method == null) {
+      context.push(
+        '/screen/creator-payout-settings?return=${Uri.encodeComponent('/screen/creator-withdraw')}',
+      );
+      return;
+    }
+    final source = _source == 'ads' ? workspace.ads : workspace.gifts;
+    if (!source.eligible) {
+      context.showPelevoMessage(
+        _source == 'ads'
+            ? 'Ad revenue withdrawals start at \$100.'
+            : 'Gift withdrawals start at \$15.',
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref.read(creatorWithdrawalRepositoryProvider).requestWithdrawal(
+        source: _source,
+        payoutMethodId: method.id,
+        currency:
+            workspace.payoutCurrency ?? source.currency ?? 'USD',
+        diamonds: _source == 'gifts' ? source.diamonds : null,
+        amountUsdCents: _source == 'ads' ? source.availableUsdCents : null,
+      );
+      ref.invalidate(creatorWithdrawalWorkspaceProvider);
+      ref.invalidate(studioMonetizationProvider);
+      if (!mounted) return;
+      context.showPelevoMessage(
+        'Withdrawal requested. Pelevo finance will pay this manually after review.',
+      );
+      context.go('/screen/creator-payout-settings');
+    } on Object catch (error) {
+      if (!mounted) return;
+      final failure =
+          error is ApiFailure
+              ? error
+              : error is DioException
+              ? apiFailureFromDio(error)
+              : const ApiFailure(
+                code: 'UNEXPECTED',
+                message: 'Withdrawal could not be requested. Please try again.',
+              );
+      if (failure.code == 'PAYOUT_METHOD_REQUIRED' ||
+          failure.code == 'PAYOUT_METHOD_UNVERIFIED') {
+        context.push(
+          '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-withdraw')}',
+        );
+      }
+      context.showPelevoMessage(failure.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final workspace = ref.watch(creatorWithdrawalWorkspaceProvider);
+    return _MoneyPage(
+      title: 'Request Withdrawal',
+      backRoute: '/screen/creator-monetization',
+      child: workspace.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error:
+            (error, _) => _StudioLoadError(
+              error: error,
+              onRetry: () => ref.invalidate(creatorWithdrawalWorkspaceProvider),
+              onClaim: () => context.go('/screen/claim-podcast'),
+            ),
+        data: (value) {
+          final selected = _source == 'ads' ? value.ads : value.gifts;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Panel(
+                child: Text(
+                  value.note ??
+                      'Withdrawals are requested by you. Pelevo finance pays approved requests manually. Ad revenue covers every claimed podcast.',
+                  style: TextStyle(
+                    color: context.pelevo.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Choose source',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+              ),
+              const SizedBox(height: 10),
+              _PayoutMethodCard(
+                selected: _source == 'gifts',
+                icon: Icons.card_giftcard_rounded,
+                title: 'Gift earnings',
+                subtitle:
+                    '${value.gifts.balanceLabel ?? '0 coins'}\n'
+                    '${value.gifts.moneyLabel == null ? 'Threshold ${value.gifts.thresholdUsd}' : '≈ ${value.gifts.moneyLabel} · from ${value.gifts.thresholdUsd}'}',
+                onTap: () => setState(() => _source = 'gifts'),
+              ),
+              const SizedBox(height: 10),
+              _PayoutMethodCard(
+                selected: _source == 'ads',
+                icon: Icons.play_circle_outline_rounded,
+                title: 'Ads revenue',
+                subtitle:
+                    '${value.ads.balanceLabel ?? '\$0.00'}\n'
+                    'All claimed podcasts · from ${value.ads.thresholdUsd}',
+                onTap: () => setState(() => _source = 'ads'),
+              ),
+              const SizedBox(height: 16),
+              _SettingsSection(
+                title: 'Payout destination',
+                subtitle:
+                    value.hasVerifiedPayoutMethod
+                        ? 'Verified method ready for this request'
+                        : 'Set up payout details before withdrawing',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    value.hasVerifiedPayoutMethod
+                        ? Icons.verified_rounded
+                        : Icons.warning_amber_rounded,
+                    color:
+                        value.hasVerifiedPayoutMethod
+                            ? PelevoColors.green
+                            : PelevoColors.yellow,
+                  ),
+                  title: Text(
+                    value.verifiedMethod?.title ?? 'No verified payout method',
+                  ),
+                  subtitle: Text(
+                    value.verifiedMethod?.subtitle ??
+                        'Add Flutterwave or PayPal details for all podcasts and gifts.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap:
+                      () => context.push(
+                        value.hasVerifiedPayoutMethod
+                            ? '/screen/creator-payout-settings?return=${Uri.encodeComponent('/screen/creator-withdraw')}'
+                            : '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-withdraw')}',
+                      ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _source == 'ads' ? 'Ads request' : 'Gifts request',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(selected.balanceLabel ?? '0'),
+                    if (selected.moneyLabel != null)
+                      Text(
+                        '≈ ${selected.moneyLabel}',
+                        style: TextStyle(color: context.pelevo.textMuted),
+                      ),
+                    Text(
+                      selected.eligible
+                          ? 'Ready to request. Finance will review and pay manually.'
+                          : 'Available balance is below ${selected.thresholdUsd}.',
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              PelevoButton(
+                label:
+                    _busy
+                        ? 'Submitting…'
+                        : value.hasVerifiedPayoutMethod
+                        ? 'Request withdrawal'
+                        : 'Set up payout method first',
+                color: const Color(0xFF55C51F),
+                onPressed: _busy ? null : () => _request(value),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _BreakdownCard extends StatelessWidget {
-  const _BreakdownCard({required this.period, this.balance});
+  const _BreakdownCard({
+    required this.period,
+    this.balance,
+    this.gifts = const StudioGiftMoney(balance: 0),
+    this.adAvailableLabel,
+  });
 
   final StudioEarningsPeriod? period;
   final StudioAccount? balance;
+  final StudioGiftMoney gifts;
+  final String? adAvailableLabel;
 
   static const _statusColors = {
     'pending': PelevoColors.yellow,
@@ -1566,9 +2010,24 @@ class _BreakdownCard extends StatelessWidget {
                     _Legend(
                       color: PelevoColors.orange,
                       title: 'Coin balance',
-                      percent: balance?.balanceLabel ?? '0',
-                      amount: 'From gifts',
+                      percent:
+                          gifts.balance > 0
+                              ? '${gifts.balance} coins'
+                              : (balance?.balanceLabel ?? '0'),
+                      amount:
+                          gifts.moneyLabel == null
+                              ? 'From gifts'
+                              : '≈ ${gifts.moneyLabel}',
                     ),
+                    if (adAvailableLabel != null) ...[
+                      const SizedBox(height: 12),
+                      _Legend(
+                        color: PelevoColors.green,
+                        title: 'Ads available',
+                        percent: adAvailableLabel!,
+                        amount: 'All claimed podcasts',
+                      ),
+                    ],
                   ],
                 ),
               ),

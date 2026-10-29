@@ -787,6 +787,45 @@ class StudioTaxProfile {
   bool get added => state.isNotEmpty && state != 'missing';
 }
 
+class StudioGiftMoney {
+  const StudioGiftMoney({
+    required this.balance,
+    this.moneyLabel,
+    this.usdLabel,
+    this.currency,
+  });
+
+  factory StudioGiftMoney.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const StudioGiftMoney(balance: 0);
+    }
+    final balance = (json['balance'] as num?)?.toInt() ?? 0;
+    final display = json['display'];
+    final quotes = json['quotes'];
+    final usdQuote = quotes is Map ? quotes['USD'] : null;
+    final money =
+        display is Map && display['display_available'] is String
+            ? display['display_available'] as String
+            : usdQuote is Map && usdQuote['gross_minor'] is num
+            ? '\$${((usdQuote['gross_minor'] as num) / 100).toStringAsFixed(2)} USD'
+            : null;
+    return StudioGiftMoney(
+      balance: balance,
+      moneyLabel: money,
+      usdLabel:
+          usdQuote is Map && usdQuote['gross_minor'] is num
+              ? '\$${((usdQuote['gross_minor'] as num) / 100).toStringAsFixed(2)}'
+              : null,
+      currency: display is Map ? display['currency'] as String? : null,
+    );
+  }
+
+  final int balance;
+  final String? moneyLabel;
+  final String? usdLabel;
+  final String? currency;
+}
+
 class StudioMonetization {
   const StudioMonetization({
     required this.giftsReceived,
@@ -795,6 +834,9 @@ class StudioMonetization {
     required this.adAllocations,
     required this.currencyConversions,
     required this.taxProfiles,
+    this.gifts = const StudioGiftMoney(balance: 0),
+    this.adAvailableUsd,
+    this.adAvailableLabel,
   });
 
   factory StudioMonetization.fromApi(Map<String, dynamic> data) {
@@ -812,6 +854,8 @@ class StudioMonetization {
         tax is! List) {
       throw _invalidStudio;
     }
+    final diamonds = data['diamonds'];
+    final clearance = data['ad_clearance'];
     return StudioMonetization(
       giftsReceived: gifts.toInt(),
       payoutsCount: payouts.toInt(),
@@ -831,6 +875,13 @@ class StudioMonetization {
           .whereType<Map<String, dynamic>>()
           .map(StudioTaxProfile.fromJson)
           .toList(growable: false),
+      gifts: StudioGiftMoney.fromJson(
+        diamonds is Map<String, dynamic> ? diamonds : null,
+      ),
+      adAvailableUsd:
+          clearance is Map ? clearance['available_usd'] as String? ?? clearance['cleared_ad_usd'] as String? : null,
+      adAvailableLabel:
+          clearance is Map ? clearance['display_available'] as String? : null,
     );
   }
 
@@ -840,8 +891,16 @@ class StudioMonetization {
   final List<StudioAdAllocation> adAllocations;
   final List<StudioCurrencyConversion> currencyConversions;
   final List<StudioTaxProfile> taxProfiles;
+  final StudioGiftMoney gifts;
+  final String? adAvailableUsd;
+  final String? adAvailableLabel;
 
   StudioAccount? get primaryBalance {
+    for (final account in accounts) {
+      if (account.type == 'diamond_wallet') {
+        return account;
+      }
+    }
     for (final account in accounts) {
       if (account.type == 'creator_balance') {
         return account;

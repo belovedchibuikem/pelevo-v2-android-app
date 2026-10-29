@@ -113,6 +113,10 @@ void main() {
           builder: (_, _) => const CreatorAddPayoutMethodScreen(),
         ),
         GoRoute(
+          path: '/screen/creator-withdraw',
+          builder: (_, _) => const CreatorWithdrawScreen(),
+        ),
+        GoRoute(
           path: '/screen/creator-audience',
           builder: (_, _) => const CreatorAudienceScreen(),
         ),
@@ -188,6 +192,16 @@ void main() {
     if (request.path == '/payout-methods' && request.method == 'POST') {
       return jsonResponse(studioPayoutMethodFixture(), status: 201);
     }
+    if (request.path == '/payout-methods/flutterwave/resolve' &&
+        request.method == 'POST') {
+      return jsonResponse({
+        'account_name': 'Jane Creator',
+        'account_number': '0123456789',
+        'bank_code': '044',
+        'country': 'NG',
+        'verified': true,
+      });
+    }
     return jsonResponse(switch (request.path) {
       '/studio' => studioProfileFixture(),
       '/studio/shows' => [studioShowFixture()],
@@ -200,6 +214,14 @@ void main() {
       '/studio/transactions' => [studioTransactionFixture()],
       '/studio/payout-settings' => studioPayoutSettingsFixture(),
       '/payout-methods' => [studioPayoutMethodFixture()],
+      '/payout-methods/flutterwave/countries' => [
+        {'code': 'NG', 'name': 'Nigeria', 'currency': 'NGN'},
+      ],
+      '/payout-methods/flutterwave/banks' => [
+        {'code': '044', 'name': 'Access Bank'},
+        {'code': '058', 'name': 'GTBank'},
+      ],
+      '/creators/withdrawals/workspace' => creatorWithdrawalWorkspaceFixture(),
       '/studios' => studioTeamFixture(),
       '/search' => {
         'shows': [claimShowFixture()],
@@ -222,10 +244,38 @@ void main() {
     expect(find.text('Studio Owner'), findsNothing);
     expect(find.text('Owned Show'), findsOneWidget);
     expect(find.text('View all studios (1)'), findsOneWidget);
+    expect(find.text('Request withdrawal'), findsOneWidget);
+    expect(find.text('Payout settings'), findsOneWidget);
     expect(find.text('Adesola Adeyemi'), findsNothing);
     expect(find.text('The Relationship Podcast'), findsNothing);
     expect(find.text('18.4K'), findsNothing);
     expect(find.text('126K'), findsNothing);
+  });
+
+  testWidgets('withdraw without payout setup redirects to add payout', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1800);
+    await mount(
+      tester,
+      location: '/screen/creator-withdraw',
+      adapter: ApiAdapter((request) {
+        if (request.path == '/creators/withdrawals/workspace') {
+          return jsonResponse(
+            creatorWithdrawalWorkspaceFixture(verified: false),
+          );
+        }
+        return workspaceAdapter().fetch(request, null, null);
+      }),
+    );
+
+    expect(find.text('Gift earnings'), findsOneWidget);
+    expect(find.text('Ads revenue'), findsOneWidget);
+    expect(find.text('Set up payout method first'), findsOneWidget);
+    await tester.tap(find.text('Set up payout method first'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add Payout Method'), findsOneWidget);
+    expect(find.text('Select country'), findsOneWidget);
   });
 
   testWidgets('dashboard shows only server audience and episode fields', (
@@ -610,33 +660,36 @@ void main() {
             request.method == 'POST') {
           return jsonResponse({'status': 'pending'});
         }
-        if (request.path == '/studio/transactions/txn-1') {
-          return jsonResponse(studioTransactionFixture());
+        if (request.path == '/payout-methods/flutterwave/resolve' &&
+            request.method == 'POST') {
+          return jsonResponse({
+            'account_name': 'Jane Creator',
+            'account_number': '0123456789',
+            'bank_code': '044',
+            'country': 'NG',
+            'verified': true,
+          });
         }
-        return jsonResponse(switch (request.path) {
-          '/studio' => studioProfileFixture(),
-          '/studio/shows' => [studioShowFixture()],
-          '/studio/episodes' => [studioEpisodeFixture()],
-          '/studio/reels' => [studioReelFixture()],
-          '/studio/audience' => studioAudienceFixture(),
-          '/studio/audience/followers' => [studioFollowerFixture()],
-          '/studio/audience/supporters' => [studioSupporterFixture()],
-          '/studio/monetization' => studioMonetizationFixture(),
-          '/studio/transactions' => [studioTransactionFixture()],
-          '/studio/payout-settings' => studioPayoutSettingsFixture(),
-          '/payout-methods' => [studioPayoutMethodFixture()],
-          '/studios' => studioTeamFixture(),
-          _ => throw StateError(request.path),
-        });
+        return workspaceAdapter().fetch(request, null, null);
       }),
     );
 
+    await tester.ensureVisible(find.byKey(const Key('payout-country')));
+    await tester.tap(find.byKey(const Key('payout-country')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nigeria (NGN)').last);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('payout-bank')));
     await tester.tap(find.byKey(const Key('payout-bank')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Access Bank').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '0123456789');
+    await tester.pump();
+    await tester.ensureVisible(find.text('Verify account name'));
+    await tester.tap(find.text('Verify account name'));
+    await tester.pumpAndSettle();
+    expect(find.text('Jane Creator'), findsOneWidget);
     final previousPicker = FilePickerPlatform.instance;
     FilePickerPlatform.instance = _ProofFilePicker(proof.path);
     addTearDown(() => FilePickerPlatform.instance = previousPicker);
@@ -657,6 +710,8 @@ void main() {
     expect(saved.data['kind'], 'bank');
     expect(saved.data['destination']['account_number'], '0123456789');
     expect(saved.data['destination']['bank_code'], '044');
+    expect(saved.data['destination']['country'], 'NG');
+    expect(saved.data['destination']['account_name'], 'Jane Creator');
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
