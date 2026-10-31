@@ -8,6 +8,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
+import 'package:pelevo/features/premium/premium_trial_offer.dart';
 import 'package:pelevo/features/premium/storefront_price.dart';
 import 'package:pelevo/features/store/regional_prices.dart';
 
@@ -30,8 +31,15 @@ class PremiumStore {
 
   static final instance = PremiumStore._();
 
+  /// Google Play subscription product (monthly + yearly base plans).
+  static const googleProductId = 'pelevo_plus_individual';
+
+  /// App Store product IDs, and logical IDs after Play base-plan mapping.
   static const monthlyProductId = 'pelevo_plus_monthly';
   static const yearlyProductId = 'pelevo_plus_yearly';
+
+  static const monthlyBasePlanId = 'monthly';
+  static const yearlyBasePlanId = 'yearly';
 
   final _iap = InAppPurchase.instance;
   final Map<String, List<ProductDetails>> _catalog = {};
@@ -48,8 +56,33 @@ class PremiumStore {
 
   String get storeProvider => !kIsWeb && Platform.isIOS ? 'apple' : 'google';
 
-  String productIdFor(PremiumPlan plan) =>
-      plusIntervalIsYearly(plan.interval) ? yearlyProductId : monthlyProductId;
+  bool get _isAndroidStore => !kIsWeb && Platform.isAndroid;
+
+  String productIdFor(PremiumPlan plan) {
+    if (_isAndroidStore) return googleProductId;
+    return plusIntervalIsYearly(plan.interval)
+        ? yearlyProductId
+        : monthlyProductId;
+  }
+
+  String? basePlanIdFor(PremiumPlan plan) {
+    if (!_isAndroidStore) return null;
+    return plusIntervalIsYearly(plan.interval)
+        ? yearlyBasePlanId
+        : monthlyBasePlanId;
+  }
+
+  String _eligibilityKey(PremiumPlan plan) {
+    final productId = productIdFor(plan);
+    final basePlanId = basePlanIdFor(plan);
+    if (basePlanId == null) return productId;
+    return '$productId|$basePlanId';
+  }
+
+  static bool isPlusStoreProduct(String productId) =>
+      productId == googleProductId ||
+      productId == monthlyProductId ||
+      productId == yearlyProductId;
 
   /// Installs store quotes for tests. Production reads the native catalog.
   @visibleForTesting
@@ -67,15 +100,19 @@ class PremiumStore {
 
   StorefrontPrice? quoteForPlan(PremiumPlan plan) {
     final override = _quoteOverride;
-    final productId = productIdFor(plan);
-    if (override != null) return override[productId];
+    if (override != null) {
+      return override[productIdFor(plan)] ??
+          override[plusIntervalIsYearly(plan.interval)
+              ? yearlyProductId
+              : monthlyProductId];
+    }
     final product = _productForPurchase(plan);
     if (product == null) return null;
     final quote = storefrontPriceFromProduct(product);
     if (quote == null) return null;
     return storefrontQuoteForEligibility(
       quote,
-      eligible: _introEligible[productId] != false,
+      eligible: _introEligible[_eligibilityKey(plan)] != false,
     );
   }
 
@@ -93,7 +130,11 @@ class PremiumStore {
     if (!await _iap.isAvailable()) return;
     final ids = plans.map(productIdFor).toSet();
     if (ids.isEmpty) {
-      ids.addAll({monthlyProductId, yearlyProductId});
+      ids.addAll(
+        _isAndroidStore
+            ? {googleProductId}
+            : {monthlyProductId, yearlyProductId},
+      );
     }
     final response = await _iap.queryProductDetails(ids);
     for (final product in response.productDetails) {
@@ -102,17 +143,51 @@ class PremiumStore {
         offers.add(product);
       }
     }
-    await _noteIntroEligibility(ids);
+    await _noteIntroEligibility(plans);
   }
 
-  Future<void> _noteIntroEligibility(Set<String> ids) async {
-    if (kIsWeb || !Platform.isIOS) return;
-    for (final id in ids) {
-      if (!_catalogHasIntro(id)) continue;
+  Future<void> _noteIntroEligibility(Iterable<PremiumPlan> plans) async {
+    if (kIsWeb) return;
+    final targets =
+        plans.isEmpty
+            ? const <PremiumPlan>[
+              PremiumPlan(
+                id: '_monthly',
+                slug: 'plus-monthly',
+                name: 'Monthly',
+                interval: 'month',
+                priceMinor: 0,
+                currency: 'USD',
+              ),
+              PremiumPlan(
+                id: '_yearly',
+                slug: 'plus-yearly',
+                name: 'Yearly',
+                interval: 'year',
+                priceMinor: 0,
+                currency: 'USD',
+              ),
+            ]
+            : plans.toList(growable: false);
+    for (final plan in targets) {
+      final key = _eligibilityKey(plan);
+      final productId = productIdFor(plan);
+      if (_isAndroidStore) {
+        // Play only returns the free-trial offer when the account is eligible.
+        _introEligible[key] = _catalogHasPlayTrialOffer(plan);
+        continue;
+      }
+      if (!_catalogHasIntro(productId)) {
+        _introEligible[key] = false;
+        continue;
+      }
+      if (!Platform.isIOS) continue;
       try {
-        _introEligible[id] = await SK2Product.isIntroductoryOfferEligible(id);
+        _introEligible[key] = await SK2Product.isIntroductoryOfferEligible(
+          productId,
+        );
       } on Object {
-        _introEligible[id] = false;
+        _introEligible[key] = false;
       }
     }
   }
@@ -129,11 +204,48 @@ class PremiumStore {
     return false;
   }
 
-  ProductDetails? _productForPurchase(PremiumPlan plan) => storeProductForPlan(
-    _catalog[productIdFor(plan)] ?? const <ProductDetails>[],
-    trialPlan: plan.isThreeMonthTrial,
-    android: !kIsWeb && Platform.isAndroid,
-  );
+  bool _catalogHasPlayTrialOffer(PremiumPlan plan) {
+    final yearly = plusIntervalIsYearly(plan.interval);
+    final preferred = PremiumTrialOffer.playOfferIdFor(yearly: yearly);
+    final scoped = playOffersForInterval(
+      _catalog[productIdFor(plan)] ?? const <ProductDetails>[],
+      yearly: yearly,
+      basePlanId: basePlanIdFor(plan),
+    );
+    for (final product in scoped) {
+      if (product is! GooglePlayProductDetails) continue;
+      final index = product.subscriptionIndex;
+      final offers = product.productDetails.subscriptionOfferDetails;
+      if (index == null ||
+          offers == null ||
+          index < 0 ||
+          index >= offers.length) {
+        continue;
+      }
+      final offer = offers[index];
+      if (offer.offerId == preferred) {
+        final phases = offer.pricingPhases;
+        if (phases.isNotEmpty && phases.first.priceAmountMicros == 0) {
+          return true;
+        }
+      }
+      final quote = storefrontPriceFromProduct(product);
+      if (quote?.introductoryPriceIsFree == true) return true;
+    }
+    return false;
+  }
+
+  ProductDetails? _productForPurchase(PremiumPlan plan) {
+    final yearly = plusIntervalIsYearly(plan.interval);
+    return storeProductForPlan(
+      _catalog[productIdFor(plan)] ?? const <ProductDetails>[],
+      trialPlan: plan.isIntroTrial,
+      android: _isAndroidStore,
+      yearly: _isAndroidStore ? yearly : null,
+      basePlanId: basePlanIdFor(plan),
+      preferredPlayOfferId: PremiumTrialOffer.playOfferIdFor(yearly: yearly),
+    );
+  }
 
   bool _sameOffer(ProductDetails left, ProductDetails right) {
     if (left is GooglePlayProductDetails && right is GooglePlayProductDetails) {
@@ -185,9 +297,7 @@ class PremiumStore {
     final product = _productForPurchase(plan);
     if (product == null) {
       throw PremiumStoreException(
-        plan.isThreeMonthTrial
-            ? 'The 3-month trial is not available in the store for this account yet.'
-            : 'Pelevo Plus is not available in the store for this account yet.',
+        'Pelevo Plus is not available in the store for this account yet.',
       );
     }
     _pending = Completer<PremiumPurchaseResult>();
@@ -294,8 +404,7 @@ class PremiumStore {
 
   void _onPurchases(List<PurchaseDetails> purchases) {
     for (final purchase in purchases) {
-      if (purchase.productID != monthlyProductId &&
-          purchase.productID != yearlyProductId) {
+      if (!isPlusStoreProduct(purchase.productID)) {
         continue;
       }
       if (purchase.status == PurchaseStatus.pending) continue;
@@ -343,23 +452,52 @@ class PremiumStore {
 /// Matches a restored Play / App Store product to the Plus plan that uses
 /// that billing period. A priced plan is preferred over the introductory trial
 /// when both share the same store product.
-PremiumPlan? planForPlusProduct(Iterable<PremiumPlan> plans, String productId) {
+///
+/// Google Play uses one product ([PremiumStore.googleProductId]); pass
+/// [basePlanId] (`monthly` / `yearly`) when known. Without it, any priced Plus
+/// plan is returned so restore can still confirm the receipt.
+PremiumPlan? planForPlusProduct(
+  Iterable<PremiumPlan> plans,
+  String productId, {
+  String? basePlanId,
+}) {
   final yearly = switch (productId) {
     PremiumStore.yearlyProductId => true,
     PremiumStore.monthlyProductId => false,
+    PremiumStore.googleProductId => _yearlyFromPlayBasePlan(basePlanId),
     _ => null,
   };
-  if (yearly == null) return null;
+  if (yearly == null && productId != PremiumStore.googleProductId) {
+    return null;
+  }
   PremiumPlan? trial;
+  PremiumPlan? anyPriced;
   for (final plan in plans) {
-    if (plusIntervalIsYearly(plan.interval) != yearly) continue;
-    if (plan.isThreeMonthTrial) {
+    if (yearly != null && plusIntervalIsYearly(plan.interval) != yearly) {
+      continue;
+    }
+    if (plan.isIntroTrial) {
       trial ??= plan;
       continue;
     }
-    return plan;
+    if (yearly != null) return plan;
+    anyPriced ??= plan;
   }
-  return trial;
+  return yearly != null ? trial : (anyPriced ?? trial);
+}
+
+bool? _yearlyFromPlayBasePlan(String? basePlanId) {
+  final id = basePlanId?.trim().toLowerCase() ?? '';
+  if (id.isEmpty) return null;
+  if (id == PremiumStore.yearlyBasePlanId ||
+      id.contains('year') ||
+      id.contains('annual')) {
+    return true;
+  }
+  if (id == PremiumStore.monthlyBasePlanId || id.contains('month')) {
+    return false;
+  }
+  return null;
 }
 
 const plusPlayPackageName = 'com.Podemeraldltd.pelevo';
@@ -372,10 +510,14 @@ Uri? plusStoreSubscriptionUri({required String provider, String? productId}) {
   }
   if (provider != 'google') return null;
   final params = <String, String>{'package': plusPlayPackageName};
-  if (productId == PremiumStore.monthlyProductId ||
-      productId == PremiumStore.yearlyProductId) {
-    params['sku'] = productId!;
-  }
+  final sku = switch (productId) {
+    PremiumStore.googleProductId ||
+    PremiumStore.monthlyProductId ||
+    PremiumStore.yearlyProductId =>
+      PremiumStore.googleProductId,
+    _ => null,
+  };
+  if (sku != null) params['sku'] = sku;
   return Uri.https('play.google.com', '/store/account/subscriptions', params);
 }
 

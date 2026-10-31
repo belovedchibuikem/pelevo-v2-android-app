@@ -152,10 +152,10 @@ void main() {
         return jsonResponse(earnWalletFixture());
       }),
     );
-    expect(find.text('Set up Flutterwave'), findsOneWidget);
+    expect(find.text('Set up Bank Transfer'), findsOneWidget);
     expect(find.text('Account number'), findsOneWidget);
     expect(find.textContaining('not offered by the payout API'), findsNothing);
-    await tester.tap(find.text('Verify & Link Flutterwave'));
+    await tester.tap(find.text('Verify & Link Bank Transfer'));
     await tester.pumpAndSettle();
     expect(posted, isFalse);
   });

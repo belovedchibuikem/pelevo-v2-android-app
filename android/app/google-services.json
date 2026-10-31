@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "34338451494-nt55rhcss5u23ffhemmqipkgibj20dbi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.Podemeraldltd.pelevo",
+            "certificate_hash": "40f009b989eea24c5c61777288f112b00c553007"
+          }
+        },
+        {
           "client_id": "34338451494-tgjr4r1gim5cnpn2obdmqhsq2k28kkne.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

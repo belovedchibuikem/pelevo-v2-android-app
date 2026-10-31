@@ -1133,7 +1133,7 @@ class StudioPayoutMethod {
     }
     return switch (provider) {
       'paypal' => 'PayPal',
-      'flutterwave' => 'Flutterwave',
+      'flutterwave' => 'Bank Transfer (Local Banks)',
       _ => kind == 'paypal' ? 'PayPal' : 'Bank transfer',
     };
   }

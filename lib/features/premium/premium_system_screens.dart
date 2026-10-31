@@ -250,7 +250,10 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   StorefrontPrice? _quote(PremiumPlan? plan) =>
       plan == null ? null : PremiumStore.instance.quoteForPlan(plan);
 
-  String _planBadge(PremiumPlan plan) => storefrontPromoBadge(_quote(plan));
+  String _planBadge(PremiumPlan plan) {
+    if (_isRenewalPaywall) return '';
+    return storefrontPromoBadge(_quote(plan));
+  }
 
   Future<void> _purchasePlus(PremiumPlan? plan) async {
     if (_preview) {
@@ -287,6 +290,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         );
       }
       ref.invalidate(premiumAccountProvider);
+      ref.invalidate(premiumInvoicesProvider);
+      // Force a fresh entitlement so ads / upgrade cards dismiss immediately.
+      try {
+        await ref.read(premiumAccountProvider.future);
+      } on Object {
+        // Confirmation screen still explains pending receipt unlock.
+      }
       if (!mounted) return;
       context.go('/screen/premium-confirmed');
     } on PremiumStoreException catch (error) {
@@ -302,16 +312,23 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
 
   bool get _trialOfferRequested {
     final offer = GoRouterState.of(context).uri.queryParameters['offer'];
-    return offer == PremiumTrialOffer.slug;
+    return PremiumTrialOffer.matchesSlug(offer);
+  }
+
+  bool get _isRenewalPaywall {
+    final account = ref.watch(premiumAccountProvider).asData?.value;
+    final entitlement = account?.entitlement;
+    if (entitlement == null) return false;
+    return !entitlement.grantsPlus;
   }
 
   void _selectTrialOffer(List<PremiumPlan> plans) {
     if (!_trialOfferRequested || _trialOfferApplied) return;
     var index = plans.indexWhere(
-      (plan) => plan.isThreeMonthTrial && plusIntervalIsYearly(plan.interval),
+      (plan) => plan.isIntroTrial && plusIntervalIsYearly(plan.interval),
     );
     if (index < 0) {
-      index = plans.indexWhere((plan) => plan.isThreeMonthTrial);
+      index = plans.indexWhere((plan) => plan.isIntroTrial);
     }
     if (index < 0) return;
     _trialOfferApplied = true;
@@ -390,13 +407,15 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     }
     final plans = async.requireValue;
     _selectTrialOffer(plans);
-    final claimingTrial = _selectedPlan?.isThreeMonthTrial == true;
+    final claimingTrial =
+        _selectedPlan?.isIntroTrial == true && !_isRenewalPaywall;
+    final renewing = _isRenewalPaywall;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_trialOfferRequested && claimingTrial) ...[
+        if (renewing) ...[
           const Text(
-            'Your 3-month free trial is selected.',
+            PremiumTrialOffer.renewHeadline,
             style: TextStyle(
               color: PelevoColors.yellow,
               fontWeight: FontWeight.w700,
@@ -404,7 +423,21 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           ),
           const SizedBox(height: PelevoSpacing.xs),
           Text(
-            'Choose Monthly or Annual. Billing starts automatically when the 3 months end.',
+            'Your previous Pelevo Plus period ended. Pick a plan to resubscribe at the standard store price.',
+            style: TextStyle(color: context.pelevo.textMuted),
+          ),
+          const SizedBox(height: PelevoSpacing.md),
+        ] else if (_trialOfferRequested && claimingTrial) ...[
+          const Text(
+            'Your 1-month free trial is selected.',
+            style: TextStyle(
+              color: PelevoColors.yellow,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: PelevoSpacing.xs),
+          Text(
+            'Choose Monthly or Annual. Billing starts automatically when the 30 days end.',
             style: TextStyle(color: context.pelevo.textMuted),
           ),
           const SizedBox(height: PelevoSpacing.md),
@@ -440,6 +473,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             claimingTrial: claimingTrial,
             preview: _preview,
             quote: _quote(_selectedPlan),
+            renewing: renewing,
           ),
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,

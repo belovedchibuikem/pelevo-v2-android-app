@@ -1,8 +1,43 @@
 const plusMonthlyProductId = 'pelevo_plus_monthly';
 const plusYearlyProductId = 'pelevo_plus_yearly';
 
+/// Google Play umbrella subscription; monthly/yearly are base plans under it.
+const plusGoogleProductId = 'pelevo_plus_individual';
+
+const plusMonthlyBasePlanId = 'monthly';
+const plusYearlyBasePlanId = 'yearly';
+
 bool isPlusProduct(String productId) =>
-    productId == plusMonthlyProductId || productId == plusYearlyProductId;
+    productId == plusMonthlyProductId ||
+    productId == plusYearlyProductId ||
+    productId == plusGoogleProductId;
+
+/// Maps a Play product + base plan to the logical monthly/yearly product id.
+String logicalPlusProductId({
+  required String productId,
+  String? basePlanId,
+  String? offerId,
+}) {
+  if (productId == plusMonthlyProductId || productId == plusYearlyProductId) {
+    return productId;
+  }
+  if (productId != plusGoogleProductId) return productId;
+  final base = basePlanId?.trim().toLowerCase() ?? '';
+  final offer = offerId?.trim().toLowerCase() ?? '';
+  if (base == plusYearlyBasePlanId ||
+      base.contains('year') ||
+      base.contains('annual') ||
+      offer.contains('yearly') ||
+      offer.contains('annual')) {
+    return plusYearlyProductId;
+  }
+  if (base == plusMonthlyBasePlanId ||
+      base.contains('month') ||
+      offer.contains('monthly')) {
+    return plusMonthlyProductId;
+  }
+  return productId;
+}
 
 enum StorePlatform { iosAppStore, googlePlayStore }
 

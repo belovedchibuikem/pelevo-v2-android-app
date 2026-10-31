@@ -4,10 +4,10 @@ Map<String, dynamic> giftWalletFixture({int balance = 100}) => {
 };
 
 Map<String, dynamic> giftPackFixture({
-  String id = 'pack-1200',
+  String id = 'pack-500',
   String store = 'apple',
-  String productId = 'pelevo_coins_1200',
-  int coins = 1200,
+  String productId = 'coins_500',
+  int coins = 500,
 }) => {
   'id': id,
   'store': store,
@@ -20,7 +20,7 @@ Map<String, dynamic> giftTypeFixture({
   String id = 'gift-applause',
   String slug = 'applause',
   String name = 'Applause',
-  int coins = 100,
+  int coins = 300,
 }) => {
   'id': id,
   'slug': slug,
@@ -32,7 +32,7 @@ Map<String, dynamic> giftTypeFixture({
 Map<String, dynamic> giftActivityFixture({
   String id = 'entry-1',
   String eventType = 'iap.verified',
-  int amount = 1200,
+  int amount = 500,
 }) => {
   'id': id,
   'event_type': eventType,
@@ -44,7 +44,7 @@ Map<String, dynamic> giftActivityFixture({
 Map<String, dynamic> giftReceiptFixture({
   String id = 'gift-1',
   String name = 'Applause',
-  int coins = 100,
+  int coins = 300,
   String creator = 'Studio Owner',
   int remaining = 50,
 }) => {
@@ -63,16 +63,27 @@ Map<String, dynamic> giftReceiptFixture({
 List<Map<String, dynamic>> giftCatalogFixture() => [
   giftTypeFixture(),
   giftTypeFixture(id: 'gift-love', slug: 'love', name: 'Love', coins: 500),
-  giftTypeFixture(id: 'gift-star', slug: 'star', name: 'Star', coins: 1000),
+  giftTypeFixture(id: 'gift-star', slug: 'star', name: 'Star', coins: 750),
   giftTypeFixture(
     id: 'gift-champion',
     slug: 'champion',
     name: 'Champion',
-    coins: 5000,
+    coins: 1000,
+  ),
+  giftTypeFixture(id: 'gift-crown', slug: 'crown', name: 'Crown', coins: 1500),
+  giftTypeFixture(
+    id: 'gift-legend',
+    slug: 'legend',
+    name: 'Legend',
+    coins: 2000,
   ),
 ];
 
 List<Map<String, dynamic>> giftPacksFixture() => [
-  giftPackFixture(id: 'pack-500', productId: 'pelevo_coins_500', coins: 500),
+  giftPackFixture(id: 'pack-300', productId: 'coins_300', coins: 300),
   giftPackFixture(),
+  giftPackFixture(id: 'pack-750', productId: 'coins_750', coins: 750),
+  giftPackFixture(id: 'pack-1000', productId: 'coins_1000', coins: 1000),
+  giftPackFixture(id: 'pack-1500', productId: 'coins_1500', coins: 1500),
+  giftPackFixture(id: 'pack-2000', productId: 'coins_2000', coins: 2000),
 ];

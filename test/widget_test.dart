@@ -650,8 +650,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pelevo Plus Monthly'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Start Free Trial'));
-    await tester.tap(find.text('Start Free Trial'));
+    await tester.ensureVisible(find.text('Try 1 Month Free'));
+    await tester.tap(find.text('Try 1 Month Free'));
     await tester.pumpAndSettle();
     expect(find.text('Compare Plans'), findsWidgets);
 
@@ -976,7 +976,7 @@ void main() {
 
     pelevoRouter.go('/screen/profile');
     await tester.pumpAndSettle();
-    expect(find.text('Upgrade to Pro'), findsOneWidget);
+    expect(find.text('Upgrade to Pelevo Plus'), findsOneWidget);
     expect(find.text('Earn Wallet'), findsOneWidget);
     expect(find.text('Claim Your Podcast'), findsOneWidget);
     expect(find.text('Monetization'), findsNothing);
@@ -996,7 +996,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Payout Gateways'), findsOneWidget);
     expect(find.text('PayPal'), findsOneWidget);
-    expect(find.text('Flutterwave'), findsOneWidget);
+    expect(find.text('Bank Transfer (Local Banks)'), findsOneWidget);
     expect(find.text('Paystack'), findsNothing);
 
     final paypalTile = find.widgetWithText(ListTile, 'PayPal');
@@ -1127,7 +1127,7 @@ void main() {
     await tester.tap(find.text('Buy Coins').first);
     await tester.pumpAndSettle();
     expect(find.text('Choose a coin pack'), findsOneWidget);
-    expect(find.text('1200 coins'), findsOneWidget);
+    expect(find.text('500 coins'), findsOneWidget);
   });
 
   testWidgets('reels and episodes share a comment and reply thread', (

@@ -19,7 +19,8 @@ void main() {
           giftPackFixture(
             id: 'pack-google',
             store: 'google',
-            productId: 'pelevo_coins_1200',
+            productId: 'coins_500',
+            coins: 500,
           ),
         ],
         '/gifts/catalog' => giftCatalogFixture(),
@@ -36,15 +37,22 @@ void main() {
 
     final packs = await repository.packs();
     expect(packs, hasLength(1));
-    expect(packs.single.coins, 1200);
-    expect(packs.single.productId, 'pelevo_coins_1200');
+    expect(packs.single.coins, 500);
+    expect(packs.single.productId, 'coins_500');
 
     final catalog = await repository.catalog();
-    expect(catalog.map((item) => item.name), ['Applause', 'Love', 'Star', 'Champion']);
+    expect(catalog.map((item) => item.name), [
+      'Applause',
+      'Love',
+      'Star',
+      'Champion',
+      'Crown',
+      'Legend',
+    ]);
 
     final activity = await repository.activity();
     expect(activity.single.eventType, 'iap.verified');
-    expect(activity.single.amount, 1200);
+    expect(activity.single.amount, 500);
 
     final receipt = await repository.receipt('gift-1');
     expect(receipt.giftTypeName, 'Applause');
@@ -63,8 +71,8 @@ void main() {
       () => GiftPack.fromApi({
         'id': 'pack-1',
         'store': 'apple',
-        'product_id': 'pelevo_coins_1200',
-        'coins': 1200,
+        'product_id': 'coins_500',
+        'coins': 500,
       }),
       throwsA(isA<ApiFailure>()),
     );

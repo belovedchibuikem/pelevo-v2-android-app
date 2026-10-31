@@ -62,19 +62,24 @@ class GiftWalletService extends ChangeNotifier {
   static final instance = GiftWalletService._();
 
   static const _balanceKey = 'pelevo_coin_balance';
+  /// Must match Google Play / App Store SKUs and `coin_products.product_id`.
   static const coinPacks = [
-    CoinPack(productId: 'pelevo_coins_500', coins: 500),
-    CoinPack(productId: 'pelevo_coins_1200', coins: 1200, badge: 'Popular'),
-    CoinPack(productId: 'pelevo_coins_2500', coins: 2500, badge: 'Best value'),
-    CoinPack(productId: 'pelevo_coins_6500', coins: 6500),
-    CoinPack(productId: 'pelevo_coins_15000', coins: 15000),
+    CoinPack(productId: 'coins_300', coins: 300),
+    CoinPack(productId: 'coins_500', coins: 500, badge: 'Popular'),
+    CoinPack(productId: 'coins_750', coins: 750),
+    CoinPack(productId: 'coins_1000', coins: 1000, badge: 'Best value'),
+    CoinPack(productId: 'coins_1500', coins: 1500),
+    CoinPack(productId: 'coins_2000', coins: 2000),
   ];
 
+  /// Fallback catalog; live UI prefers `GET /gifts/catalog`.
   static const gifts = [
-    GiftOption(icon: Icons.back_hand_rounded, name: 'Applause', coins: 100),
+    GiftOption(icon: Icons.back_hand_rounded, name: 'Applause', coins: 300),
     GiftOption(icon: Icons.favorite_rounded, name: 'Love', coins: 500),
-    GiftOption(icon: Icons.star_rounded, name: 'Star', coins: 1000),
-    GiftOption(icon: Icons.emoji_events_rounded, name: 'Champion', coins: 5000),
+    GiftOption(icon: Icons.star_rounded, name: 'Star', coins: 750),
+    GiftOption(icon: Icons.emoji_events_rounded, name: 'Champion', coins: 1000),
+    GiftOption(icon: Icons.workspace_premium_rounded, name: 'Crown', coins: 1500),
+    GiftOption(icon: Icons.auto_awesome_rounded, name: 'Legend', coins: 2000),
   ];
 
   final _iap = InAppPurchase.instance;
@@ -127,6 +132,7 @@ class GiftWalletService extends ChangeNotifier {
     _balance = preferences.getInt(_balanceKey) ?? 0;
     if (!_isMobileStore) {
       _storeAvailable = true;
+      notifyListeners();
       return;
     }
 
@@ -139,18 +145,31 @@ class GiftWalletService extends ChangeNotifier {
         );
       },
     );
+    notifyListeners();
+    // Play Billing can hang on cold start — never await catalog from main().
+    unawaited(warmStoreCatalog());
+  }
 
-    _storeAvailable = await _iap.isAvailable();
-    if (!_storeAvailable) {
-      notifyListeners();
-      return;
-    }
-
-    final response = await _iap.queryProductDetails(
-      coinPacks.map((pack) => pack.productId).toSet(),
-    );
-    for (final product in response.productDetails) {
-      _storeProducts[product.id] = product;
+  /// Loads the Play / App Store coin catalog without blocking app startup.
+  Future<void> warmStoreCatalog() async {
+    if (!_isMobileStore) return;
+    try {
+      _storeAvailable = await _iap.isAvailable().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => false,
+      );
+      if (!_storeAvailable) {
+        notifyListeners();
+        return;
+      }
+      final response = await _iap
+          .queryProductDetails(coinPacks.map((pack) => pack.productId).toSet())
+          .timeout(const Duration(seconds: 12));
+      for (final product in response.productDetails) {
+        _storeProducts[product.id] = product;
+      }
+    } on Object {
+      _storeAvailable = false;
     }
     notifyListeners();
   }
@@ -186,17 +205,30 @@ class GiftWalletService extends ChangeNotifier {
       subscriptionPriceLine(quoteFor(productId));
 
   Future<void> ensureProducts(Iterable<String> productIds) async {
-    if (!_isMobileStore || !_storeAvailable) return;
+    if (!_isMobileStore) {
+      await warmStoreCatalog();
+      return;
+    }
+    if (!_storeAvailable && _storeProducts.isEmpty) {
+      await warmStoreCatalog();
+    }
+    if (!_storeAvailable) return;
     final missing =
         productIds
             .where((id) => id.isNotEmpty && !_storeProducts.containsKey(id))
             .toSet();
     if (missing.isEmpty) return;
-    final response = await _iap.queryProductDetails(missing);
-    for (final product in response.productDetails) {
-      _storeProducts[product.id] = product;
+    try {
+      final response = await _iap
+          .queryProductDetails(missing)
+          .timeout(const Duration(seconds: 12));
+      for (final product in response.productDetails) {
+        _storeProducts[product.id] = product;
+      }
+      if (response.productDetails.isNotEmpty) notifyListeners();
+    } on Object {
+      // Catalog stays empty; purchase UI shows unavailable.
     }
-    if (response.productDetails.isNotEmpty) notifyListeners();
   }
 
   Future<GiftPurchaseStage> purchase(CoinPack pack) async {

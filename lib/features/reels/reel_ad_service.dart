@@ -30,22 +30,32 @@ abstract final class ReelAds {
       consentUpdated.complete,
       (_) => consentUpdated.complete(),
     );
-    await consentUpdated.future;
+    try {
+      await consentUpdated.future.timeout(const Duration(seconds: 8));
+    } on Object {
+      return false;
+    }
 
     final formDismissed = Completer<void>();
     ConsentForm.loadAndShowConsentFormIfRequired(
       (_) => formDismissed.complete(),
     );
-    await formDismissed.future;
+    try {
+      await formDismissed.future.timeout(const Duration(seconds: 20));
+    } on Object {
+      // Continue; canRequestAds below decides whether ads may load.
+    }
 
     if (!await ConsentInformation.instance.canRequestAds()) return false;
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status == TrackingStatus.notDetermined) {
-        await AppTrackingTransparency.requestTrackingAuthorization();
+        await AppTrackingTransparency.requestTrackingAuthorization().timeout(
+          const Duration(seconds: 8),
+        );
       }
     }
-    await MobileAds.instance.initialize();
+    await MobileAds.instance.initialize().timeout(const Duration(seconds: 10));
     // Pelevo is 13+ generally; Earn/gifts/cashout are 18+. Not child-directed.
     await MobileAds.instance.updateRequestConfiguration(
       RequestConfiguration(

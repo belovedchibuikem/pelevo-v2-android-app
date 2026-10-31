@@ -13,12 +13,12 @@ enum PayoutGateway { paypal, flutterwave }
 extension PayoutGatewayX on PayoutGateway {
   String get label => switch (this) {
     PayoutGateway.paypal => 'PayPal',
-    PayoutGateway.flutterwave => 'Flutterwave',
+    PayoutGateway.flutterwave => 'Bank Transfer (Local Banks)',
   };
 
   String get subtitle => switch (this) {
     PayoutGateway.paypal => 'Global PayPal balance payouts',
-    PayoutGateway.flutterwave => 'Nigerian banks & mobile money',
+    PayoutGateway.flutterwave => 'Local banks & mobile money',
   };
 
   Color get color => switch (this) {
@@ -41,7 +41,7 @@ extension PayoutGatewayX on PayoutGateway {
 
 String payoutProviderLabel(String provider) => switch (provider) {
   'paypal' => 'PayPal',
-  'flutterwave' => 'Flutterwave',
+  'flutterwave' => 'Bank Transfer (Local Banks)',
   _ => provider,
 };
 
@@ -191,7 +191,7 @@ class WithdrawHomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: PelevoSpacing.sm),
               Text(
-                'Earn coins are separate from gift coins. Withdraw to a Nigerian bank with Flutterwave, or to PayPal in USD.',
+                'Earn coins are separate from gift coins. Withdraw to a local bank, or to PayPal in USD.',
                 style: TextStyle(color: context.pelevo.textMuted, height: 1.35),
               ),
               const SizedBox(height: PelevoSpacing.sm),
@@ -310,7 +310,7 @@ class _WithdrawSetupFlutterwaveScreenState
     if (_saving || !_ageConfirmed) return;
     if (_accountType != 'NUBAN') {
       context.showPelevoMessage(
-        'Flutterwave setup in this app supports NUBAN bank accounts only.',
+        'Bank transfer setup in this app supports NUBAN bank accounts only.',
       );
       return;
     }
@@ -369,11 +369,11 @@ class _WithdrawSetupFlutterwaveScreenState
 
   @override
   Widget build(BuildContext context) => _SetupScaffold(
-    title: 'Set up Flutterwave',
+    title: 'Set up Bank Transfer',
     gateway: PayoutGateway.flutterwave,
     children: [
       Text(
-        'Flutterwave pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
+        'Bank transfer pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
         style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
@@ -382,18 +382,20 @@ class _WithdrawSetupFlutterwaveScreenState
         decoration: const InputDecoration(labelText: 'Account name'),
       ),
       const SizedBox(height: PelevoSpacing.sm),
-      DropdownButtonFormField<String>(
-        value: _bank,
-        decoration: const InputDecoration(labelText: 'Bank name'),
-        items: [
-          for (final bank in _banks)
-            DropdownMenuItem(value: bank.$1, child: Text(bank.$2)),
+      SearchableSelectField(
+        valueLabel: _banks.where((bank) => bank.$1 == _bank).isEmpty
+            ? null
+            : _banks.firstWhere((bank) => bank.$1 == _bank).$2,
+        hint: 'Select your bank',
+        searchHint: 'Search banks',
+        sheetTitle: 'Select bank',
+        options: [
+          for (final bank in _banks) (value: bank.$1, label: bank.$2),
         ],
-        onChanged:
-            (value) => setState(() {
-              _bank = value;
-              _pendingMethodId = null;
-            }),
+        onSelected: (value) => setState(() {
+          _bank = value;
+          _pendingMethodId = null;
+        }),
       ),
       const SizedBox(height: PelevoSpacing.sm),
       TextField(
@@ -425,7 +427,7 @@ class _WithdrawSetupFlutterwaveScreenState
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: _saving ? 'Uploading…' : 'Verify & Link Flutterwave',
+        label: _saving ? 'Uploading…' : 'Verify & Link Bank Transfer',
         color: PayoutGateway.flutterwave.color,
         onPressed: _saving || !_ageConfirmed ? null : _save,
       ),

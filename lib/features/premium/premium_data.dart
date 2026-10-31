@@ -120,9 +120,12 @@ class PremiumPlan {
   final int priceMinor;
   final int trialMonths;
 
-  bool get isThreeMonthTrial =>
-      trialMonths == PremiumTrialOffer.trialMonths ||
-      slug == PremiumTrialOffer.slug;
+  /// True when this catalog row carries a free-trial window (1 month).
+  bool get isIntroTrial =>
+      trialMonths > 0 || PremiumTrialOffer.matchesSlug(slug);
+
+  /// Legacy alias used by older call sites / tests.
+  bool get isThreeMonthTrial => isIntroTrial;
 
   String get priceLabel => formatPremiumPrice(priceMinor, currency, interval);
 }

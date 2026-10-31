@@ -443,6 +443,79 @@ void main() {
     expect(ledger.premiumMe(user)['entitlement'], isNull);
   });
 
+  test('Play individual SKU maps to monthly or yearly from the base plan', () {
+    final monthly = normalizeGoogleNotification(
+      messageId: 'pubsub-individual-m',
+      developerNotification: {
+        'subscriptionNotification': {
+          'notificationType': 4,
+          'purchaseToken': 'token-m',
+          'subscriptionId': plusGoogleProductId,
+        },
+      },
+      subscriptionPurchase: {
+        'regionCode': 'NG',
+        'startTime': '2026-08-10T00:00:00Z',
+        'lineItems': [
+          {
+            'productId': plusGoogleProductId,
+            'expiryTime': '2026-09-10T00:00:00Z',
+            'offerDetails': {
+              'basePlanId': plusMonthlyBasePlanId,
+              'offerId': 'one-month-free-trial-monthly',
+            },
+            'autoRenewingPlan': {
+              'recurringPrice': {
+                'currencyCode': 'NGN',
+                'units': '1600',
+                'nanos': 0,
+              },
+            },
+          },
+        ],
+      },
+    )!;
+    final yearly = normalizeGoogleNotification(
+      messageId: 'pubsub-individual-y',
+      developerNotification: {
+        'subscriptionNotification': {
+          'notificationType': 4,
+          'purchaseToken': 'token-y',
+          'subscriptionId': plusGoogleProductId,
+        },
+      },
+      subscriptionPurchase: {
+        'regionCode': 'NG',
+        'startTime': '2026-08-10T00:00:00Z',
+        'lineItems': [
+          {
+            'productId': plusGoogleProductId,
+            'expiryTime': '2027-08-10T00:00:00Z',
+            'offerDetails': {'basePlanId': plusYearlyBasePlanId},
+            'autoRenewingPlan': {
+              'recurringPrice': {
+                'currencyCode': 'NGN',
+                'units': '16000',
+                'nanos': 0,
+              },
+            },
+          },
+        ],
+      },
+    )!;
+
+    expect(monthly.productId, plusMonthlyProductId);
+    expect(yearly.productId, plusYearlyProductId);
+    expect(isPlusProduct(plusGoogleProductId), isTrue);
+    expect(
+      logicalPlusProductId(
+        productId: plusGoogleProductId,
+        basePlanId: plusMonthlyBasePlanId,
+      ),
+      plusMonthlyProductId,
+    );
+  });
+
   test(
     'Apple, Google, and RevenueCat notifications normalize to one ledger',
     () {

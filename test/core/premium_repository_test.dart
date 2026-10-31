@@ -142,9 +142,9 @@ void main() {
       PremiumPlan.parse(
         premiumPlanFixture(
           id: 'plan-yearly-trial',
-          slug: 'plus-3-month-trial',
+          slug: 'plus-1-month-trial',
           interval: 'year',
-          trialMonths: 3,
+          trialMonths: 1,
         ),
       ),
       PremiumPlan.parse(
@@ -161,6 +161,22 @@ void main() {
     );
     expect(
       planForPlusProduct(plans, PremiumStore.yearlyProductId)?.id,
+      'plan-yearly',
+    );
+    expect(
+      planForPlusProduct(
+        plans,
+        PremiumStore.googleProductId,
+        basePlanId: PremiumStore.monthlyBasePlanId,
+      )?.id,
+      'plan-monthly',
+    );
+    expect(
+      planForPlusProduct(
+        plans,
+        PremiumStore.googleProductId,
+        basePlanId: PremiumStore.yearlyBasePlanId,
+      )?.id,
       'plan-yearly',
     );
     expect(planForPlusProduct(plans, 'flutterwave'), isNull);
@@ -210,7 +226,7 @@ void main() {
         provider: 'google',
         productId: PremiumStore.monthlyProductId,
       ).toString(),
-      'https://play.google.com/store/account/subscriptions?package=com.Podemeraldltd.pelevo&sku=pelevo_plus_monthly',
+      'https://play.google.com/store/account/subscriptions?package=com.Podemeraldltd.pelevo&sku=pelevo_plus_individual',
     );
     expect(plusStoreSubscriptionUri(provider: 'apple')?.host, 'apps.apple.com');
     expect(plusStoreSubscriptionUri(provider: 'flutterwave'), isNull);

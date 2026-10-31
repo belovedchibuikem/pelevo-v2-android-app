@@ -132,7 +132,8 @@ StoreNotice? normalizeGoogleNotification({
   final currency = requireCurrency(
     price == null ? null : _optionalText(price, 'currencyCode'),
   );
-  final intro = _map(line['offerDetails']) != null;
+  final offerDetails = _map(line['offerDetails']);
+  final intro = offerDetails != null;
   final amount =
       price == null
           ? 0
@@ -142,6 +143,9 @@ StoreNotice? normalizeGoogleNotification({
             currency: currency,
           );
   final external = _map(subscriptionPurchase['externalAccountIdentifiers']);
+  final rawProductId =
+      _optionalText(line, 'productId') ??
+      _text(subscription, 'subscriptionId');
   return _notice(
     platform: StorePlatform.googlePlayStore,
     storeEventId: messageId,
@@ -152,9 +156,15 @@ StoreNotice? normalizeGoogleNotification({
             ? originalPurchaseToken!.trim()
             : (_optionalText(subscriptionPurchase, 'linkedPurchaseToken') ??
                 token),
-    productId:
-        _optionalText(line, 'productId') ??
-        _text(subscription, 'subscriptionId'),
+    productId: logicalPlusProductId(
+      productId: rawProductId,
+      basePlanId:
+          offerDetails == null
+              ? null
+              : _optionalText(offerDetails, 'basePlanId'),
+      offerId:
+          offerDetails == null ? null : _optionalText(offerDetails, 'offerId'),
+    ),
     billingCountryCode: requireCountryCode(
       _optionalText(subscriptionPurchase, 'regionCode'),
     ),
@@ -241,6 +251,8 @@ StoreNotice? normalizeRevenueCatEvent(
       periodType == 'TRIAL' ||
       periodType == 'INTRO' ||
       periodType == 'PROMOTIONAL';
+  final rawProductId = _text(event, 'product_id');
+  final productParts = rawProductId.split(':');
   return _notice(
     platform: platform,
     storeEventId: _text(event, 'id'),
@@ -249,7 +261,10 @@ StoreNotice? normalizeRevenueCatEvent(
         typeName == 'EXPIRATION' &&
         event['cancel_reason'] == 'CUSTOMER_SUPPORT',
     originalTransactionId: _text(event, 'original_transaction_id'),
-    productId: _text(event, 'product_id'),
+    productId: logicalPlusProductId(
+      productId: productParts.first,
+      basePlanId: productParts.length > 1 ? productParts[1] : null,
+    ),
     billingCountryCode: requireCountryCode(
       _optionalText(event, 'country_code'),
     ),

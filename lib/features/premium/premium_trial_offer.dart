@@ -3,12 +3,44 @@ import 'dart:math';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Introductory Pelevo Plus offer: three months free, then the yearly plan.
+/// Introductory Pelevo Plus offer: one month free, then the selected plan.
 abstract final class PremiumTrialOffer {
-  static const slug = 'plus-3-month-trial';
-  static const trialMonths = 3;
+  static const slug = 'plus-1-month-trial';
+
+  /// Older deep links / local promo keys still resolve to this campaign.
+  static const legacySlug = 'plus-3-month-trial';
+
+  static const trialMonths = 1;
+  static const legacyTrialMonths = 3;
   static const cooldownDays = 8;
   static const sessionInterval = 8;
+
+  static const promoHeadline = 'Try 1 Month Free';
+  static const promoBadge = 'Try 1 Month Free';
+  static const promoSubtitle =
+      'Enjoy ad-free and offline podcast listening on Pelevo Plus.';
+  static const claimCta = 'Claim Offer';
+  static const renewCta = 'Resubscribe to Pelevo Plus';
+  static const renewHeadline = 'Renew Subscription';
+
+  /// Google Play Console offer IDs on `pelevo_plus_individual` base plans.
+  static const playMonthlyOfferId = 'one-month-free-trial-monthly';
+  static const playYearlyOfferId = 'one-month-free-trial-yearly';
+
+  static bool matchesSlug(String? value) =>
+      value == slug || value == legacySlug;
+
+  static String playOfferIdFor({required bool yearly}) =>
+      yearly ? playYearlyOfferId : playMonthlyOfferId;
+
+  static String? playOfferIdForProduct(String productId, {bool? yearly}) {
+    if (productId == 'pelevo_plus_monthly') return playMonthlyOfferId;
+    if (productId == 'pelevo_plus_yearly') return playYearlyOfferId;
+    if (productId == 'pelevo_plus_individual' && yearly != null) {
+      return playOfferIdFor(yearly: yearly);
+    }
+    return null;
+  }
 }
 
 class PremiumTrialEvaluation {

@@ -192,23 +192,23 @@ void main() {
     },
   );
 
-  testWidgets('offer query selects the 3-month trial on the paywall', (
+  testWidgets('offer query selects the 1-month trial on the paywall', (
     tester,
   ) async {
     await mount(
       tester,
-      location: '/screen/premium-plans?offer=plus-3-month-trial',
+      location: '/screen/premium-plans?offer=plus-1-month-trial',
       quotes: {
         PremiumStore.monthlyProductId: const StorefrontPrice(
           priceString: '₦1,600.00',
           currencyCode: 'NGN',
-          introductoryPeriodLabel: '3 months',
+          introductoryPeriodLabel: 'month',
           introductoryPriceIsFree: true,
         ),
         PremiumStore.yearlyProductId: const StorefrontPrice(
           priceString: 'R699.99',
           currencyCode: 'ZAR',
-          introductoryPeriodLabel: '3 months',
+          introductoryPeriodLabel: 'month',
           introductoryPriceIsFree: true,
         ),
       },
@@ -220,7 +220,7 @@ void main() {
             name: 'Monthly',
             priceMinor: 160000,
             interval: 'month',
-            trialMonths: 3,
+            trialMonths: 1,
           ),
           premiumPlanFixture(
             id: 'plan-yearly',
@@ -228,29 +228,29 @@ void main() {
             name: 'Annual',
             priceMinor: 1760000,
             interval: 'year',
-            trialMonths: 3,
+            trialMonths: 1,
           ),
         ],
       ),
     );
     expect(find.text('Monthly'), findsOneWidget);
     expect(find.text('Annual'), findsOneWidget);
-    expect(find.text('3 months free'), findsNWidgets(2));
-    expect(find.text('1 month free'), findsNothing);
+    expect(find.text('Try 1 Month Free'), findsNWidgets(2));
+    expect(find.text('3 months free'), findsNothing);
     expect(
-      find.text('Free for your first 3 months, then ₦1,600.00'),
+      find.text('Try 1 Month Free, then ₦1,600.00'),
       findsOneWidget,
     );
     expect(
-      find.text('Free for your first 3 months, then R699.99'),
+      find.text('Try 1 Month Free, then R699.99'),
       findsOneWidget,
     );
     expect(find.textContaining(r'$10.50'), findsNothing);
     expect(find.textContaining(r'$105.00'), findsNothing);
-    expect(find.text('Your 3-month free trial is selected.'), findsOneWidget);
+    expect(find.text('Your 1-month free trial is selected.'), findsOneWidget);
     expect(
       find.text(
-        'Choose Monthly or Annual. Billing starts automatically when the 3 months end.',
+        'Choose Monthly or Annual. Billing starts automatically when the 30 days end.',
       ),
       findsOneWidget,
     );

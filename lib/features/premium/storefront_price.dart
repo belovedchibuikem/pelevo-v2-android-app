@@ -4,6 +4,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
+import 'package:pelevo/features/premium/premium_trial_offer.dart';
 
 /// Shown until Google Play or the App Store returns a formatted price.
 const storefrontPricePending = 'Shown by your store account';
@@ -31,11 +32,7 @@ class StorefrontPrice {
 /// Badge taken from the store introductory phase. No store offer means no badge.
 String storefrontPromoBadge(StorefrontPrice? price) {
   if (price == null) return '';
-  if (price.introductoryPriceIsFree) {
-    final period = price.introductoryPeriodLabel?.trim() ?? '';
-    if (period.isEmpty) return 'Free trial';
-    return '$period free';
-  }
+  if (price.introductoryPriceIsFree) return PremiumTrialOffer.promoBadge;
   final intro = price.introductoryPriceString?.trim() ?? '';
   if (intro.isEmpty) return '';
   return 'Intro offer';
@@ -45,9 +42,7 @@ String storefrontPromoBadge(StorefrontPrice? price) {
 String? storefrontIntroNotice(StorefrontPrice? price) {
   if (price == null) return null;
   if (price.introductoryPriceIsFree) {
-    final period = price.introductoryPeriodLabel?.trim() ?? '';
-    if (period.isEmpty) return 'Promo: Your first period is free.';
-    return 'Promo: Get your first $period free.';
+    return 'Promo: ${PremiumTrialOffer.promoHeadline}. Then ${price.priceString}.';
   }
   final intro = price.introductoryPriceString?.trim() ?? '';
   if (intro.isEmpty) return null;
@@ -63,12 +58,14 @@ String plansSubscribeLabel({
   required bool claimingTrial,
   required bool preview,
   StorefrontPrice? quote,
+  bool renewing = false,
 }) {
-  if (claimingTrial) return 'Claim Offer';
+  if (renewing) return PremiumTrialOffer.renewCta;
+  if (claimingTrial) return PremiumTrialOffer.claimCta;
   if (preview || quote == null || quote.priceString.trim().isEmpty) {
-    return 'Start Free Trial';
+    return PremiumTrialOffer.promoHeadline;
   }
-  if (quote.introductoryPriceIsFree) return 'Start Free Trial';
+  if (quote.introductoryPriceIsFree) return PremiumTrialOffer.promoHeadline;
   final intro = quote.introductoryPriceString?.trim() ?? '';
   if (intro.isNotEmpty) return 'Subscribe for $intro';
   return 'Subscribe for ${quote.priceString}';
@@ -91,9 +88,7 @@ String subscriptionPriceLine(StorefrontPrice? price) {
   final listed = price?.priceString.trim() ?? '';
   if (price == null || listed.isEmpty) return storefrontPricePending;
   if (price.introductoryPriceIsFree) {
-    final period = price.introductoryPeriodLabel;
-    if (period == null || period.isEmpty) return 'Free, then $listed';
-    return 'Free for your first $period, then $listed';
+    return '${PremiumTrialOffer.promoHeadline}, then $listed';
   }
   final intro = price.introductoryPriceString?.trim() ?? '';
   if (intro.isEmpty) return price.priceString;
@@ -111,49 +106,156 @@ StorefrontPrice? storefrontPriceFromProduct(ProductDetails product) {
   return _fromPlain(product);
 }
 
+/// Narrows Play catalog rows for a monthly vs yearly base plan.
+///
+/// Prefers an exact [basePlanId], then the matching free-trial offer ID, then
+/// the recurring billing period (`P1M` / `P1Y`).
+List<ProductDetails> playOffersForInterval(
+  List<ProductDetails> offers, {
+  required bool yearly,
+  String? basePlanId,
+}) {
+  if (offers.isEmpty) return const [];
+  final preferredBase =
+      (basePlanId != null && basePlanId.isNotEmpty)
+          ? basePlanId
+          : (yearly ? 'yearly' : 'monthly');
+  final byBase =
+      offers
+          .where((offer) => _playBasePlanId(offer) == preferredBase)
+          .toList(growable: false);
+  if (byBase.isNotEmpty) return byBase;
+
+  final preferredOffer = PremiumTrialOffer.playOfferIdFor(yearly: yearly);
+  final byOffer =
+      offers
+          .where((offer) => _playOfferId(offer) == preferredOffer)
+          .toList(growable: false);
+  if (byOffer.isNotEmpty) return byOffer;
+
+  final period = yearly ? 'P1Y' : 'P1M';
+  final byPeriod =
+      offers
+          .where((offer) => _playRecurringPeriod(offer) == period)
+          .toList(growable: false);
+  if (byPeriod.isNotEmpty) return byPeriod;
+  return offers;
+}
+
 /// Picks the store product whose offer token matches the plan being purchased.
 ///
-/// A trial plan buys the free introductory phase. Any other plan buys the
-/// priced phase, including a paid introductory phase on that same offer.
+/// A trial plan prefers the Play offer IDs
+/// [PremiumTrialOffer.playMonthlyOfferId] /
+/// [PremiumTrialOffer.playYearlyOfferId] (or any free intro). If the account
+/// is not eligible, Play omits that offer and this falls back to the priced
+/// base plan so the paywall still works.
 ProductDetails? storeProductForPlan(
   List<ProductDetails> offers, {
   required bool trialPlan,
   required bool android,
+  String? preferredPlayOfferId,
+  bool? yearly,
+  String? basePlanId,
 }) {
-  if (offers.isEmpty) return null;
+  final scoped =
+      android && yearly != null
+          ? playOffersForInterval(
+            offers,
+            yearly: yearly,
+            basePlanId: basePlanId,
+          )
+          : offers;
+  if (scoped.isEmpty) return null;
   if (trialPlan) {
-    for (final offer in offers) {
-      if (_playOfferIsThreeMonthFree(offer)) return offer;
+    if (preferredPlayOfferId != null && preferredPlayOfferId.isNotEmpty) {
+      for (final offer in scoped) {
+        if (_playOfferMatchesId(offer, preferredPlayOfferId)) return offer;
+      }
     }
-    if (android) return null;
-    for (final offer in offers) {
+    for (final offer in scoped) {
+      if (_playOfferIsFreeIntro(offer)) return offer;
+    }
+    for (final offer in scoped) {
       if (storefrontPriceFromProduct(offer)?.introductoryPriceIsFree == true) {
         return offer;
       }
     }
-    return offers.first;
+    // Ineligible / missing trial offer → standard subscription price.
   }
   ProductDetails? priced;
-  for (final offer in offers) {
-    if (_playOfferIsThreeMonthFree(offer)) continue;
+  for (final offer in scoped) {
+    if (_playOfferIsFreeIntro(offer)) continue;
+    if (preferredPlayOfferId != null &&
+        _playOfferMatchesId(offer, preferredPlayOfferId)) {
+      continue;
+    }
     final quote = storefrontPriceFromProduct(offer);
     if (quote == null) continue;
     priced ??= offer;
     if (quote.introductoryPriceString?.isNotEmpty ?? false) return offer;
   }
-  return priced ?? offers.first;
+  return priced ?? scoped.first;
 }
 
-bool _playOfferIsThreeMonthFree(ProductDetails product) {
+String? _playBasePlanId(ProductDetails product) {
+  if (product is! GooglePlayProductDetails) return null;
+  final index = product.subscriptionIndex;
+  final offers = product.productDetails.subscriptionOfferDetails;
+  if (index == null || offers == null || index < 0 || index >= offers.length) {
+    return null;
+  }
+  return offers[index].basePlanId;
+}
+
+String? _playOfferId(ProductDetails product) {
+  if (product is! GooglePlayProductDetails) return null;
+  final index = product.subscriptionIndex;
+  final offers = product.productDetails.subscriptionOfferDetails;
+  if (index == null || offers == null || index < 0 || index >= offers.length) {
+    return null;
+  }
+  return offers[index].offerId;
+}
+
+String? _playRecurringPeriod(ProductDetails product) {
+  if (product is! GooglePlayProductDetails) return null;
+  final offers = product.productDetails.subscriptionOfferDetails;
+  if (offers == null || offers.isEmpty) return null;
+  final recurring = _recurringPhase(offers, product.subscriptionIndex);
+  return recurring?.billingPeriod;
+}
+
+bool _playOfferMatchesId(ProductDetails product, String offerId) {
   if (product is! GooglePlayProductDetails) return false;
   final index = product.subscriptionIndex;
   final offers = product.productDetails.subscriptionOfferDetails;
   if (index == null || offers == null || index < 0 || index >= offers.length) {
     return false;
   }
-  final phases = offers[index].pricingPhases;
+  final offer = offers[index];
+  if (offer.offerId != offerId) return false;
+  final phases = offer.pricingPhases;
+  return phases.isNotEmpty && phases.first.priceAmountMicros == 0;
+}
+
+bool _playOfferIsFreeIntro(ProductDetails product) {
+  if (product is! GooglePlayProductDetails) return false;
+  final index = product.subscriptionIndex;
+  final offers = product.productDetails.subscriptionOfferDetails;
+  if (index == null || offers == null || index < 0 || index >= offers.length) {
+    return false;
+  }
+  final offer = offers[index];
+  if (offer.offerId == PremiumTrialOffer.playMonthlyOfferId ||
+      offer.offerId == PremiumTrialOffer.playYearlyOfferId) {
+    final phases = offer.pricingPhases;
+    return phases.isNotEmpty && phases.first.priceAmountMicros == 0;
+  }
+  final phases = offer.pricingPhases;
   if (phases.isEmpty || phases.first.priceAmountMicros != 0) return false;
-  return phases.first.billingPeriod == 'P3M';
+  final period = phases.first.billingPeriod;
+  // Accept 1-month / 30-day free trials from Play.
+  return period == 'P1M' || period == 'P30D' || period == 'P4W';
 }
 
 StorefrontPrice? _fromPlain(ProductDetails product) {

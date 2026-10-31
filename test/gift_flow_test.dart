@@ -116,8 +116,9 @@ void main() {
     );
     expect(find.text('100'), findsOneWidget);
     expect(find.text('Choose a coin pack'), findsOneWidget);
-    expect(find.text('1200 coins'), findsOneWidget);
-    expect(find.text(storefrontPricePending), findsNWidgets(2));
+    expect(find.text('500 coins'), findsOneWidget);
+    expect(find.text('300 coins'), findsOneWidget);
+    expect(find.text(storefrontPricePending), findsNWidgets(6));
     expect(find.textContaining('Continue · $storefrontPricePending'), findsOneWidget);
     expect(find.text(r'$0.49'), findsNothing);
     expect(find.text(r'$1.19'), findsNothing);
@@ -143,24 +144,19 @@ void main() {
       location: '/screen/gift-coin-store',
       adapter: giftsAdapter(),
       quotes: const {
-        'pelevo_coins_500': StorefrontPrice(
-          priceString: '₦1,600.00',
+        'coins_300': StorefrontPrice(
+          priceString: '₦500.00',
           currencyCode: 'NGN',
         ),
-        'pelevo_coins_1200': StorefrontPrice(
-          priceString: 'R69.99',
-          currencyCode: 'ZAR',
-          introductoryPriceString: 'R29.99',
-          introductoryPeriodLabel: '3 months',
+        'coins_500': StorefrontPrice(
+          priceString: '₦850.00',
+          currencyCode: 'NGN',
         ),
       },
     );
-    expect(find.text('₦1,600.00'), findsOneWidget);
-    expect(
-      find.text('Pay only R29.99 for your first 3 months, then R69.99'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Continue · ₦1,600.00'), findsOneWidget);
+    expect(find.text('₦500.00'), findsOneWidget);
+    expect(find.text('₦850.00'), findsOneWidget);
+    expect(find.textContaining('Continue · ₦500.00'), findsOneWidget);
     expect(find.text(r'$0.49'), findsNothing);
     expect(find.text(r'$1.19'), findsNothing);
     expect(find.text('₦490.00'), findsNothing);
@@ -189,7 +185,7 @@ void main() {
     );
     expect(find.text('Coins added!'), findsOneWidget);
     expect(find.text('No completed purchase is available yet.'), findsOneWidget);
-    expect(find.text('1200 coins were securely added to your Pelevo wallet.'), findsNothing);
+    expect(find.text('500 coins were securely added to your Pelevo wallet.'), findsNothing);
   });
 
   testWidgets('gift receipt stays empty without a selected gift', (

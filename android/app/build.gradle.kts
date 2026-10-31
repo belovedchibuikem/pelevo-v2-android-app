@@ -43,7 +43,8 @@ android {
         applicationId = "com.Podemeraldltd.pelevo"
         // Play Automatic Protection requires minSdk 24+.
         minSdk = maxOf(flutter.minSdkVersion, 24)
-        targetSdk = flutter.targetSdkVersion
+        // Play Console requires target API 36+ for updates (Flutter template still defaults to 35).
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["admobAppId"] = admobAndroidAppId
@@ -94,9 +95,20 @@ android {
     }
 }
 
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.android.billingclient") {
+            useVersion("8.0.0")
+            because("Google Play requires Billing Library 8.0.0+")
+        }
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    // Explicit pin so Play Console detects Billing Library 8+.
+    implementation("com.android.billingclient:billing:8.0.0")
 }
 
 flutter {

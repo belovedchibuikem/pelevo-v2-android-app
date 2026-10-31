@@ -89,7 +89,7 @@ void main() {
     );
     expect(await offline.shouldPresent('user-1'), isFalse);
     expect(
-      preferences.getInt('pelevo.promo.plus-3-month-trial.user-1.sessions'),
+      preferences.getInt('pelevo.promo.plus-1-month-trial.user-1.sessions'),
       9,
     );
   });
@@ -174,7 +174,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Claim Offer'), findsOneWidget);
-      expect(find.text('Get 3 months of Premium, free'), findsOneWidget);
+      expect(find.text('Try 1 Month Free'), findsOneWidget);
       expect(
         find.text(
           'Enjoy ad-free and offline podcast listening on Pelevo Plus.',
@@ -194,7 +194,7 @@ void main() {
       );
       expect(
         router.routeInformationProvider.value.uri.queryParameters['offer'],
-        'plus-3-month-trial',
+        'plus-1-month-trial',
       );
       expect(remote.shown, 1);
     },

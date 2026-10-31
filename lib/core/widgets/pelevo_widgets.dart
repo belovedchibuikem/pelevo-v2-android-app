@@ -871,3 +871,154 @@ extension Snackbars on BuildContext {
     );
   }
 }
+
+typedef PelevoSelectOption = ({String value, String label});
+
+/// Form-style field that opens a searchable bottom sheet of options.
+class SearchableSelectField extends StatelessWidget {
+  const SearchableSelectField({
+    required this.options,
+    required this.onSelected,
+    required this.hint,
+    required this.searchHint,
+    required this.sheetTitle,
+    this.valueLabel,
+    this.enabled = true,
+    super.key,
+  });
+
+  final List<PelevoSelectOption> options;
+  final ValueChanged<String> onSelected;
+  final String hint;
+  final String searchHint;
+  final String sheetTitle;
+  final String? valueLabel;
+  final bool enabled;
+
+  Future<void> _open(BuildContext context) async {
+    if (!enabled || options.isEmpty) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => _SearchableSelectSheet(
+        title: sheetTitle,
+        searchHint: searchHint,
+        options: options,
+      ),
+    );
+    if (selected != null) onSelected(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = valueLabel?.trim();
+    return InkWell(
+      onTap: enabled ? () => _open(context) : null,
+      borderRadius: BorderRadius.circular(PelevoRadii.medium),
+      child: InputDecorator(
+        isEmpty: label == null || label.isEmpty,
+        decoration: InputDecoration(
+          hintText: hint,
+          enabled: enabled,
+          suffixIcon: Icon(
+            Icons.search_rounded,
+            color: enabled ? context.pelevo.textMuted : context.pelevo.border,
+          ),
+        ),
+        child:
+            label == null || label.isEmpty
+                ? null
+                : Text(label, overflow: TextOverflow.ellipsis),
+      ),
+    );
+  }
+}
+
+class _SearchableSelectSheet extends StatefulWidget {
+  const _SearchableSelectSheet({
+    required this.title,
+    required this.searchHint,
+    required this.options,
+  });
+
+  final String title;
+  final String searchHint;
+  final List<PelevoSelectOption> options;
+
+  @override
+  State<_SearchableSelectSheet> createState() => _SearchableSelectSheetState();
+}
+
+class _SearchableSelectSheetState extends State<_SearchableSelectSheet> {
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final needle = _query.text.trim().toLowerCase();
+    final filtered =
+        needle.isEmpty
+            ? widget.options
+            : widget.options
+                .where((option) => option.label.toLowerCase().contains(needle))
+                .toList(growable: false);
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.7,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                widget.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _query,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: widget.searchHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child:
+                  filtered.isEmpty
+                      ? Center(
+                        child: Text(
+                          'No matches',
+                          style: TextStyle(color: context.pelevo.textMuted),
+                        ),
+                      )
+                      : ListView.builder(
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final option = filtered[index];
+                          return ListTile(
+                            title: Text(option.label),
+                            onTap: () => Navigator.of(context).pop(option.value),
+                          );
+                        },
+                      ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -125,7 +125,9 @@ class PelevoCastBackend {
         _lastPlayerState = state;
       });
       _emit(_snapshot.copyWith(ready: true, supported: true));
-      await startDiscovery();
+      // Do not await discovery at startup — Cast scan can hang on some
+      // devices and would freeze the native splash before runApp.
+      unawaited(startDiscovery());
     } on Object catch (error) {
       _initFuture = null;
       _emit(

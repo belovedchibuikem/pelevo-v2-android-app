@@ -58,6 +58,8 @@ IconData giftTypeIcon(String slug) => switch (slug) {
   'love' => Icons.favorite_rounded,
   'star' => Icons.star_rounded,
   'champion' => Icons.emoji_events_rounded,
+  'crown' => Icons.workspace_premium_rounded,
+  'legend' => Icons.auto_awesome_rounded,
   _ => Icons.card_giftcard_rounded,
 };
 

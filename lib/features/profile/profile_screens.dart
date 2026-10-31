@@ -10,6 +10,8 @@ import 'package:pelevo/features/profile/profile_widgets.dart';
 import 'package:pelevo/features/player/pelevo_playback.dart';
 import 'package:pelevo/features/player/playback_preferences.dart';
 import 'package:pelevo/features/player/sleep_timer.dart';
+import 'package:pelevo/features/premium/premium_data.dart';
+import 'package:pelevo/features/premium/premium_trial_offer.dart';
 import 'package:pelevo/features/profile/preferences_data.dart';
 import 'package:pelevo/features/profile/preferences_panel.dart';
 
@@ -247,9 +249,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: PelevoSpacing.lg),
-              _UpgradeProCard(
-                onPressed: () => context.push('/screen/premium-intro'),
-              ),
+              const _UpgradeProCard(),
               const SizedBox(height: PelevoSpacing.sm),
               if (isCreator) ...[
                 _CreatorStudioCard(
@@ -548,63 +548,84 @@ class _GradientCard extends StatelessWidget {
   );
 }
 
-class _UpgradeProCard extends StatelessWidget {
-  const _UpgradeProCard({required this.onPressed});
-
-  final VoidCallback onPressed;
+class _UpgradeProCard extends ConsumerWidget {
+  const _UpgradeProCard();
 
   @override
-  Widget build(BuildContext context) => _GradientCard(
-    colors: const [Color(0xFF4C146F), Color(0xFF21082F)],
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.workspace_premium_rounded, color: Colors.white),
-            const SizedBox(width: PelevoSpacing.sm),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Upgrade to Pro',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final account = ref.watch(premiumAccountProvider).asData?.value;
+    if (pelevoPlusRemovesAds(account)) {
+      return const SizedBox.shrink();
+    }
+    final hadSubscription = account?.entitlement != null;
+    final title =
+        hadSubscription
+            ? PremiumTrialOffer.renewHeadline
+            : 'Upgrade to Pelevo Plus';
+    final body =
+        hadSubscription
+            ? 'Your Plus access ended. Resubscribe for ad-free listening, unlimited downloads, offline mode, and exclusives.'
+            : 'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.';
+    final cta =
+        hadSubscription
+            ? PremiumTrialOffer.renewCta
+            : '${PremiumTrialOffer.promoHeadline} →';
+    final destination =
+        hadSubscription
+            ? '/screen/premium-plans'
+            : '/screen/premium-plans?offer=${PremiumTrialOffer.slug}';
+    return _GradientCard(
+      colors: const [Color(0xFF4C146F), Color(0xFF21082F)],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.workspace_premium_rounded, color: Colors.white),
+              const SizedBox(width: PelevoSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.',
-                    style: TextStyle(
-                      color: Color(0xF2FFFFFF),
-                      fontSize: 12,
-                      height: 1.35,
+                    const SizedBox(height: 3),
+                    Text(
+                      body,
+                      style: const TextStyle(
+                        color: Color(0xF2FFFFFF),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: PelevoColors.purple,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Upgrade Now →'),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: () => context.push(destination),
+              style: FilledButton.styleFrom(
+                backgroundColor: PelevoColors.purple,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(cta),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CreatorStudioCard extends StatelessWidget {

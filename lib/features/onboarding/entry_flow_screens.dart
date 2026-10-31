@@ -328,7 +328,7 @@ final List<PelevoScreenSpec> entryFlowScreens = [
   const PelevoScreenSpec(
     id: 'withdraw-setup-flutterwave',
     section: 'Earn',
-    title: 'Flutterwave Setup',
+    title: 'Bank Transfer Setup',
     builder: _buildWithdrawFlutterwave,
   ),
   const PelevoScreenSpec(
@@ -619,13 +619,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _resolveStart() async {
     final session = ref.read(authSessionProvider);
-    final authenticated =
-        await ref.read(authSessionProvider.notifier).bootstrap();
+    try {
+      await _resolveStartBody(session).timeout(const Duration(seconds: 25));
+    } on Object {
+      if (!mounted || !_stillOnSplash(context)) return;
+      // Never leave Play / release installs frozen on splash if /me, setup, or
+      // App Check / network stalls past Dio timeouts.
+      context.go(
+        startupDestination(
+          hadStoredSession: session.authenticated,
+          authenticated: false,
+          introductionSeen: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _resolveStartBody(AuthSession session) async {
+    final authenticated = await ref
+        .read(authSessionProvider.notifier)
+        .bootstrap()
+        .timeout(const Duration(seconds: 12), onTimeout: () => false);
     if (!mounted) return;
     if (authenticated) {
-      final destination = await resolveSetupDestination(ref);
+      final destination = await resolveSetupDestination(ref).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => '/screen/home-feed',
+      );
       if (!mounted || !_stillOnSplash(context)) return;
-      await ref.read(appConfigProvider.notifier).refresh();
+      unawaited(
+        ref
+            .read(appConfigProvider.notifier)
+            .refresh()
+            .timeout(const Duration(seconds: 8)),
+      );
       unawaited(ref.read(pelevoFirebasePushProvider).bootstrap());
       if (!mounted || !_stillOnSplash(context)) return;
       final pending = PelevoNotificationRouter.consumePending();
@@ -637,8 +664,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    final introductionSeen =
-        await ref.read(onboardingProgressStoreProvider).hasSeenIntroduction();
+    final introductionSeen = await ref
+        .read(onboardingProgressStoreProvider)
+        .hasSeenIntroduction()
+        .timeout(const Duration(seconds: 3), onTimeout: () => true);
     if (!mounted || !_stillOnSplash(context)) return;
     context.go(
       startupDestination(

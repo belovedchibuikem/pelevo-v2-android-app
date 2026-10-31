@@ -22,13 +22,13 @@ void main() {
               subscriptionOfferDetails: [
                 SubscriptionOfferDetailsWrapper(
                   basePlanId: 'monthly',
-                  offerId: 'three-month-trial',
+                  offerId: 'one-month-free-trial-monthly',
                   offerTags: [],
                   offerIdToken: 'trial-token',
                   pricingPhases: [
                     PricingPhaseWrapper(
                       billingCycleCount: 1,
-                      billingPeriod: 'P3M',
+                      billingPeriod: 'P1M',
                       formattedPrice: 'Free',
                       priceAmountMicros: 0,
                       priceCurrencyCode: 'NGN',
@@ -53,11 +53,11 @@ void main() {
       expect(price?.priceString, '₦1,600.00');
       expect(price?.currencyCode, 'NGN');
       expect(price?.introductoryPriceIsFree, isTrue);
-      expect(price?.introductoryPeriodLabel, '3 months');
-      expect(storefrontPromoBadge(price), '3 months free');
+      expect(price?.introductoryPeriodLabel, 'month');
+      expect(storefrontPromoBadge(price), 'Try 1 Month Free');
       expect(
         subscriptionPriceLine(price),
-        'Free for your first 3 months, then ₦1,600.00',
+        'Try 1 Month Free, then ₦1,600.00',
       );
     },
   );
@@ -173,7 +173,7 @@ void main() {
     expect(price?.introductoryPriceIsFree, isTrue);
     expect(
       subscriptionPriceLine(price),
-      'Free for your first 3 months, then R69.99',
+      'Try 1 Month Free, then R69.99',
     );
   });
 
@@ -199,7 +199,7 @@ void main() {
     );
     expect(
       plansSubscribeLabel(claimingTrial: false, preview: true, quote: price),
-      'Start Free Trial',
+      'Try 1 Month Free',
     );
   });
 
@@ -224,7 +224,7 @@ void main() {
       const ProductDetailsWrapper(
         description: 'Pelevo Plus',
         name: 'Pelevo Plus',
-        productId: 'pelevo_plus_monthly',
+        productId: 'pelevo_plus_individual',
         productType: ProductType.subs,
         title: 'Pelevo Plus (Pelevo)',
         subscriptionOfferDetails: [
@@ -244,14 +244,29 @@ void main() {
             ],
           ),
           SubscriptionOfferDetailsWrapper(
+            basePlanId: 'yearly',
+            offerTags: [],
+            offerIdToken: 'yearly-base-token',
+            pricingPhases: [
+              PricingPhaseWrapper(
+                billingCycleCount: 0,
+                billingPeriod: 'P1Y',
+                formattedPrice: '₦16,000.00',
+                priceAmountMicros: 16000000000,
+                priceCurrencyCode: 'NGN',
+                recurrenceMode: RecurrenceMode.infiniteRecurring,
+              ),
+            ],
+          ),
+          SubscriptionOfferDetailsWrapper(
             basePlanId: 'monthly',
-            offerId: 'three-month-trial',
+            offerId: 'one-month-free-trial-monthly',
             offerTags: [],
             offerIdToken: 'trial-token',
             pricingPhases: [
               PricingPhaseWrapper(
                 billingCycleCount: 1,
-                billingPeriod: 'P3M',
+                billingPeriod: 'P1M',
                 formattedPrice: 'Free',
                 priceAmountMicros: 0,
                 priceCurrencyCode: 'NGN',
@@ -296,11 +311,13 @@ void main() {
     );
 
     final base = storefrontPriceFromProduct(products[0]);
-    final trial = storefrontPriceFromProduct(products[1]);
-    final intro = storefrontPriceFromProduct(products[2]);
+    final yearly = storefrontPriceFromProduct(products[1]);
+    final trial = storefrontPriceFromProduct(products[2]);
+    final intro = storefrontPriceFromProduct(products[3]);
 
     expect(base?.introductoryPriceString, isNull);
     expect(base?.introductoryPriceIsFree, isFalse);
+    expect(yearly?.priceString, '₦16,000.00');
     expect(trial?.introductoryPriceIsFree, isTrue);
     expect(intro?.introductoryPriceString, '₦800.00');
     expect(
@@ -308,16 +325,42 @@ void main() {
       'Promo: Get your first month for only ₦800.00!',
     );
     expect(
-      (storeProductForPlan(products, trialPlan: true, android: true)
+      (storeProductForPlan(
+                products,
+                trialPlan: true,
+                android: true,
+                yearly: false,
+                basePlanId: 'monthly',
+                preferredPlayOfferId: 'one-month-free-trial-monthly',
+              )
               as GooglePlayProductDetails)
           .offerToken,
       'trial-token',
     );
     expect(
-      (storeProductForPlan(products, trialPlan: false, android: true)
+      (storeProductForPlan(
+                products,
+                trialPlan: false,
+                android: true,
+                yearly: false,
+                basePlanId: 'monthly',
+                preferredPlayOfferId: 'one-month-free-trial-monthly',
+              )
               as GooglePlayProductDetails)
           .offerToken,
       'intro-token',
+    );
+    expect(
+      (storeProductForPlan(
+                products,
+                trialPlan: false,
+                android: true,
+                yearly: true,
+                basePlanId: 'yearly',
+              )
+              as GooglePlayProductDetails)
+          .offerToken,
+      'yearly-base-token',
     );
   });
 
@@ -343,7 +386,7 @@ void main() {
     expect(free?.introductoryPeriodLabel, '3 months');
     expect(
       subscriptionPriceLine(free),
-      'Free for your first 3 months, then R69.99',
+      'Try 1 Month Free, then R69.99',
     );
 
     final paid = storefrontPriceFromProduct(

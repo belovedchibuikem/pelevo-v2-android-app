@@ -155,12 +155,7 @@ class _CreatorMonetizationScreenState
                   Expanded(
                     child: _MoneyMetric(
                       title: 'Gifts (Coins)',
-                      value:
-                          period == null
-                              ? '—'
-                              : (value.gifts.balance > 0
-                                  ? '${value.gifts.balance}'
-                                  : '${period.giftCoins}'),
+                      value: period == null ? '—' : '${period.giftCoins}',
                       caption:
                           period == null
                               ? null
@@ -1004,9 +999,9 @@ class _CreatorAddPayoutMethodScreenState
           _PayoutMethodCard(
             selected: _method == 0,
             icon: Icons.account_balance_rounded,
-            title: 'Flutterwave',
+            title: 'Bank Transfer (Local Banks)',
             subtitle:
-                'Receive your earnings to a supported\nFlutterwave bank account',
+                'Receive your earnings to a supported\nlocal bank account',
             onTap:
                 () => setState(() {
                   _method = 0;
@@ -1027,7 +1022,7 @@ class _CreatorAddPayoutMethodScreenState
           ),
           const SizedBox(height: 16),
           _SettingsSection(
-            title: _method == 0 ? 'Flutterwave bank details' : 'PayPal Details',
+            title: _method == 0 ? 'Bank transfer details' : 'PayPal Details',
             subtitle:
                 _method == 0
                     ? 'Choose a supported country, then verify the bank account'
@@ -1047,31 +1042,35 @@ class _CreatorAddPayoutMethodScreenState
                                   ref.invalidate(flutterwaveCountriesProvider),
                           child: Text(catalogFailure(error).message),
                         ),
-                    data:
-                        (items) => DropdownButtonFormField<String>(
-                          key: const Key('payout-country'),
-                          isExpanded: true,
-                          value: _country,
-                          hint: const Text('Select country'),
-                          items: [
-                            for (final country in items)
-                              DropdownMenuItem(
-                                value: country.code,
-                                child: Text(
-                                  '${country.name} (${country.currency})',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _country = value;
-                              _bank = null;
-                              _accountName.clear();
-                              _pendingMethodId = null;
-                            });
-                          },
-                        ),
+                    data: (items) {
+                      final selected = items.where((c) => c.code == _country);
+                      final label =
+                          selected.isEmpty
+                              ? null
+                              : '${selected.first.name} (${selected.first.currency})';
+                      return SearchableSelectField(
+                        key: const Key('payout-country'),
+                        valueLabel: label,
+                        hint: 'Select country',
+                        searchHint: 'Search countries',
+                        sheetTitle: 'Select country',
+                        options: [
+                          for (final country in items)
+                            (
+                              value: country.code,
+                              label: '${country.name} (${country.currency})',
+                            ),
+                        ],
+                        onSelected: (value) {
+                          setState(() {
+                            _country = value;
+                            _bank = null;
+                            _accountName.clear();
+                            _pendingMethodId = null;
+                          });
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 14),
                   const Text('Bank Name'),
@@ -1088,36 +1087,33 @@ class _CreatorAddPayoutMethodScreenState
                                   ),
                           child: Text(catalogFailure(error).message),
                         ),
-                    data:
-                        (items) => DropdownButtonFormField<String>(
-                          key: const Key('payout-bank'),
-                          isExpanded: true,
-                          value: _bank,
-                          hint: Text(
+                    data: (items) {
+                      final selected = items.where((b) => b.code == _bank);
+                      final label =
+                          selected.isEmpty ? null : selected.first.name;
+                      return SearchableSelectField(
+                        key: const Key('payout-bank'),
+                        valueLabel: label,
+                        hint:
                             _country == null
                                 ? 'Select a country first'
                                 : 'Select your bank',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          items: [
-                            for (final bank in items)
-                              DropdownMenuItem(
-                                value: bank.code,
-                                child: Text(
-                                  bank.name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                          ],
-                          onChanged:
-                              _country == null
-                                  ? null
-                                  : (value) => setState(() {
-                                    _bank = value;
-                                    _accountName.clear();
-                                    _pendingMethodId = null;
-                                  }),
-                        ),
+                        searchHint: 'Search banks',
+                        sheetTitle: 'Select bank',
+                        enabled: _country != null,
+                        options: [
+                          for (final bank in items)
+                            (value: bank.code, label: bank.name),
+                        ],
+                        onSelected: (value) {
+                          setState(() {
+                            _bank = value;
+                            _accountName.clear();
+                            _pendingMethodId = null;
+                          });
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 14),
                   const Text('Account Number'),
@@ -1168,7 +1164,7 @@ class _CreatorAddPayoutMethodScreenState
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    'We fill this from Flutterwave after you enter the account number.',
+                    'We fill this from the bank directory after you enter the account number.',
                     style: TextStyle(
                       color: context.pelevo.textMuted,
                       fontSize: 11,
@@ -1855,7 +1851,7 @@ class _CreatorWithdrawScreenState extends ConsumerState<CreatorWithdrawScreen> {
                   ),
                   subtitle: Text(
                     value.verifiedMethod?.subtitle ??
-                        'Add Flutterwave or PayPal details for all podcasts and gifts.',
+                        'Add Bank Transfer (Local Banks) or PayPal details for all podcasts and gifts.',
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap:

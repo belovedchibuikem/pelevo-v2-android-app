@@ -23,41 +23,75 @@ import 'package:pelevo/features/player/pelevo_audio_handler.dart';
 import 'package:pelevo/features/reels/reel_ad_service.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+Future<void> _guarded(Future<void> Function() work, {Duration? timeout}) async {
+  try {
+    final future = work();
+    if (timeout == null) {
+      await future;
+    } else {
+      await future.timeout(timeout);
+    }
+  } on Object {
+    // Startup must reach runApp even when optional plugins hang.
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp().timeout(const Duration(seconds: 8));
     FirebaseMessaging.onBackgroundMessage(
       pelevoFirebaseMessagingBackgroundHandler,
     );
   } on Object {
     // Tests / hosts without Firebase config continue without remote push.
   }
-  try {
-    await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-    );
-  } on Object {
-    // App Check is optional; FCM token registration still proceeds.
-  }
+  // Never block the first frame on Play Integrity / App Attest. A hung
+  // attestation (missing Play App Signing SHA-256 in Firebase, Integrity API
+  // not linked, or Play Services delay) otherwise freezes the native splash.
+  unawaited(() async {
+    try {
+      await FirebaseAppCheck.instance
+          .activate(
+            androidProvider: kDebugMode
+                ? AndroidProvider.debug
+                : AndroidProvider.playIntegrity,
+            appleProvider:
+                kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+          )
+          .timeout(const Duration(seconds: 8));
+    } on Object {
+      // App Check is optional; FCM and the rest of the app still proceed.
+    }
+  }());
 
   const sentryDsn = String.fromEnvironment('PELEVO_SENTRY_DSN');
   Future<void> startApp() async {
     final services = await AppServices.initialize();
     await PodcastCreatorService.instance.initialize(services.preferences);
+    // Prefs only — Play Billing catalog loads in the background.
     await GiftWalletService.instance.initialize(services.preferences);
     await CommentService.instance.initialize(services.preferences);
-    await initPelevoAudioHandler();
-    try {
-      await initPelevoCast();
-    } on Object {
-      // Cast is optional; Android/iOS continue without it if native SDK fails.
-    }
-    await PelevoLocalNotifications.initialize();
-    await PelevoNotificationRouter.listenForOpens();
-    await PelevoDeepLinks.bind();
+    await _guarded(
+      () => initPelevoAudioHandler(),
+      timeout: const Duration(seconds: 8),
+    );
+    await _guarded(
+      () => initPelevoCast(),
+      timeout: const Duration(seconds: 5),
+    );
+    await _guarded(
+      () => PelevoLocalNotifications.initialize(),
+      timeout: const Duration(seconds: 5),
+    );
+    await _guarded(
+      () => PelevoNotificationRouter.listenForOpens(),
+      timeout: const Duration(seconds: 5),
+    );
+    await _guarded(
+      () => PelevoDeepLinks.bind(),
+      timeout: const Duration(seconds: 5),
+    );
     unawaited(ReelAds.initialize());
     runApp(
       ProviderScope(

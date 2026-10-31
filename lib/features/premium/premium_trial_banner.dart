@@ -42,7 +42,7 @@ class _PremiumTrialRepositoryRemote implements PremiumTrialRemote {
   }
 }
 
-/// Top banner for the 3-month Plus trial. It never covers the screen with a
+/// Top banner for the 1-month Plus trial. It never covers the screen with a
 /// barrier, so playback and the rest of the UI stay usable.
 class PremiumTrialBannerHost extends ConsumerStatefulWidget {
   const PremiumTrialBannerHost({required this.router, super.key});
@@ -81,12 +81,35 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
   }
 
   void _onRoute() {
+    if (_hasActivePlus) {
+      unawaited(_suppressForSubscriber());
+      return;
+    }
     if (_deferred && !_presented && !_closed && _routeAllows()) {
       _deferred = false;
       unawaited(_reveal());
       return;
     }
     unawaited(_consider());
+  }
+
+  bool get _hasActivePlus =>
+      pelevoPlusRemovesAds(ref.read(premiumAccountProvider).asData?.value);
+
+  Future<void> _suppressForSubscriber() async {
+    if (!_presented && !_deferred) {
+      _closed = true;
+      return;
+    }
+    if (_presented) {
+      await _motion.reverse();
+    }
+    if (!mounted) return;
+    setState(() {
+      _presented = false;
+      _closed = true;
+      _deferred = false;
+    });
   }
 
   bool _routeAllows() {
@@ -102,6 +125,10 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
 
   Future<void> _consider() async {
     if (_checking || _closed || _presented || _deferred) return;
+    if (_hasActivePlus) {
+      _closed = true;
+      return;
+    }
     final session = ref.read(authSessionProvider);
     final userId = session.userId;
     if (!session.authenticated || userId == null || !_routeAllows()) return;
@@ -111,7 +138,7 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
       final show = await ref
           .read(premiumTrialCoordinatorProvider)
           .shouldPresent(userId);
-      if (!mounted || _closed) return;
+      if (!mounted || _closed || _hasActivePlus) return;
       _checkedUser = userId;
       if (!show) return;
       if (!_routeAllows()) {
@@ -128,7 +155,7 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
 
   Future<void> _reveal() async {
     final userId = ref.read(authSessionProvider).userId;
-    if (userId == null || _presented || _closed) return;
+    if (userId == null || _presented || _closed || _hasActivePlus) return;
     setState(() => _presented = true);
     await _motion.forward(from: 0);
     try {
@@ -165,6 +192,13 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
       _motion.value = 0;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _onRoute();
+      });
+    });
+    ref.listen(premiumAccountProvider, (previous, next) {
+      final active = pelevoPlusRemovesAds(next.asData?.value);
+      if (!active) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_suppressForSubscriber());
       });
     });
     return Align(
@@ -216,7 +250,7 @@ class _TrialBanner extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Get 3 months of Premium, free',
+                      PremiumTrialOffer.promoHeadline,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: PelevoColors.red,
@@ -227,7 +261,7 @@ class _TrialBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Enjoy ad-free and offline podcast listening on Pelevo Plus.',
+                      PremiumTrialOffer.promoSubtitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF1A1A1A),
@@ -254,7 +288,7 @@ class _TrialBanner extends StatelessWidget {
                           fontSize: 15,
                         ),
                       ),
-                      child: const Text('Claim Offer'),
+                      child: const Text(PremiumTrialOffer.claimCta),
                     ),
                   ],
                 ),

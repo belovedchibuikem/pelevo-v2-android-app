@@ -8,8 +8,8 @@ Store product ids already shipped in the app:
 
 | Product id | Period |
 | --- | --- |
-| `pelevo_plus_monthly` | 1 month |
-| `pelevo_plus_yearly` | 1 year, including the 3-month introductory offer |
+| `pelevo_plus_monthly` (App Store) / `pelevo_plus_individual` + `monthly` base plan (Play) | 1 month |
+| `pelevo_plus_yearly` (App Store) / `pelevo_plus_individual` + `yearly` base plan (Play) | 1 year, including the 1-month introductory free trial |
 
 ## 1. Two records, one projection
 
@@ -92,7 +92,7 @@ Identify the subscription by `(store_platform, original_transaction_id)`. Apple 
 
 Every transition appends one `subscription_transactions` row and then updates `user_subscriptions` and `premium_entitlements`.
 
-**`INITIAL_PURCHASE`.** Insert `user_subscriptions`. Set `subscription_status` to `active`. Set `expiry_date` from the store expiry, not from the server clock. Set `is_in_intro_offer` when the verified payload is a free trial or a promotional price (the 3-month free yearly offer, or any other store intro). Copy `billing_country_code`, `billing_currency`, and `amount_minor` from that payload. Project `premium_entitlements.state = active`.
+**`INITIAL_PURCHASE`.** Insert `user_subscriptions`. Set `subscription_status` to `active`. Set `expiry_date` from the store expiry, not from the server clock. Set `is_in_intro_offer` when the verified payload is a free trial or a promotional price (the 1-month free offer, or any other store intro). Copy `billing_country_code`, `billing_currency`, and `amount_minor` from that payload. Project `premium_entitlements.state = active`.
 
 **`RENEWAL`.** Load by `original_transaction_id`. Set `subscription_status` to `active`. Set `expiry_date` to the new store expiry. Clear `cancel_at` and `grace_period_ends_at` when the store has resumed billing. Set `is_in_intro_offer` false once the intro phase has ended. Advance the period by the store period: about one month for `pelevo_plus_monthly`, about one year for `pelevo_plus_yearly`, and the intro length on the first paid conversion. Do not add a fixed month to a yearly product. Record the currency and country charged on this renewal, which may differ from the previous row.
 
