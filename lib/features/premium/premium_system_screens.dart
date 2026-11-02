@@ -443,6 +443,15 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           const SizedBox(height: PelevoSpacing.md),
         ] else
           _introCallout(_selectedPlan),
+        if (PremiumStore.instance.catalogQueried &&
+            !PremiumStore.instance.hasStorePrices) ...[
+          Text(
+            PremiumStore.instance.catalogError ??
+                'Google Play has not returned Plus prices yet. Confirm pelevo_plus_individual is Active, install from Play, and use a license-tester account.',
+            style: TextStyle(color: PelevoColors.red, fontSize: 12),
+          ),
+          const SizedBox(height: PelevoSpacing.md),
+        ],
         if (plans.isEmpty)
           Text(
             'No active Premium plans.',

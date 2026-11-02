@@ -95,20 +95,17 @@ android {
     }
 }
 
-configurations.configureEach {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "com.android.billingclient") {
-            useVersion("8.0.0")
-            because("Google Play requires Billing Library 8.0.0+")
-        }
-    }
-}
+// Do NOT force com.android.billingclient to 8.x while using
+// in_app_purchase_android 0.4.x (ships Billing 7.1.1). Forcing 8.0.0 makes
+ // queryProductDetails return empty with no error — prices stay
+// "Shown by your store account". Upgrade to in_app_purchase_android ^0.5.0
+ // (Billing 8+) only after Flutter/Dart can meet that package's SDK floor.
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    // Explicit pin so Play Console detects Billing Library 8+.
-    implementation("com.android.billingclient:billing:8.0.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    // Keep Core on a line that AGP 8.7 accepts (1.17+ needs AGP 8.9.1).
+    implementation("androidx.core:core-ktx:1.15.0")
 }
 
 flutter {

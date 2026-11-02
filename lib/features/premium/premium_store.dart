@@ -51,6 +51,15 @@ class PremiumStore {
   DateTime? _restoreStarted;
   Map<String, StorefrontPrice>? _quoteOverride;
   final Map<String, bool> _introEligible = {};
+  bool _catalogQueried = false;
+  final Set<String> _notFoundIds = {};
+  String? _catalogError;
+
+  bool get catalogQueried => _catalogQueried;
+  bool get hasStorePrices =>
+      _catalog.isNotEmpty || _quoteOverride != null;
+  Set<String> get notFoundProductIds => Set.unmodifiable(_notFoundIds);
+  String? get catalogError => _catalogError;
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
@@ -127,7 +136,12 @@ class PremiumStore {
         _fail('The store connection was interrupted. Please try again.');
       },
     );
-    if (!await _iap.isAvailable()) return;
+    if (!await _iap.isAvailable()) {
+      _catalogQueried = true;
+      _catalogError =
+          'Google Play Billing is not available on this install. Install from Play with a license-tester account.';
+      return;
+    }
     final ids = plans.map(productIdFor).toSet();
     if (ids.isEmpty) {
       ids.addAll(
@@ -142,7 +156,28 @@ class PremiumStore {
       if (offers.every((existing) => !_sameOffer(existing, product))) {
         offers.add(product);
       }
+      _notFoundIds.remove(product.id);
     }
+    _notFoundIds
+      ..addAll(response.notFoundIDs)
+      ..addAll(ids.where((id) => !_catalog.containsKey(id)));
+    _catalogQueried = true;
+    final queryError = response.error?.message?.trim();
+    if (_catalog.isEmpty) {
+      final missing =
+          _notFoundIds.isEmpty ? ids.join(', ') : _notFoundIds.join(', ');
+      _catalogError =
+          queryError?.isNotEmpty == true
+              ? queryError
+              : 'Play did not return Plus prices for: $missing. Confirm pelevo_plus_individual is Active and this build is not forcing Billing Library 8 onto in_app_purchase_android 0.4.x.';
+    } else {
+      _catalogError = null;
+    }
+    debugPrint(
+      'Pelevo Plus catalog: found=${_catalog.keys.toList()} '
+      'offers=${_catalog.values.fold<int>(0, (n, list) => n + list.length)} '
+      'missing=${_notFoundIds.toList()} error=${queryError ?? 'none'}',
+    );
     await _noteIntroEligibility(plans);
   }
 

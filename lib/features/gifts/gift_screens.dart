@@ -737,6 +737,20 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(color: PelevoColors.red),
                       ),
+                    )
+                  else if (GiftWalletService.instance.catalogQueried &&
+                      !GiftWalletService.instance.hasStorePrices)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        GiftWalletService.instance.catalogError ??
+                            'Google Play has not returned coin prices yet. Confirm coins_300–coins_2000 are Active, mark each "buy" option as backwards compatible, install from Play, and use a license-tester account.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: PelevoColors.red,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   AgeMajorityCheckbox(
                     value: _ageConfirmed,

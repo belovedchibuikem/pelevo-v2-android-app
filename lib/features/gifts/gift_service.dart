@@ -100,6 +100,9 @@ class GiftWalletService extends ChangeNotifier {
   String? _lastCreator;
   bool _sendingGift = false;
   bool _storeAvailable = false;
+  bool _catalogQueried = false;
+  final Set<String> _notFoundIds = {};
+  String? _catalogError;
 
   int get balance => _balance;
   GiftPurchaseStage get purchaseStage => _purchaseStage;
@@ -109,6 +112,11 @@ class GiftWalletService extends ChangeNotifier {
   String? get lastCreator => _lastCreator;
   bool get sendingGift => _sendingGift;
   bool get storeAvailable => _storeAvailable || isDemoMode;
+  bool get catalogQueried => _catalogQueried;
+  bool get hasStorePrices => _storeProducts.isNotEmpty || _quoteOverride != null;
+  Set<String> get notFoundProductIds => Set.unmodifiable(_notFoundIds);
+  /// Human-readable reason when Play returned no coin prices.
+  String? get catalogError => _catalogError;
   List<GiftLedgerEntry> get ledger => List.unmodifiable(_ledger);
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -159,17 +167,18 @@ class GiftWalletService extends ChangeNotifier {
         onTimeout: () => false,
       );
       if (!_storeAvailable) {
+        _catalogQueried = true;
+        _catalogError =
+            'Google Play Billing is not available on this install. Install from Play (internal testing) with a license-tester account.';
         notifyListeners();
         return;
       }
-      final response = await _iap
-          .queryProductDetails(coinPacks.map((pack) => pack.productId).toSet())
-          .timeout(const Duration(seconds: 12));
-      for (final product in response.productDetails) {
-        _storeProducts[product.id] = product;
-      }
-    } on Object {
-      _storeAvailable = false;
+      await _queryStoreProducts(
+        coinPacks.map((pack) => pack.productId).toSet(),
+      );
+    } on Object catch (error) {
+      _catalogQueried = true;
+      _catalogError = 'Coin catalog query failed: $error';
     }
     notifyListeners();
   }
@@ -213,22 +222,56 @@ class GiftWalletService extends ChangeNotifier {
       await warmStoreCatalog();
     }
     if (!_storeAvailable) return;
+    final wanted = {
+      ...coinPacks.map((pack) => pack.productId),
+      ...productIds.where((id) => id.isNotEmpty),
+    };
     final missing =
-        productIds
-            .where((id) => id.isNotEmpty && !_storeProducts.containsKey(id))
-            .toSet();
-    if (missing.isEmpty) return;
-    try {
-      final response = await _iap
-          .queryProductDetails(missing)
-          .timeout(const Duration(seconds: 12));
-      for (final product in response.productDetails) {
-        _storeProducts[product.id] = product;
-      }
-      if (response.productDetails.isNotEmpty) notifyListeners();
-    } on Object {
-      // Catalog stays empty; purchase UI shows unavailable.
+        wanted.where((id) => !_storeProducts.containsKey(id)).toSet();
+    if (missing.isEmpty) {
+      _catalogQueried = true;
+      notifyListeners();
+      return;
     }
+    try {
+      await _queryStoreProducts(missing);
+      notifyListeners();
+    } on Object {
+      _catalogQueried = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _queryStoreProducts(Set<String> ids) async {
+    if (ids.isEmpty) {
+      _catalogQueried = true;
+      return;
+    }
+    final response = await _iap
+        .queryProductDetails(ids)
+        .timeout(const Duration(seconds: 12));
+    for (final product in response.productDetails) {
+      _storeProducts[product.id] = product;
+      _notFoundIds.remove(product.id);
+    }
+    _notFoundIds
+      ..addAll(response.notFoundIDs)
+      ..addAll(ids.where((id) => !_storeProducts.containsKey(id)));
+    _catalogQueried = true;
+    final queryError = response.error?.message?.trim();
+    if (_storeProducts.isEmpty) {
+      final missing = _notFoundIds.isEmpty ? ids.join(', ') : _notFoundIds.join(', ');
+      _catalogError =
+          queryError?.isNotEmpty == true
+              ? queryError
+              : 'Play did not return prices for: $missing. In Play Console open each pack → purchase option "buy" → Advanced options → enable backwards compatible, then reinstall from Play.';
+    } else {
+      _catalogError = null;
+    }
+    debugPrint(
+      'Pelevo coin catalog: found=${_storeProducts.keys.toList()} '
+      'missing=${_notFoundIds.toList()} error=${queryError ?? 'none'}',
+    );
   }
 
   Future<GiftPurchaseStage> purchase(CoinPack pack) async {

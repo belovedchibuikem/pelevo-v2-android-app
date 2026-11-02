@@ -138,9 +138,7 @@ abstract final class PelevoTheme {
           ? ThemeData.dark().textTheme
           : ThemeData.light().textTheme,
     ).apply(bodyColor: scheme.text, displayColor: scheme.text);
-    final overlay = brightness == Brightness.dark
-        ? SystemUiOverlayStyle.light
-        : SystemUiOverlayStyle.dark;
+    final overlay = systemOverlayFor(brightness);
 
     return ThemeData(
       useMaterial3: true,
@@ -220,7 +218,9 @@ abstract final class PelevoTheme {
         centerTitle: false,
         backgroundColor: Colors.transparent,
         foregroundColor: scheme.text,
-        systemOverlayStyle: overlay.copyWith(statusBarColor: Colors.transparent),
+        // Icon brightness only — statusBarColor / navigationBarColor call
+        // deprecated Window APIs that Play Console flags on Android 15+.
+        systemOverlayStyle: overlay,
         titleTextStyle: baseText.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
         ),
@@ -267,4 +267,20 @@ abstract final class PelevoTheme {
     borderRadius: BorderRadius.circular(PelevoRadii.small),
     borderSide: BorderSide(color: color),
   );
+
+  /// Icon / contrast style for system bars without coloring the bars.
+  ///
+  /// [SystemUiOverlayStyle.light]/[SystemUiOverlayStyle.dark] set
+  /// `systemNavigationBarColor`, which makes Flutter call deprecated
+  /// `Window.setNavigationBarColor` / `setStatusBarColor` on Android 15+.
+  static SystemUiOverlayStyle systemOverlayFor(Brightness brightness) {
+    final lightIcons = brightness == Brightness.dark;
+    return SystemUiOverlayStyle(
+      statusBarIconBrightness:
+          lightIcons ? Brightness.light : Brightness.dark,
+      statusBarBrightness: lightIcons ? Brightness.dark : Brightness.light,
+      systemNavigationBarIconBrightness:
+          lightIcons ? Brightness.light : Brightness.dark,
+    );
+  }
 }

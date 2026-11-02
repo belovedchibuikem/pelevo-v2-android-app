@@ -1114,11 +1114,7 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
   }
 
   Widget _darkPlayer(Widget child) => AnnotatedRegion<SystemUiOverlayStyle>(
-    value: SystemUiOverlayStyle.light.copyWith(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: PelevoColors.background,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
+    value: PelevoTheme.systemOverlayFor(Brightness.dark),
     child: Theme(data: PelevoTheme.dark, child: child),
   );
 

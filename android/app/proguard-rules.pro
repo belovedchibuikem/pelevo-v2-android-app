@@ -17,9 +17,8 @@
     public static void install(android.content.Context);
 }
 
-# Firebase
+# Firebase / GMS — keep reflection entry points without freezing all of Play Services.
 -keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
 -keep class io.flutter.plugins.firebase.** { *; }
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**

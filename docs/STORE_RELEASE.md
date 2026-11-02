@@ -16,7 +16,7 @@ In-app: **Settings & Account → Privacy & data**, and **About → Terms / Priva
 | Developer account | Play Console | Apple Developer Program |
 | App ID | `com.Podemeraldltd.pelevo` | `com.Podemeraldltd.pelevo` |
 | Signing | Upload keystore + Play App Signing | Xcode automatic signing / distribution cert |
-| Capabilities | — | Push Notifications, Sign in with Apple, Associated Domains |
+| Capabilities | App Links (`pelevo.com` + `assetlinks.json`) — see [app-links.md](configuration/app-links.md) | Push Notifications, Sign in with Apple, Associated Domains |
 | Privacy forms | Data safety questionnaire | App Privacy nutrition labels |
 | Ads | AdMob app + declare ads | AdMob + ATT / UMP |
 | IAP | Plus + coin packs | Same product IDs in App Store Connect |
@@ -35,13 +35,16 @@ In-app: **Settings & Account → Privacy & data**, and **About → Terms / Priva
 ## 2. Android release build
 
 1. Copy `android/key.properties.example` → `android/key.properties` and set the upload keystore path/passwords (never commit).
-2. Set production AdMob app id:
+2. Confirm App Links: `https://pelevo.com/.well-known/assetlinks.json` is HTTP 200 with no redirect and includes the Play App Signing SHA-256. Do not put `www.pelevo.com` in the `autoVerify` filter until www serves `assetlinks.json` without a 301 (details in [app-links.md](configuration/app-links.md)).
+3. Play quality: release already uses R8 (`isMinifyEnabled` + `isShrinkResources` + `android.enableR8.fullMode=true`). Edge-to-edge uses `WindowCompat.setDecorFitsSystemWindows` (AGP 8.7–compatible) and system-bar styles that omit deprecated `statusBarColor` / `navigationBarColor`. Keep mapping.txt from `build/app/outputs/mapping/release/` for crash deobfuscation.
+4. Store prices: do **not** force `com.android.billingclient:billing:8.0.0` on top of `in_app_purchase_android` 0.4.x — that mismatch returns an empty catalog. Use the Billing version shipped by the plugin (7.1.1). After upgrading Flutter, move to `in_app_purchase_android` ^0.5.0 for Billing 8+.
+5. Set production AdMob app id:
 
 ```powershell
 $env:ADMOB_ANDROID_APP_ID="ca-app-pub-XXXX~YYYY"
 ```
 
-3. Build the Play App Bundle:
+6. Build the Play App Bundle:
 
 ```powershell
 flutter build appbundle --release `
