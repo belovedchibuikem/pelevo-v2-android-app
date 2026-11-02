@@ -1,11 +1,20 @@
 allprojects {
     repositories {
+        // Mirrors first — ISP DNS often fails for dl.google.com / repo.maven.apache.org.
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google()
+        maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
+        maven { url = uri("https://repo1.maven.org/maven2/") }
         mavenCentral()
+        maven { url = uri("${rootProject.projectDir}/local-maven-repo") }
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory
+        .dir("../../build")
+        .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
@@ -14,6 +23,93 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// file_picker 11+ ships Kotlin sources but skips applying KGP under AGP 9
+// (expects built-in Kotlin). With android.builtInKotlin=false, ensure KGP is
+// applied so those sources actually compile into the plugin jar.
+subprojects {
+    pluginManager.withPlugin("com.android.library") {
+        val kotlinSrc = project.file("src/main/kotlin")
+        if (!kotlinSrc.exists()) return@withPlugin
+        val hasKgp =
+            pluginManager.hasPlugin("org.jetbrains.kotlin.android") ||
+                pluginManager.hasPlugin("kotlin-android")
+        if (!hasKgp) {
+            pluginManager.apply("org.jetbrains.kotlin.android")
+            logger.lifecycle("Pelevo: applied KGP to :${project.name} (Kotlin sources under AGP 9)")
+        }
+    }
+}
+
+// 16 KB page sizes: ensure plugin CMake/ndk-build links with 16 KB ELF alignment
+// (NDK r28 defaults help, but some plugins only set max-page-size).
+subprojects {
+    pluginManager.withPlugin("com.android.library") {
+        val androidExt = extensions.findByName("android") ?: return@withPlugin
+        try {
+            val defaultConfig =
+                androidExt.javaClass.methods
+                    .firstOrNull { it.name == "getDefaultConfig" && it.parameterCount == 0 }
+                    ?.invoke(androidExt) ?: return@withPlugin
+            val externalNativeBuild =
+                defaultConfig.javaClass.methods
+                    .firstOrNull { it.name == "getExternalNativeBuild" && it.parameterCount == 0 }
+                    ?.invoke(defaultConfig) ?: return@withPlugin
+            val cmake =
+                externalNativeBuild.javaClass.methods
+                    .firstOrNull { it.name == "getCmake" && it.parameterCount == 0 }
+                    ?.invoke(externalNativeBuild) ?: return@withPlugin
+            val arguments =
+                cmake.javaClass.methods
+                    .firstOrNull { it.name == "getArguments" && it.parameterCount == 0 }
+                    ?.invoke(cmake) as? MutableList<String> ?: return@withPlugin
+            val flags =
+                listOf(
+                    "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
+                    "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
+                    "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384",
+                )
+            var added = false
+            for (flag in flags) {
+                val key = flag.substringBefore("=")
+                if (arguments.none { it.startsWith(key) }) {
+                    arguments.add(flag)
+                    added = true
+                }
+            }
+            if (added) {
+                logger.lifecycle("Pelevo: 16 KB page-size linker flags for :${project.name}")
+            }
+        } catch (_: Exception) {
+            // Plugin has no CMake externalNativeBuild — ignore.
+        }
+    }
+}
+
+// jni (via shared_preferences_android) may only set max-page-size; add
+// common-page-size so RELRO/LOAD padding matches Play's 16 KB checks.
+subprojects {
+    if (name != "jni") return@subprojects
+    val cmake =
+        listOf(
+            project.file("src/CMakeLists.txt"),
+            project.file("../src/CMakeLists.txt"),
+        ).firstOrNull { it.exists() } ?: return@subprojects
+    val text = cmake.readText()
+    if (text.contains("PELEVO_16KB_PAGE_SIZE")) return@subprojects
+    val needle = "\ttarget_link_options(jni PRIVATE \"-Wl,-z,max-page-size=16384\")"
+    if (!text.contains(needle)) {
+        logger.warn("Pelevo: jni CMakeLists.txt no longer matches 16 KB patch; skip")
+        return@subprojects
+    }
+    val replacement =
+        "\t# PELEVO_16KB_PAGE_SIZE\n" +
+            "\ttarget_link_options(jni PRIVATE\n" +
+            "\t\t\"-Wl,-z,max-page-size=16384\"\n" +
+            "\t\t\"-Wl,-z,common-page-size=16384\")"
+    cmake.writeText(text.replace(needle, replacement))
+    logger.lifecycle("Pelevo: patched jni CMakeLists.txt for 16 KB common-page-size")
 }
 
 // just_audio only calls DefaultHttpDataSource.Factory.setUserAgent when the

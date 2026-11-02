@@ -258,7 +258,7 @@ class GiftWalletService extends ChangeNotifier {
       ..addAll(response.notFoundIDs)
       ..addAll(ids.where((id) => !_storeProducts.containsKey(id)));
     _catalogQueried = true;
-    final queryError = response.error?.message?.trim();
+    final queryError = response.error?.message.trim();
     if (_storeProducts.isEmpty) {
       final missing = _notFoundIds.isEmpty ? ids.join(', ') : _notFoundIds.join(', ');
       _catalogError =

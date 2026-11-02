@@ -162,14 +162,14 @@ class PremiumStore {
       ..addAll(response.notFoundIDs)
       ..addAll(ids.where((id) => !_catalog.containsKey(id)));
     _catalogQueried = true;
-    final queryError = response.error?.message?.trim();
+    final queryError = response.error?.message.trim();
     if (_catalog.isEmpty) {
       final missing =
           _notFoundIds.isEmpty ? ids.join(', ') : _notFoundIds.join(', ');
       _catalogError =
           queryError?.isNotEmpty == true
               ? queryError
-              : 'Play did not return Plus prices for: $missing. Confirm pelevo_plus_individual is Active and this build is not forcing Billing Library 8 onto in_app_purchase_android 0.4.x.';
+              : 'Play did not return Plus prices for: $missing. Confirm pelevo_plus_individual is Active and install from Play with a license-tester account.';
     } else {
       _catalogError = null;
     }

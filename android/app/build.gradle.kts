@@ -3,8 +3,9 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Flutter 3.47 template omits kotlin-android here; AGP 9 + android.builtInKotlin=false
+    // keeps plugin KGP working. App Kotlin uses the kotlin { compilerOptions } block below.
+    // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
 }
@@ -26,25 +27,21 @@ if (releaseRequested && admobAndroidAppId.isBlank()) {
 
 android {
     namespace = "com.podemeraldltd.pelevo"
-    compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    // permission_handler 13 compiles against API 37.
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
         applicationId = "com.Podemeraldltd.pelevo"
         // Play Automatic Protection requires minSdk 24+.
         minSdk = maxOf(flutter.minSdkVersion, 24)
-        // Play Console requires target API 36+ for updates (Flutter template still defaults to 35).
-        targetSdk = 36
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["admobAppId"] = admobAndroidAppId
@@ -61,6 +58,14 @@ android {
         }
     }
 
+    // AGP 8.5.1+ / 9: keep native libs uncompressed so Play can 16 KB-zip-align
+    // them in generated APKs (required for 16 KB page-size devices).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+
     buildTypes {
         debug {
             manifestPlaceholders["admobAppId"] =
@@ -74,17 +79,18 @@ android {
                         name.contains("assemblerelease") ||
                         (name.contains("bundle") && name.contains("release"))
                 }
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else if (playUploadRequested) {
-                throw GradleException(
-                    "android/key.properties is required for Play Store release builds. " +
-                        "Copy android/key.properties.example and point storeFile at your upload keystore.",
-                )
-            } else {
-                // Local `flutter run --release` only — never upload a debug-signed AAB/APK.
-                signingConfigs.getByName("debug")
-            }
+            signingConfig =
+                if (keystorePropertiesFile.exists()) {
+                    signingConfigs.getByName("release")
+                } else if (playUploadRequested) {
+                    throw GradleException(
+                        "android/key.properties is required for Play Store release builds. " +
+                            "Copy android/key.properties.example and point storeFile at your upload keystore.",
+                    )
+                } else {
+                    // Local `flutter run --release` only — never upload a debug-signed AAB/APK.
+                    signingConfigs.getByName("debug")
+                }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -95,16 +101,19 @@ android {
     }
 }
 
-// Do NOT force com.android.billingclient to 8.x while using
-// in_app_purchase_android 0.4.x (ships Billing 7.1.1). Forcing 8.0.0 makes
- // queryProductDetails return empty with no error — prices stay
-// "Shown by your store account". Upgrade to in_app_purchase_android ^0.5.0
- // (Billing 8+) only after Flutter/Dart can meet that package's SDK floor.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+// Billing Library version comes from in_app_purchase_android (0.5.5 → Billing 9.1.0).
+// Do not force a different com.android.billingclient version here — a mismatch
+// can make queryProductDetails return empty with no error.
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    // Keep Core on a line that AGP 8.7 accepts (1.17+ needs AGP 8.9.1).
     implementation("androidx.core:core-ktx:1.15.0")
 }
 
