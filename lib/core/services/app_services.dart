@@ -88,20 +88,32 @@ class AppServices {
   final String installationId;
 
   static Future<AppServices> initialize() async {
-    await Hive.initFlutter();
+    await Hive.initFlutter().timeout(const Duration(seconds: 5));
+    // flutter_secure_storage 11+: Android uses Keystore AES-GCM by default
+    // (encryptedSharedPreferences was removed — it deadlocked / crashed on
+    // some Play review devices under storage 9.x).
     const secureStorage = FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      aOptions: AndroidOptions(),
     );
     final authStore = AuthSessionStore(secureStorage);
-    final installationId = await authStore.installationId();
-    final values = await Future.wait<Object>([
-      SharedPreferences.getInstance(),
-      Hive.openBox<dynamic>('pelevo_settings'),
-      PackageInfo.fromPlatform(),
-      authStore.read(),
-    ]);
-    final preferences = values[0] as SharedPreferences;
-    final settings = values[1] as Box<dynamic>;
+    final preferences = await SharedPreferences.getInstance().timeout(
+      const Duration(seconds: 5),
+    );
+    final settings = await Hive.openBox<dynamic>('pelevo_settings').timeout(
+      const Duration(seconds: 5),
+    );
+    final packageInfo = await PackageInfo.fromPlatform().timeout(
+      const Duration(seconds: 5),
+    );
+    // Secure storage can hang or throw on broken Keystore; never block launch.
+    final installationId = await authStore.installationId().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => 'launch-fallback',
+    );
+    final initialSession = await authStore.read().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => const AuthSession(),
+    );
     // Prototype authority is not eligible for migration into server state.
     if ((preferences.getInt('pelevo_storage_version') ?? 0) < 1) {
       for (final key in const [
@@ -115,15 +127,43 @@ class AppServices {
       await settings.delete('home_feed_v2');
       await preferences.setInt('pelevo_storage_version', 1);
     }
-    final packageInfo = values[2] as PackageInfo;
     await PelevoUserAgent.resolve(version: packageInfo.version);
     return AppServices(
       preferences: preferences,
       settings: settings,
       packageInfo: packageInfo,
       authStore: authStore,
-      initialSession: values[3] as AuthSession,
+      initialSession: initialSession,
       installationId: installationId,
+    );
+  }
+
+  /// Last-resort cold start when Hive/Keystore hang past the outer timeout.
+  static Future<AppServices> initializeDegraded() async {
+    final preferences = await SharedPreferences.getInstance();
+    try {
+      await Hive.initFlutter().timeout(const Duration(seconds: 3));
+    } on Object {
+      // Continue; openBox below may still succeed if init already ran.
+    }
+    Box<dynamic> settings;
+    try {
+      settings = await Hive.openBox<dynamic>('pelevo_settings').timeout(
+        const Duration(seconds: 3),
+      );
+    } on Object {
+      settings = await Hive.openBox<dynamic>('pelevo_settings_degraded');
+    }
+    final packageInfo = await PackageInfo.fromPlatform();
+    const secureStorage = FlutterSecureStorage(aOptions: AndroidOptions());
+    final authStore = AuthSessionStore(secureStorage);
+    return AppServices(
+      preferences: preferences,
+      settings: settings,
+      packageInfo: packageInfo,
+      authStore: authStore,
+      initialSession: const AuthSession(),
+      installationId: 'launch-degraded',
     );
   }
 }

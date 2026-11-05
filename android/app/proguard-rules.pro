@@ -23,6 +23,41 @@
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
+# Google Mobile Ads + UMP — R8 full mode otherwise strips reflection/JNI entry
+# points and the Ads ContentProvider crashes before Dart main() runs (Play
+# “crashes after opening”). google_mobile_ads 7.x ships no consumer rules.
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.android.gms.internal.ads.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.ump.** { *; }
+-keep class io.flutter.plugins.googlemobileads.** { *; }
+-dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.android.gms.internal.ads.**
+-dontwarn com.google.android.ump.**
+
+# Sentry (native + JNI); consumer rules exist but keep explicitly under fullMode.
+-keep class io.sentry.** { *; }
+-keepattributes LineNumberTable,SourceFile
+
+# WorkManager + Room + App Startup — R8 full mode was stripping these and
+# crashing before Flutter: InitializationProvider → WorkManagerInitializer →
+# "Failed to create an instance of androidx.work.impl.WorkDatabase".
+-keep class androidx.startup.** { *; }
+-keep class androidx.work.** { *; }
+-keep class androidx.work.impl.** { *; }
+-keep class androidx.work.impl.WorkDatabase { *; }
+-keep class androidx.work.impl.WorkDatabase_Impl { *; }
+-keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.work.Worker {
+    public <init>(android.content.Context,androidx.work.WorkerParameters);
+}
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context,androidx.work.WorkerParameters);
+}
+-keep class * extends androidx.work.InputMerger
+-dontwarn androidx.work.**
+-dontwarn androidx.room.**
+
 # Google Play Billing
 -keep class com.android.vending.billing.** { *; }
 

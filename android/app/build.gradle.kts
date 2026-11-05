@@ -16,14 +16,35 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
-val admobAndroidAppId = System.getenv("ADMOB_ANDROID_APP_ID").orEmpty()
-val releaseRequested =
-    gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
-if (releaseRequested && admobAndroidAppId.isBlank()) {
-    throw GradleException(
-        "ADMOB_ANDROID_APP_ID is required for release builds; test IDs are never used in production.",
-    )
-}
+// Ads SDK requires a valid APPLICATION_ID in the manifest or the process crashes
+ // before Flutter starts. Builds without AdMob use Google's official sample id;
+ // omit ADMOB_* dart-defines so no production ad units are requested.
+val googleSampleAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
+val admobAppIdPattern = Regex("""^ca-app-pub-\d{16}~\d{10}$""")
+val admobEnvRaw = System.getenv("ADMOB_ANDROID_APP_ID").orEmpty().trim()
+val admobDisabled =
+    System.getenv("PELEVO_DISABLE_ADMOB").orEmpty().equals("1", ignoreCase = true) ||
+        System.getenv("PELEVO_DISABLE_ADMOB").orEmpty().equals("true", ignoreCase = true) ||
+        admobEnvRaw.equals("disabled", ignoreCase = true) ||
+        admobEnvRaw.equals("none", ignoreCase = true) ||
+        admobEnvRaw.equals("off", ignoreCase = true)
+val admobAndroidAppId =
+    when {
+        admobDisabled || admobEnvRaw.isBlank() -> googleSampleAdmobAppId
+        admobAppIdPattern.matches(admobEnvRaw) -> admobEnvRaw
+        else ->
+            throw GradleException(
+                "ADMOB_ANDROID_APP_ID must look like ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY, " +
+                    "or be unset/disabled to build without AdMob (sample id is used in the manifest only).",
+            )
+    }
+val playUploadRequested =
+    gradle.startParameter.taskNames.any { task ->
+        val name = task.lowercase()
+        name.contains("bundlerelease") ||
+            name.contains("assemblerelease") ||
+            (name.contains("bundle") && name.contains("release"))
+    }
 
 android {
     namespace = "com.podemeraldltd.pelevo"
@@ -39,11 +60,12 @@ android {
 
     defaultConfig {
         applicationId = "com.Podemeraldltd.pelevo"
-        // Play Automatic Protection requires minSdk 24+.
-        minSdk = maxOf(flutter.minSdkVersion, 24)
+        // sentry_flutter 10.x requires minSdk 26 (Play Automatic Protection is 24+).
+        minSdk = maxOf(flutter.minSdkVersion, 26)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Resolved above: real id, or Google sample when AdMob is disabled/unset.
         manifestPlaceholders["admobAppId"] = admobAndroidAppId
     }
 
@@ -72,13 +94,6 @@ android {
                 "ca-app-pub-3940256099942544~3347511713"
         }
         release {
-            val playUploadRequested =
-                gradle.startParameter.taskNames.any { task ->
-                    val name = task.lowercase()
-                    name.contains("bundlerelease") ||
-                        name.contains("assemblerelease") ||
-                        (name.contains("bundle") && name.contains("release"))
-                }
             signingConfig =
                 if (keystorePropertiesFile.exists()) {
                     signingConfigs.getByName("release")
@@ -91,12 +106,18 @@ android {
                     // Local `flutter run --release` only — never upload a debug-signed AAB/APK.
                     signingConfigs.getByName("debug")
                 }
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            // Opt out only for local triage: PELEVO_DISABLE_MINIFY=1
+            val minifyRelease =
+                !System.getenv("PELEVO_DISABLE_MINIFY").orEmpty().equals("1", ignoreCase = true) &&
+                    !System.getenv("PELEVO_DISABLE_MINIFY").orEmpty().equals("true", ignoreCase = true)
+            isMinifyEnabled = minifyRelease
+            isShrinkResources = minifyRelease
+            if (minifyRelease) {
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro",
+                )
+            }
         }
     }
 }

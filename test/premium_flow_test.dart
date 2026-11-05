@@ -159,6 +159,33 @@ void main() {
     expect(find.text(r'$10.50 / month'), findsNothing);
   });
 
+  testWidgets('an active Play membership hides the subscribe paywall', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      location: '/screen/premium-plans',
+      adapter: _adapter(
+        account: premiumAccountFixture(
+          entitlement: premiumEntitlementFixture(),
+          subscription: {
+            'id': 'sub-1',
+            'state': 'active',
+            'provider': 'google',
+            'current_period_start': '2026-09-10T00:00:00Z',
+            'current_period_end': '2026-10-10T00:00:00Z',
+            'plan_id': 'plan-monthly',
+          },
+        ),
+      ),
+    );
+    expect(find.text('Subscribed'), findsOneWidget);
+    expect(find.text('Pelevo Plus is active on this account.'), findsOneWidget);
+    expect(find.text('Subscribe'), findsNothing);
+    expect(find.textContaining('Subscribe for'), findsNothing);
+    expect(find.text('Manage Subscription'), findsOneWidget);
+  });
+
   testWidgets('plans wait for the store instead of converting a shelf price', (
     tester,
   ) async {
@@ -237,14 +264,8 @@ void main() {
     expect(find.text('Annual'), findsOneWidget);
     expect(find.text('Try 1 Month Free'), findsNWidgets(2));
     expect(find.text('3 months free'), findsNothing);
-    expect(
-      find.text('Try 1 Month Free, then ₦1,600.00'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('Try 1 Month Free, then R699.99'),
-      findsOneWidget,
-    );
+    expect(find.text('Try 1 Month Free, then ₦1,600.00'), findsOneWidget);
+    expect(find.text('Try 1 Month Free, then R699.99'), findsOneWidget);
     expect(find.textContaining(r'$10.50'), findsNothing);
     expect(find.textContaining(r'$105.00'), findsNothing);
     expect(find.text('Your 1-month free trial is selected.'), findsOneWidget);

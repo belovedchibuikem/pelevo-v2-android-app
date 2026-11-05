@@ -30,20 +30,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_signingOut) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('Log out of Pelevo?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Log Out'),
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out of Pelevo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
     );
     if (confirmed != true || !mounted) return;
     setState(() => _signingOut = true);
@@ -108,8 +107,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       IconButton(
                         tooltip: 'Notifications',
-                        onPressed:
-                            () => context.push('/screen/notifications-1'),
+                        onPressed: () =>
+                            context.push('/screen/notifications-1'),
                         icon: const Icon(Icons.notifications_none_rounded),
                       ),
                       if (user.unreadNotifications > 0)
@@ -207,36 +206,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Expanded(
                         child: InkWell(
-                          onTap:
-                              () => context.push('/screen/profile-following'),
+                          onTap: () =>
+                              context.push('/screen/profile-following'),
                           child: _Stat(
                             value: '${user.following}',
                             label: 'Following',
                           ),
                         ),
                       ),
-                      VerticalDivider(
-                        width: 1,
-                        color: context.pelevo.border,
-                      ),
+                      VerticalDivider(width: 1, color: context.pelevo.border),
                       Expanded(
                         child: _Stat(
                           value: '${user.followers}',
                           label: 'Followers',
                         ),
                       ),
-                      VerticalDivider(
-                        width: 1,
-                        color: context.pelevo.border,
-                      ),
+                      VerticalDivider(width: 1, color: context.pelevo.border),
                       Expanded(
                         child: InkWell(
-                          onTap:
-                              () => context.push(
-                                isCreator
-                                    ? '/screen/creator-studio'
-                                    : '/screen/library-2',
-                              ),
+                          onTap: () => context.push(
+                            isCreator
+                                ? '/screen/creator-studio'
+                                : '/screen/library-2',
+                          ),
                           child: _Stat(
                             value:
                                 '${isCreator ? user.podcasts : user.playlists}',
@@ -401,114 +393,106 @@ class _SettingsAccountScreenState extends State<SettingsAccountScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: PreferencesPanel(
-          builder:
-              (preferences, saving, save) => Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _SectionLabel('Account'),
-                  _SettingsTile(
-                    icon: Icons.person_outline_rounded,
-                    title: 'Personal Information',
-                    onTap: () => context.push('/screen/profile-personal'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.lock_outline_rounded,
-                    title: 'Change Password',
-                    onTap: () => context.push('/screen/profile-password'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.mail_outline_rounded,
-                    title: 'Email Preferences',
-                    onTap: () => context.push('/screen/profile-email'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.link_rounded,
-                    title: 'Connected Accounts',
-                    subtitle: 'Google and Apple',
-                    onTap: () => context.push('/screen/profile-connected'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy & data',
-                    subtitle: 'Export data or delete your account',
-                    onTap: () => context.push('/screen/profile-privacy'),
-                  ),
-                  const _SectionLabel('Appearance'),
-                  const _AppearanceTile(),
-                  const _SectionLabel('Playback'),
-                  _SettingsTile(
-                    icon: Icons.graphic_eq_rounded,
-                    title: 'Audio Quality',
-                    trailingText: audioQualityLabels[preferences.audioQuality],
-                    subtitle: 'Saved preference; player integration pending',
-                    onTap:
-                        saving
-                            ? null
-                            : () async {
-                              final choice = await showDialog<String>(
-                                context: context,
-                                builder:
-                                    (context) => SimpleDialog(
-                                      title: const Text('Audio Quality'),
-                                      children: [
-                                        for (final option
-                                            in audioQualityLabels.entries)
-                                          SimpleDialogOption(
-                                            onPressed:
-                                                () => Navigator.pop(
-                                                  context,
-                                                  option.key,
-                                                ),
-                                            child: Text(option.value),
-                                          ),
-                                      ],
-                                    ),
-                              );
-                              if (choice != null && context.mounted) {
-                                await save({'audio_quality': choice});
-                              }
-                            },
-                  ),
-                  _PlaybackSettingsTile(
-                    preferences: preferences,
-                    saving: saving,
-                    save: save,
-                  ),
-                  _SettingsTile(
-                    icon: Icons.data_saver_off_outlined,
-                    title: 'Data Saver',
-                    subtitle: 'Saved preference; player integration pending',
-                    trailing: Switch(
-                      value: preferences.flag('data_saver'),
-                      activeColor: PelevoColors.green,
-                      onChanged:
-                          saving
-                              ? null
-                              : (value) => save({'data_saver': value}),
-                    ),
-                  ),
-                  const _SleepTimerTile(),
-                  const _SectionLabel('Notifications'),
-                  _SettingsTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Push Notifications',
-                    trailingText: 'Manage',
-                    onTap: () => context.push('/screen/notifications-7'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: 'New Episodes',
-                    trailingText: 'Manage',
-                    onTap: () => context.push('/screen/notifications-7'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.auto_awesome_outlined,
-                    title: 'Recommendations',
-                    trailingText: 'Manage',
-                    onTap: () => context.push('/screen/notifications-7'),
-                  ),
-                ],
+          builder: (preferences, saving, save) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SectionLabel('Account'),
+              _SettingsTile(
+                icon: Icons.person_outline_rounded,
+                title: 'Personal Information',
+                onTap: () => context.push('/screen/profile-personal'),
               ),
+              _SettingsTile(
+                icon: Icons.lock_outline_rounded,
+                title: 'Change Password',
+                onTap: () => context.push('/screen/profile-password'),
+              ),
+              _SettingsTile(
+                icon: Icons.mail_outline_rounded,
+                title: 'Email Preferences',
+                onTap: () => context.push('/screen/profile-email'),
+              ),
+              _SettingsTile(
+                icon: Icons.link_rounded,
+                title: 'Connected Accounts',
+                subtitle: 'Google and Apple',
+                onTap: () => context.push('/screen/profile-connected'),
+              ),
+              _SettingsTile(
+                icon: Icons.privacy_tip_outlined,
+                title: 'Privacy & data',
+                subtitle: 'Export data or delete your account',
+                onTap: () => context.push('/screen/profile-privacy'),
+              ),
+              const _SectionLabel('Appearance'),
+              const _AppearanceTile(),
+              const _SectionLabel('Playback'),
+              _SettingsTile(
+                icon: Icons.graphic_eq_rounded,
+                title: 'Audio Quality',
+                trailingText: audioQualityLabels[preferences.audioQuality],
+                subtitle: 'Saved preference; player integration pending',
+                onTap: saving
+                    ? null
+                    : () async {
+                        final choice = await showDialog<String>(
+                          context: context,
+                          builder: (context) => SimpleDialog(
+                            title: const Text('Audio Quality'),
+                            children: [
+                              for (final option in audioQualityLabels.entries)
+                                SimpleDialogOption(
+                                  onPressed: () =>
+                                      Navigator.pop(context, option.key),
+                                  child: Text(option.value),
+                                ),
+                            ],
+                          ),
+                        );
+                        if (choice != null && context.mounted) {
+                          await save({'audio_quality': choice});
+                        }
+                      },
+              ),
+              _PlaybackSettingsTile(
+                preferences: preferences,
+                saving: saving,
+                save: save,
+              ),
+              _SettingsTile(
+                icon: Icons.data_saver_off_outlined,
+                title: 'Data Saver',
+                subtitle: 'Saved preference; player integration pending',
+                trailing: Switch(
+                  value: preferences.flag('data_saver'),
+                  activeColor: PelevoColors.green,
+                  onChanged: saving
+                      ? null
+                      : (value) => save({'data_saver': value}),
+                ),
+              ),
+              const _SleepTimerTile(),
+              const _SectionLabel('Notifications'),
+              _SettingsTile(
+                icon: Icons.notifications_none_rounded,
+                title: 'Push Notifications',
+                trailingText: 'Manage',
+                onTap: () => context.push('/screen/notifications-7'),
+              ),
+              _SettingsTile(
+                icon: Icons.notifications_active_outlined,
+                title: 'New Episodes',
+                trailingText: 'Manage',
+                onTap: () => context.push('/screen/notifications-7'),
+              ),
+              _SettingsTile(
+                icon: Icons.auto_awesome_outlined,
+                title: 'Recommendations',
+                trailingText: 'Manage',
+                onTap: () => context.push('/screen/notifications-7'),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -554,26 +538,23 @@ class _UpgradeProCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final account = ref.watch(premiumAccountProvider).asData?.value;
-    if (pelevoPlusRemovesAds(account)) {
+    final confirmed = ref.watch(premiumAccountSeedProvider);
+    if (pelevoPlusIsActive(account: account, confirmedPurchase: confirmed)) {
       return const SizedBox.shrink();
     }
     final hadSubscription = account?.entitlement != null;
-    final title =
-        hadSubscription
-            ? PremiumTrialOffer.renewHeadline
-            : 'Upgrade to Pelevo Plus';
-    final body =
-        hadSubscription
-            ? 'Your Plus access ended. Resubscribe for ad-free listening, unlimited downloads, offline mode, and exclusives.'
-            : 'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.';
-    final cta =
-        hadSubscription
-            ? PremiumTrialOffer.renewCta
-            : '${PremiumTrialOffer.promoHeadline} →';
-    final destination =
-        hadSubscription
-            ? '/screen/premium-plans'
-            : '/screen/premium-plans?offer=${PremiumTrialOffer.slug}';
+    final title = hadSubscription
+        ? PremiumTrialOffer.renewHeadline
+        : 'Upgrade to Pelevo Plus';
+    final body = hadSubscription
+        ? 'Your Plus access ended. Resubscribe for ad-free listening, unlimited downloads, offline mode, and exclusives.'
+        : 'Ad-free listening, unlimited downloads, offline mode, exclusives, Pelevo AI Hub, and priority support.';
+    final cta = hadSubscription
+        ? PremiumTrialOffer.renewCta
+        : '${PremiumTrialOffer.promoHeadline} →';
+    final destination = hadSubscription
+        ? '/screen/premium-plans'
+        : '/screen/premium-plans?offer=${PremiumTrialOffer.slug}';
     return _GradientCard(
       colors: const [Color(0xFF4C146F), Color(0xFF21082F)],
       child: Column(
@@ -694,10 +675,7 @@ class _EarnWalletCard extends ConsumerWidget {
     colors: const [Color(0xFF0A4220), Color(0xFF061A0D)],
     child: Row(
       children: [
-        const Icon(
-          Icons.account_balance_wallet_outlined,
-          color: Colors.white,
-        ),
+        const Icon(Icons.account_balance_wallet_outlined, color: Colors.white),
         const SizedBox(width: PelevoSpacing.sm),
         Expanded(
           child: Column(
@@ -718,28 +696,25 @@ class _EarnWalletCard extends ConsumerWidget {
               ref
                   .watch(earnBalanceProvider)
                   .when(
-                    data:
-                        (balance) => Text(
-                          '${balance.coins} ECN',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                    loading:
-                        () => const LinearProgressIndicator(
-                          color: Colors.white,
-                          backgroundColor: Color(0x33FFFFFF),
-                        ),
-                    error:
-                        (error, stack) => TextButton(
-                          onPressed: () => ref.invalidate(earnBalanceProvider),
-                          child: const Text(
-                            'Balance unavailable · Retry',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
+                    data: (balance) => Text(
+                      '${balance.coins} ECN',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    loading: () => const LinearProgressIndicator(
+                      color: Colors.white,
+                      backgroundColor: Color(0x33FFFFFF),
+                    ),
+                    error: (error, stack) => TextButton(
+                      onPressed: () => ref.invalidate(earnBalanceProvider),
+                      child: const Text(
+                        'Balance unavailable · Retry',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
             ],
           ),
@@ -799,10 +774,7 @@ class _MenuTile extends StatelessWidget {
       child: Icon(icon, color: color, size: 20),
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-    subtitle: Text(
-      subtitle,
-      style: TextStyle(color: context.pelevo.textMuted),
-    ),
+    subtitle: Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
     trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
     onTap: onTap,
   );
@@ -851,13 +823,9 @@ class _SettingsTile extends StatelessWidget {
     contentPadding: EdgeInsets.zero,
     leading: Icon(icon, color: context.pelevo.textMuted),
     title: Text(title),
-    subtitle:
-        subtitle == null
-            ? null
-            : Text(
-              subtitle!,
-              style: TextStyle(color: context.pelevo.textMuted),
-            ),
+    subtitle: subtitle == null
+        ? null
+        : Text(subtitle!, style: TextStyle(color: context.pelevo.textMuted)),
     trailing:
         trailing ??
         Row(
@@ -897,21 +865,20 @@ class _AppearanceTile extends ConsumerWidget {
       onTap: () async {
         final choice = await showDialog<ThemeMode>(
           context: context,
-          builder:
-              (context) => SimpleDialog(
-                title: const Text('Appearance'),
-                children: [
-                  for (final option in const [
-                    (ThemeMode.light, 'Light'),
-                    (ThemeMode.dark, 'Dark'),
-                    (ThemeMode.system, 'Match device'),
-                  ])
-                    SimpleDialogOption(
-                      onPressed: () => Navigator.pop(context, option.$1),
-                      child: Text(option.$2),
-                    ),
-                ],
-              ),
+          builder: (context) => SimpleDialog(
+            title: const Text('Appearance'),
+            children: [
+              for (final option in const [
+                (ThemeMode.light, 'Light'),
+                (ThemeMode.dark, 'Dark'),
+                (ThemeMode.system, 'Match device'),
+              ])
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, option.$1),
+                  child: Text(option.$2),
+                ),
+            ],
+          ),
         );
         if (choice == null) return;
         await ref.read(pelevoThemeModeProvider.notifier).select(choice);
@@ -929,31 +896,29 @@ class _SleepTimerTile extends ConsumerWidget {
     return _SettingsTile(
       icon: Icons.timer_outlined,
       title: 'Sleep Timer',
-      subtitle:
-          timer.active
-              ? 'Playback pauses when this timer ends'
-              : 'Pause playback after a set time',
+      subtitle: timer.active
+          ? 'Playback pauses when this timer ends'
+          : 'Pause playback after a set time',
       trailingText: timer.label,
       onTap: () async {
         final choice = await showDialog<String>(
           context: context,
-          builder:
-              (context) => SimpleDialog(
-                title: const Text('Sleep Timer'),
-                children: [
-                  for (final option in const [
-                    'Off',
-                    '15 min',
-                    '30 min',
-                    '1 hour',
-                    'End of episode',
-                  ])
-                    SimpleDialogOption(
-                      onPressed: () => Navigator.pop(context, option),
-                      child: Text(option),
-                    ),
-                ],
-              ),
+          builder: (context) => SimpleDialog(
+            title: const Text('Sleep Timer'),
+            children: [
+              for (final option in const [
+                'Off',
+                '15 min',
+                '30 min',
+                '1 hour',
+                'End of episode',
+              ])
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, option),
+                  child: Text(option),
+                ),
+            ],
+          ),
         );
         if (choice == null || !context.mounted) return;
         ref.read(sleepTimerProvider.notifier).select(choice);
@@ -987,33 +952,26 @@ class _PlaybackSettingsTile extends ConsumerWidget {
       icon: Icons.play_circle_outline_rounded,
       title: 'Playback Settings',
       subtitle: 'Speed, skip interval, and autoplay',
-      trailingText:
-          '${playbackSpeedLabel(speed)} · ${playback.skipSeconds}s',
-      onTap:
-          () => showModalBottomSheet<void>(
-            context: context,
-            showDragHandle: true,
-            builder:
-                (sheetContext) => _PlaybackSettingsSheet(
-                  saving: saving,
-                  autoplay: autoplay,
-                  onSpeed: (value) async {
-                    await ref
-                        .read(pelevoPlaybackControllerProvider)
-                        .applyPlaybackSpeed(value);
-                  },
-                  onSkip:
-                      (seconds) => ref
-                          .read(playbackPreferencesProvider.notifier)
-                          .setSkip(seconds),
-                  onAutoplay: (value) async {
-                    ref
-                        .read(playbackPreferencesProvider.notifier)
-                        .setAutoplay(value);
-                    await save({'autoplay': value});
-                  },
-                ),
-          ),
+      trailingText: '${playbackSpeedLabel(speed)} · ${playback.skipSeconds}s',
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => _PlaybackSettingsSheet(
+          saving: saving,
+          autoplay: autoplay,
+          onSpeed: (value) async {
+            await ref
+                .read(pelevoPlaybackControllerProvider)
+                .applyPlaybackSpeed(value);
+          },
+          onSkip: (seconds) =>
+              ref.read(playbackPreferencesProvider.notifier).setSkip(seconds),
+          onAutoplay: (value) async {
+            ref.read(playbackPreferencesProvider.notifier).setAutoplay(value);
+            await save({'autoplay': value});
+          },
+        ),
+      ),
     );
   }
 }

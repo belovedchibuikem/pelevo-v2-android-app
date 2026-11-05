@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pelevo/features/authentication/social_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import 'package:pelevo/features/lock_screen/lock_screen_screens.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
+import 'package:pelevo/features/premium/plus_store_sync.dart';
 import 'package:pelevo/features/premium/premium_data.dart';
 import 'package:pelevo/features/premium/premium_store.dart';
 import 'package:pelevo/features/premium/premium_trial_offer.dart';
@@ -159,6 +162,29 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
 
   bool get _preview => ref.read(catalogPreviewProvider);
 
+  bool get _subscribed {
+    if (_preview) return false;
+    return pelevoPlusIsActive(
+      account: ref.watch(premiumAccountProvider).asData?.value,
+      confirmedPurchase: ref.watch(premiumAccountSeedProvider),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncStoreSubscription());
+    });
+  }
+
+  Future<void> _syncStoreSubscription() async {
+    if (!mounted || _preview) return;
+    final session = ref.read(authSessionProvider);
+    if (!session.authenticated) return;
+    await ref.read(plusStoreSyncProvider).sync(accountId: session.userId);
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -242,13 +268,39 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   List<PremiumPlan> get _plansList =>
       ref.watch(premiumPlansProvider).asData?.value ?? const [];
 
-  String _localizedPlanPrice(PremiumPlan? plan) =>
-      plan == null
-          ? subscriptionPriceLine(null)
-          : PremiumStore.instance.priceLabel(plan);
+  String _localizedPlanPrice(PremiumPlan? plan) => plan == null
+      ? subscriptionPriceLine(null)
+      : PremiumStore.instance.priceLabel(plan);
 
   StorefrontPrice? _quote(PremiumPlan? plan) =>
       plan == null ? null : PremiumStore.instance.quoteForPlan(plan);
+
+  Widget _subscribedBody(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'Subscribed',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+          color: PelevoColors.green,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: PelevoSpacing.sm),
+      Text(
+        'Pelevo Plus is active on this account.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: context.pelevo.textMuted),
+      ),
+      const SizedBox(height: PelevoSpacing.xl),
+      PelevoButton(
+        label: 'Manage Subscription',
+        color: PelevoColors.yellow,
+        foregroundColor: Colors.black,
+        onPressed: () => context.go('/screen/premium-subscription'),
+      ),
+    ],
+  );
 
   String _planBadge(PremiumPlan plan) {
     if (_isRenewalPaywall) return '';
@@ -275,19 +327,25 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         plan,
         accountId: ref.read(authSessionProvider).userId,
       );
-      try {
-        await ref
-            .read(premiumRepositoryProvider)
-            .confirmStorePurchase(
-              store: PremiumStore.instance.storeProvider,
-              receipt: purchase.reference,
-              planId: plan.id,
-            );
-      } on Object {
-        if (!mounted) return;
-        context.showPelevoMessage(
-          'Purchase received. Pelevo Plus will unlock as soon as the store receipt is confirmed.',
-        );
+      if (!pelevoPlusRemovesAds(ref.read(premiumAccountSeedProvider))) {
+        try {
+          final account = await ref
+              .read(premiumRepositoryProvider)
+              .confirmStorePurchase(
+                store: PremiumStore.instance.storeProvider,
+                receipt: purchase.reference,
+                planId: plan.id,
+              );
+          ref.read(premiumAccountSeedProvider.notifier).remember(account);
+          await PremiumStore.instance.checkActiveSubscription(
+            accountId: ref.read(authSessionProvider).userId,
+          );
+        } on Object {
+          if (!mounted) return;
+          context.showPelevoMessage(
+            'Purchase received. Pelevo Plus will unlock as soon as the store receipt is confirmed.',
+          );
+        }
       }
       ref.invalidate(premiumAccountProvider);
       ref.invalidate(premiumInvoicesProvider);
@@ -375,10 +433,14 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         _benefit(item.$1, item.$2),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: 'Explore Plans',
+        label: _subscribed ? 'Subscribed' : 'Explore Plans',
         color: PelevoColors.yellow,
         foregroundColor: Colors.black,
-        onPressed: () => context.go('/screen/premium-plans'),
+        onPressed: () => context.go(
+          _subscribed
+              ? '/screen/premium-subscription'
+              : '/screen/premium-plans',
+        ),
       ),
       const SizedBox(height: PelevoSpacing.sm),
       PelevoButton(
@@ -397,6 +459,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   );
 
   Widget _plans(BuildContext context) {
+    if (_subscribed) return _subscribedBody(context);
     final async = ref.watch(premiumPlansProvider);
     if (async.isLoading) return const CatalogStatusBody();
     if (async.hasError) {
@@ -510,77 +573,81 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     );
   }
 
-  Widget _compare(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Row(
-        children: const [
-          Expanded(
-            flex: 3,
-            child: Text(
-              'Features',
-              style: TextStyle(fontWeight: FontWeight.w700),
+  Widget _compare(BuildContext context) {
+    if (_subscribed) return _subscribedBody(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: const [
+            Expanded(
+              flex: 3,
+              child: Text(
+                'Features',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Expanded(child: Text('Free', textAlign: TextAlign.center)),
+            Expanded(child: Text('Plus', textAlign: TextAlign.center)),
+          ],
+        ),
+        const Divider(),
+        for (final feature in const [
+          ('Ad-free listening', 'No', 'Yes'),
+          ('Downloads', '10 episodes', 'Unlimited'),
+          ('Offline mode', 'No', 'Yes'),
+          ('Exclusive & Originals', 'No', 'Yes'),
+          ('Pelevo AI Hub', 'No', 'Yes'),
+          ('Priority support', 'No', 'Yes'),
+        ])
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: PelevoSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(flex: 3, child: Text(feature.$1)),
+                Expanded(
+                  child: Text(
+                    feature.$2,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    feature.$3,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: PelevoColors.green,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(child: Text('Free', textAlign: TextAlign.center)),
-          Expanded(child: Text('Plus', textAlign: TextAlign.center)),
-        ],
-      ),
-      const Divider(),
-      for (final feature in const [
-        ('Ad-free listening', 'No', 'Yes'),
-        ('Downloads', '10 episodes', 'Unlimited'),
-        ('Offline mode', 'No', 'Yes'),
-        ('Exclusive & Originals', 'No', 'Yes'),
-        ('Pelevo AI Hub', 'No', 'Yes'),
-        ('Priority support', 'No', 'Yes'),
-      ])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: PelevoSpacing.sm),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: Text(feature.$1)),
-              Expanded(
-                child: Text(
-                  feature.$2,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.pelevo.textMuted,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  feature.$3,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: PelevoColors.green,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: PelevoSpacing.xl),
+        PelevoButton(
+          label: 'Choose Your Plan',
+          color: PelevoColors.yellow,
+          foregroundColor: Colors.black,
+          onPressed: () {
+            if (_preview) {
+              context.go('/screen/premium-account');
+              return;
+            }
+            _purchasePlus(_selectedPlan);
+          },
         ),
-      const SizedBox(height: PelevoSpacing.xl),
-      PelevoButton(
-        label: 'Choose Your Plan',
-        color: PelevoColors.yellow,
-        foregroundColor: Colors.black,
-        onPressed: () {
-          if (_preview) {
-            context.go('/screen/premium-account');
-            return;
-          }
-          _purchasePlus(_selectedPlan);
-        },
-      ),
-    ],
-  );
+      ],
+    );
+  }
 
   Widget _account(BuildContext context) {
+    if (_subscribed) return _subscribedBody(context);
     final signedIn = ref.watch(authSessionProvider).authenticated;
     if (signedIn && !_preview) {
       final plan = _selectedPlan;
@@ -683,8 +750,8 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
             labelText: 'Password',
             suffixIcon: IconButton(
               tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-              onPressed:
-                  () => setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
               icon: Icon(
                 _obscurePassword
                     ? Icons.visibility_outlined
@@ -707,23 +774,23 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           label: 'Continue',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
-          onPressed:
-              _terms
-                  ? () {
-                    if (_preview ||
-                        !ref.read(authSessionProvider).authenticated) {
-                      context.go('/screen/premium-payment');
-                      return;
-                    }
-                    _purchasePlus(_selectedPlan);
+          onPressed: _terms
+              ? () {
+                  if (_preview ||
+                      !ref.read(authSessionProvider).authenticated) {
+                    context.go('/screen/premium-payment');
+                    return;
                   }
-                  : null,
+                  _purchasePlus(_selectedPlan);
+                }
+              : null,
         ),
       ],
     );
   }
 
   Widget _paymentMethod(BuildContext context) {
+    if (_subscribed) return _subscribedBody(context);
     final plan = _selectedPlan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -774,7 +841,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     final account = ref.watch(premiumAccountProvider).asData?.value;
     final invoices =
         ref.watch(premiumInvoicesProvider).asData?.value ?? const [];
-    final active = _preview || pelevoPlusRemovesAds(account);
+    final active = _preview || _subscribed;
     final plan = _selectedPlan;
     String? receiptUrl;
     for (final item in invoices) {
@@ -1048,21 +1115,20 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           label: 'Continue',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
-          onPressed:
-              _busy
-                  ? null
-                  : () {
-                    if (_preview) {
-                      context.go('/screen/premium-subscription');
-                      return;
-                    }
-                    final plan = _selectedPlan;
-                    if (plan == null) {
-                      context.showPelevoMessage('Select a Premium plan first.');
-                      return;
-                    }
-                    _purchasePlus(plan);
-                  },
+          onPressed: _busy
+              ? null
+              : () {
+                  if (_preview) {
+                    context.go('/screen/premium-subscription');
+                    return;
+                  }
+                  final plan = _selectedPlan;
+                  if (plan == null) {
+                    context.showPelevoMessage('Select a Premium plan first.');
+                    return;
+                  }
+                  _purchasePlus(plan);
+                },
         ),
       ],
     );
@@ -1108,10 +1174,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               trailing: Text(
                 formatPremiumAmount(item.totalMinor, item.currency),
               ),
-              onTap:
-                  () => context.showPelevoMessage(
-                    item.receiptUrl ?? 'No receipt URL is available.',
-                  ),
+              onTap: () => context.showPelevoMessage(
+                item.receiptUrl ?? 'No receipt URL is available.',
+              ),
             ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
@@ -1119,12 +1184,11 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
           onPressed: () {
-            final url =
-                invoices
-                    .map((item) => item.receiptUrl)
-                    .whereType<String>()
-                    .where((value) => value.isNotEmpty)
-                    .firstOrNull;
+            final url = invoices
+                .map((item) => item.receiptUrl)
+                .whereType<String>()
+                .where((value) => value.isNotEmpty)
+                .firstOrNull;
             context.showPelevoMessage(url ?? 'No receipt URL is available.');
           },
         ),
@@ -1179,15 +1243,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     };
   }
 
-  String get _storeName =>
-      PremiumStore.instance.storeProvider == 'apple'
-          ? 'App Store'
-          : 'Google Play';
+  String get _storeName => PremiumStore.instance.storeProvider == 'apple'
+      ? 'App Store'
+      : 'Google Play';
 
-  String get _storeBillingName =>
-      PremiumStore.instance.storeProvider == 'apple'
-          ? 'the App Store'
-          : 'Google Play';
+  String get _storeBillingName => PremiumStore.instance.storeProvider == 'apple'
+      ? 'the App Store'
+      : 'Google Play';
 
   String _subscriptionProviderLabel(String provider) => switch (provider) {
     'google' => 'Google Play',
@@ -1217,16 +1279,15 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         label: _busy ? 'Checking the store…' : 'Restore Purchase',
         color: PelevoColors.yellow,
         foregroundColor: Colors.black,
-        onPressed:
-            _busy
-                ? null
-                : () {
-                  if (_preview) {
-                    context.go('/screen/premium-subscription');
-                    return;
-                  }
-                  _run(_restoreFromStore);
-                },
+        onPressed: _busy
+            ? null
+            : () {
+                if (_preview) {
+                  context.go('/screen/premium-subscription');
+                  return;
+                }
+                _run(_restoreFromStore);
+              },
       ),
     ],
   );
@@ -1247,13 +1308,14 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     for (final purchase in purchases) {
       final plan = planForPlusProduct(plans, purchase.productId);
       if (plan == null) continue;
-      await ref
+      final account = await ref
           .read(premiumRepositoryProvider)
           .confirmStorePurchase(
             store: PremiumStore.instance.storeProvider,
             receipt: purchase.reference,
             planId: plan.id,
           );
+      ref.read(premiumAccountSeedProvider.notifier).remember(account);
       confirmed++;
     }
     ref.invalidate(premiumAccountProvider);
@@ -1502,10 +1564,9 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text(subtitle),
-    onTap:
-        title == 'Exclusive Content'
-            ? () => context.go('/screen/premium-exclusive')
-            : () => context.showPelevoMessage(title),
+    onTap: title == 'Exclusive Content'
+        ? () => context.go('/screen/premium-exclusive')
+        : () => context.showPelevoMessage(title),
   );
 
   Widget _menuRow(
@@ -1516,15 +1577,15 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
   }) {
     final ink = color ?? context.pelevo.text;
     return ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: SizedBox(
-      width: 40,
-      height: 40,
-      child: Icon(icon, color: ink, size: 22),
-    ),
-    title: Text(title, style: TextStyle(color: ink)),
-    trailing: const Icon(Icons.chevron_right_rounded),
-    onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+      leading: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(icon, color: ink, size: 22),
+      ),
+      title: Text(title, style: TextStyle(color: ink)),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
     );
   }
 

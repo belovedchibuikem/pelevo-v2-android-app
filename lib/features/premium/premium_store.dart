@@ -16,10 +16,14 @@ class PremiumPurchaseResult {
   const PremiumPurchaseResult({
     required this.productId,
     required this.reference,
+    this.planId,
   });
 
   final String productId;
   final String reference;
+
+  /// Catalog plan the member selected, when this receipt came from that buy.
+  final String? planId;
 }
 
 /// Google Play / App Store subscription for Pelevo Plus.
@@ -45,6 +49,13 @@ class PremiumStore {
   final Map<String, List<ProductDetails>> _catalog = {};
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   Completer<PremiumPurchaseResult>? _pending;
+
+  /// Saves the receipt on the Pelevo account before the store purchase is
+  /// acknowledged. Google Play revokes a subscription that stays unacknowledged.
+  Future<void> Function(PremiumPurchaseResult purchase)? onDelivered;
+  String? _buyingPlanId;
+  final Map<String, Future<void>> _delivering = {};
+  final Set<String> _deliveredReceipts = {};
   Completer<List<PremiumPurchaseResult>>? _restorePending;
   final List<PremiumPurchaseResult> _restoreBuffer = [];
   Timer? _restoreSettle;
@@ -56,8 +67,7 @@ class PremiumStore {
   String? _catalogError;
 
   bool get catalogQueried => _catalogQueried;
-  bool get hasStorePrices =>
-      _catalog.isNotEmpty || _quoteOverride != null;
+  bool get hasStorePrices => _catalog.isNotEmpty || _quoteOverride != null;
   Set<String> get notFoundProductIds => Set.unmodifiable(_notFoundIds);
   String? get catalogError => _catalogError;
 
@@ -103,6 +113,8 @@ class PremiumStore {
   void debugClearQuotes() {
     _quoteOverride = null;
     _introEligible.clear();
+    _deliveredReceipts.clear();
+    _delivering.clear();
   }
 
   bool get hasDebugQuotes => _quoteOverride != null;
@@ -128,7 +140,8 @@ class PremiumStore {
   String priceLabel(PremiumPlan plan) =>
       subscriptionPriceLine(quoteForPlan(plan));
 
-  Future<void> prepare(Iterable<PremiumPlan> plans) async {
+  /// Attaches the store purchase stream. Safe to call more than once.
+  void listenForPurchases() {
     if (!_isMobileStore) return;
     _subscription ??= _iap.purchaseStream.listen(
       _onPurchases,
@@ -136,6 +149,39 @@ class PremiumStore {
         _fail('The store connection was interrupted. Please try again.');
       },
     );
+  }
+
+  /// Loads subscriptions Google Play or the App Store still treat as owned
+  /// and confirms any that are not on the Pelevo account yet.
+  ///
+  /// Play does not replay an owned subscription on [purchaseStream] after the
+  /// billing sheet closes. Call this on launch, when Plus opens, and when the
+  /// app resumes so a completed test purchase can leave the paywall.
+  Future<void> checkActiveSubscription({String? accountId}) async {
+    if (!_isMobileStore) return;
+    listenForPurchases();
+    final available = await _iap.isAvailable().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => false,
+    );
+    if (!available || !_isAndroidStore) return;
+    final addition = _iap
+        .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+    final response = await addition
+        .queryPastPurchases(applicationUserName: storeAccountToken(accountId))
+        .timeout(const Duration(seconds: 12));
+    for (final purchase in response.pastPurchases) {
+      try {
+        await _deliverAndAcknowledge(purchase);
+      } on Object catch (error) {
+        debugPrint('Pelevo Plus entitlement sync failed: $error');
+      }
+    }
+  }
+
+  Future<void> prepare(Iterable<PremiumPlan> plans) async {
+    if (!_isMobileStore) return;
+    listenForPurchases();
     if (!await _iap.isAvailable()) {
       _catalogQueried = true;
       _catalogError =
@@ -164,12 +210,12 @@ class PremiumStore {
     _catalogQueried = true;
     final queryError = response.error?.message.trim();
     if (_catalog.isEmpty) {
-      final missing =
-          _notFoundIds.isEmpty ? ids.join(', ') : _notFoundIds.join(', ');
-      _catalogError =
-          queryError?.isNotEmpty == true
-              ? queryError
-              : 'Play did not return Plus prices for: $missing. Confirm pelevo_plus_individual is Active and install from Play with a license-tester account.';
+      final missing = _notFoundIds.isEmpty
+          ? ids.join(', ')
+          : _notFoundIds.join(', ');
+      _catalogError = queryError?.isNotEmpty == true
+          ? queryError
+          : 'Play did not return Plus prices for: $missing. Confirm pelevo_plus_individual is Active and install from Play with a license-tester account.';
     } else {
       _catalogError = null;
     }
@@ -183,27 +229,26 @@ class PremiumStore {
 
   Future<void> _noteIntroEligibility(Iterable<PremiumPlan> plans) async {
     if (kIsWeb) return;
-    final targets =
-        plans.isEmpty
-            ? const <PremiumPlan>[
-              PremiumPlan(
-                id: '_monthly',
-                slug: 'plus-monthly',
-                name: 'Monthly',
-                interval: 'month',
-                priceMinor: 0,
-                currency: 'USD',
-              ),
-              PremiumPlan(
-                id: '_yearly',
-                slug: 'plus-yearly',
-                name: 'Yearly',
-                interval: 'year',
-                priceMinor: 0,
-                currency: 'USD',
-              ),
-            ]
-            : plans.toList(growable: false);
+    final targets = plans.isEmpty
+        ? const <PremiumPlan>[
+            PremiumPlan(
+              id: '_monthly',
+              slug: 'plus-monthly',
+              name: 'Monthly',
+              interval: 'month',
+              priceMinor: 0,
+              currency: 'USD',
+            ),
+            PremiumPlan(
+              id: '_yearly',
+              slug: 'plus-yearly',
+              name: 'Yearly',
+              interval: 'year',
+              priceMinor: 0,
+              currency: 'USD',
+            ),
+          ]
+        : plans.toList(growable: false);
     for (final plan in targets) {
       final key = _eligibilityKey(plan);
       final productId = productIdFor(plan);
@@ -296,8 +341,8 @@ class PremiumStore {
       final offers = product.productDetails.subscriptionOfferDetails;
       final token =
           index != null && offers != null && index >= 0 && index < offers.length
-              ? offers[index].offerIdToken
-              : null;
+          ? offers[index].offerIdToken
+          : null;
       return GooglePlayPurchaseParam(
         productDetails: product,
         offerToken: token,
@@ -335,15 +380,37 @@ class PremiumStore {
         'Pelevo Plus is not available in the store for this account yet.',
       );
     }
-    _pending = Completer<PremiumPurchaseResult>();
+    _buyingPlanId = plan.id;
+    final pending = Completer<PremiumPurchaseResult>();
+    _pending = pending;
     final started = await _iap.buyNonConsumable(
       purchaseParam: _purchaseParam(product, storeAccountToken(accountId)),
     );
     if (!started) {
-      _pending = null;
-      throw PremiumStoreException('The store could not start this purchase.');
+      await checkActiveSubscription(accountId: accountId);
+      if (pending.isCompleted) return pending.future;
+      if (identical(_pending, pending)) _pending = null;
+      _buyingPlanId = null;
+      throw PremiumStoreException(
+        'The store could not start this purchase. If you already subscribed, reopen Pelevo Plus to refresh your membership.',
+      );
     }
-    return _pending!.future;
+    unawaited(_reconcileWhileBuying(accountId));
+    return pending.future;
+  }
+
+  /// The Play sheet can finish without a stream event. Query owned
+  /// subscriptions until this buy is resolved or the sheet is abandoned.
+  Future<void> _reconcileWhileBuying(String? accountId) async {
+    for (final delay in const [Duration(seconds: 2), Duration(seconds: 5)]) {
+      await Future<void>.delayed(delay);
+      if (_pending == null || _pending!.isCompleted) return;
+      try {
+        await checkActiveSubscription(accountId: accountId);
+      } on Object {
+        // The purchase stream remains the primary signal.
+      }
+    }
   }
 
   /// Restores Pelevo Plus from Google Play or the App Store, the same billing
@@ -438,10 +505,12 @@ class PremiumStore {
   }
 
   void _onPurchases(List<PurchaseDetails> purchases) {
+    unawaited(_handlePurchases(purchases));
+  }
+
+  Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
-      if (!isPlusStoreProduct(purchase.productID)) {
-        continue;
-      }
+      if (!isPlusStoreProduct(purchase.productID)) continue;
       if (purchase.status == PurchaseStatus.pending) continue;
       if (purchase.status == PurchaseStatus.canceled) {
         _fail('Purchase cancelled');
@@ -455,29 +524,109 @@ class PremiumStore {
           purchase.status != PurchaseStatus.restored) {
         continue;
       }
-      final receipt = purchase.verificationData.serverVerificationData.trim();
-      final reference =
-          receipt.isNotEmpty ? receipt : (purchase.purchaseID ?? '');
-      if (purchase.pendingCompletePurchase) {
-        unawaited(_iap.completePurchase(purchase));
+      try {
+        await _deliverAndAcknowledge(purchase, fromPurchaseUpdate: true);
+      } on Object catch (error) {
+        debugPrint('Pelevo Plus purchase update failed: $error');
       }
+    }
+  }
+
+  String _receipt(PurchaseDetails purchase) {
+    final receipt = purchase.verificationData.serverVerificationData.trim();
+    if (receipt.isNotEmpty) return receipt;
+    return purchase.purchaseID?.trim() ?? '';
+  }
+
+  Future<void> _deliverAndAcknowledge(
+    PurchaseDetails purchase, {
+    bool fromPurchaseUpdate = false,
+  }) {
+    if (!isPlusStoreProduct(purchase.productID)) return Future<void>.value();
+    if (purchase.status != PurchaseStatus.purchased &&
+        purchase.status != PurchaseStatus.restored) {
+      return Future<void>.value();
+    }
+    final reference = _receipt(purchase);
+    if (reference.isEmpty) {
+      _fail('The store did not return a purchase receipt.');
+      return Future<void>.value();
+    }
+    final existing = _delivering[reference];
+    if (existing != null) return existing;
+    final run = _settle(
+      purchase,
+      reference,
+      fromPurchaseUpdate: fromPurchaseUpdate,
+    );
+    _delivering[reference] = run;
+    return run.whenComplete(() {
+      if (identical(_delivering[reference], run)) {
+        _delivering.remove(reference);
+      }
+    });
+  }
+
+  Future<void> _settle(
+    PurchaseDetails purchase,
+    String reference, {
+    required bool fromPurchaseUpdate,
+  }) async {
+    final result = PremiumPurchaseResult(
+      productId: purchase.productID,
+      reference: reference,
+      planId: fromPurchaseUpdate ? _buyingPlanId : null,
+    );
+    if (_deliveredReceipts.contains(reference)) {
+      await _acknowledge(purchase);
+      _finishBuy(result);
       _collectRestored(purchase, reference);
-      final pending = _pending;
-      _pending = null;
-      if (pending != null && !pending.isCompleted && reference.isNotEmpty) {
-        pending.complete(
-          PremiumPurchaseResult(
-            productId: purchase.productID,
-            reference: reference,
-          ),
-        );
+      return;
+    }
+    final handler = onDelivered;
+    if (handler != null) {
+      try {
+        await handler(result);
+      } on Object catch (error) {
+        debugPrint('Pelevo Plus receipt was not saved: $error');
+        _finishBuy(result);
+        _collectRestored(purchase, reference);
+        return;
       }
+      _deliveredReceipts.add(reference);
+    }
+    await _acknowledge(purchase);
+    _finishBuy(result);
+    _collectRestored(purchase, reference);
+  }
+
+  Future<void> _acknowledge(PurchaseDetails purchase) async {
+    if (!purchase.pendingCompletePurchase) return;
+    try {
+      await _iap.completePurchase(purchase);
+      debugPrint(
+        'Pelevo Plus acknowledged ${purchase.productID} with Google Play.',
+      );
+    } on Object catch (error) {
+      debugPrint('Pelevo Plus acknowledgement failed: $error');
+    }
+  }
+
+  void _finishBuy(PremiumPurchaseResult result) {
+    final pending = _pending;
+    _pending = null;
+    _buyingPlanId = null;
+    if (pending != null &&
+        !pending.isCompleted &&
+        result.reference.isNotEmpty) {
+      pending.complete(result);
     }
   }
 
   void _fail(String message) {
     final pending = _pending;
     _pending = null;
+    _buyingPlanId = null;
     if (pending != null && !pending.isCompleted) {
       pending.completeError(PremiumStoreException(message));
     }
@@ -548,8 +697,7 @@ Uri? plusStoreSubscriptionUri({required String provider, String? productId}) {
   final sku = switch (productId) {
     PremiumStore.googleProductId ||
     PremiumStore.monthlyProductId ||
-    PremiumStore.yearlyProductId =>
-      PremiumStore.googleProductId,
+    PremiumStore.yearlyProductId => PremiumStore.googleProductId,
     _ => null,
   };
   if (sku != null) params['sku'] = sku;

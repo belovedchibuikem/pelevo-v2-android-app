@@ -552,9 +552,13 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     );
     if (!mounted) return;
     if (result == GiftPurchaseStage.success) {
-      context.showPelevoMessage(
-        'A verified store receipt is required before coins can be added.',
-      );
+      ref.invalidate(giftWalletProvider);
+      ref.invalidate(giftActivityProvider);
+      if (_returnToGift) {
+        context.showPelevoMessage('Coins added to your wallet.');
+        return;
+      }
+      context.go('/screen/gift-purchase-success');
       return;
     }
     if (result == GiftPurchaseStage.cancelled) {
@@ -563,7 +567,10 @@ class _CoinStoreScreenState extends ConsumerState<CoinStoreScreen> {
     }
     ref
         .read(lastGiftPurchaseErrorProvider.notifier)
-        .select(store.purchaseError ?? 'A verified store receipt is required.');
+        .select(
+          store.purchaseError ??
+              'Your payment was not completed. No charge was made.',
+        );
     context.go('/screen/gift-purchase-failed');
   }
 

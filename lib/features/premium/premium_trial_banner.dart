@@ -93,8 +93,10 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
     unawaited(_consider());
   }
 
-  bool get _hasActivePlus =>
-      pelevoPlusRemovesAds(ref.read(premiumAccountProvider).asData?.value);
+  bool get _hasActivePlus => pelevoPlusIsActive(
+    account: ref.read(premiumAccountProvider).asData?.value,
+    confirmedPurchase: ref.read(premiumAccountSeedProvider),
+  );
 
   Future<void> _suppressForSubscriber() async {
     if (!_presented && !_deferred) {
@@ -183,6 +185,12 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(premiumAccountSeedProvider, (previous, next) {
+      if (!pelevoPlusRemovesAds(next)) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_suppressForSubscriber());
+      });
+    });
     ref.listen(authSessionProvider, (previous, next) {
       if (next.userId == previous?.userId) return;
       _checkedUser = null;
@@ -195,7 +203,10 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
       });
     });
     ref.listen(premiumAccountProvider, (previous, next) {
-      final active = pelevoPlusRemovesAds(next.asData?.value);
+      final active = pelevoPlusIsActive(
+        account: next.asData?.value,
+        confirmedPurchase: ref.read(premiumAccountSeedProvider),
+      );
       if (!active) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_suppressForSubscriber());
@@ -203,22 +214,22 @@ class _PremiumTrialBannerHostState extends ConsumerState<PremiumTrialBannerHost>
     });
     return Align(
       alignment: Alignment.topCenter,
-      child:
-          _presented
-              ? SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, -1.15),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _motion,
-                    curve: Curves.easeOutCubic,
-                    reverseCurve: Curves.easeInCubic,
+      child: _presented
+          ? SlideTransition(
+              position:
+                  Tween<Offset>(
+                    begin: const Offset(0, -1.15),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _motion,
+                      curve: Curves.easeOutCubic,
+                      reverseCurve: Curves.easeInCubic,
+                    ),
                   ),
-                ),
-                child: _TrialBanner(onClaim: _claim, onDismiss: _close),
-              )
-              : const SizedBox.shrink(),
+              child: _TrialBanner(onClaim: _claim, onDismiss: _close),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

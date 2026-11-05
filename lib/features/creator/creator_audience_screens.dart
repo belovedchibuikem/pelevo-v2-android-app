@@ -490,12 +490,13 @@ class _CreatorNewEpisodeScreenState
   }
 
   Future<void> _pickAudio() async {
-    final result = await FilePicker.pickFiles(
+    // file_picker 13+: pickFiles returns List<PlatformFile> (empty if cancelled).
+    final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['mp3', 'm4a', 'wav', 'aac'],
     );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
+    if (files.isEmpty) return;
+    final file = files.first;
     if (file.path == null || file.path!.isEmpty) {
       setState(() => _error = 'Could not read the selected audio file.');
       return;

@@ -42,12 +42,13 @@ class AccountProofFile {
   final String name;
 }
 
-String? accountProofRejection(PlatformFile file) {
+Future<String?> accountProofRejection(PlatformFile file) async {
   final extension = (file.extension ?? '').toLowerCase();
   if (!const {'jpg', 'jpeg', 'png', 'pdf'}.contains(extension)) {
     return 'Upload a JPG, PNG, or PDF.';
   }
-  if (file.size > accountProofMaxBytes) {
+  final size = file.lengthSync() ?? await file.length();
+  if (size == null || size > accountProofMaxBytes) {
     return 'Account proof must be 4 MB or smaller.';
   }
   if (file.path == null || file.path!.isEmpty) {
@@ -57,15 +58,16 @@ String? accountProofRejection(PlatformFile file) {
 }
 
 Future<AccountProofFile?> pickAccountProof() async {
-  final result = await FilePicker.pickFiles(
+  // file_picker 13+: pickFiles returns List<PlatformFile> (empty if cancelled).
+  final files = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
   );
-  if (result == null || result.files.isEmpty) {
+  if (files.isEmpty) {
     return null;
   }
-  final file = result.files.first;
-  final rejection = accountProofRejection(file);
+  final file = files.first;
+  final rejection = await accountProofRejection(file);
   if (rejection != null) {
     throw FormatException(rejection);
   }

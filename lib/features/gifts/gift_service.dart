@@ -121,6 +121,8 @@ class GiftWalletService extends ChangeNotifier {
 
   bool get _isMobileStore => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
+  String get storeProvider => !kIsWeb && Platform.isIOS ? 'apple' : 'google';
+
   /// Demo IAP credit is debug-only unless explicitly enabled.
   bool get isDemoMode =>
       !_isMobileStore &&
@@ -135,7 +137,7 @@ class GiftWalletService extends ChangeNotifier {
     GiftPurchaseVerifier? verifier,
   }) async {
     _preferences = preferences;
-    _verifier = verifier;
+    if (verifier != null) _verifier = verifier;
     // Local cache is never a free grant — server wallet is authoritative.
     _balance = preferences.getInt(_balanceKey) ?? 0;
     if (!_isMobileStore) {
@@ -391,11 +393,31 @@ class GiftWalletService extends ChangeNotifier {
       }
 
       _setPurchaseStage(GiftPurchaseStage.verifying);
-      final valid = await _verifier!(purchase);
-      if (!valid) {
+      final verifier = _verifier;
+      if (verifier == null) {
         _finishPurchase(
           GiftPurchaseStage.failed,
-          error: 'We could not securely verify this purchase.',
+          error: 'Secure purchase verification is not configured.',
+        );
+        continue;
+      }
+      try {
+        final valid = await verifier(purchase);
+        if (!valid) {
+          _finishPurchase(
+            GiftPurchaseStage.failed,
+            error: 'We could not securely verify this purchase.',
+          );
+          continue;
+        }
+      } on Object catch (error) {
+        final message = '$error'.trim();
+        _finishPurchase(
+          GiftPurchaseStage.failed,
+          error:
+              message.isEmpty
+                  ? 'We could not securely verify this purchase.'
+                  : message,
         );
         continue;
       }
@@ -403,16 +425,13 @@ class GiftWalletService extends ChangeNotifier {
       final pack =
           coinPacks
               .where((item) => item.productId == purchase.productID)
-              .firstOrNull;
-      if (pack == null) {
-        _finishPurchase(
-          GiftPurchaseStage.failed,
-          error: 'The purchased product is not recognized.',
-        );
-        continue;
+              .firstOrNull ??
+          (_lastPurchasedPack?.productId == purchase.productID
+              ? _lastPurchasedPack
+              : null);
+      if (pack != null) {
+        _creditPurchasedCoins(pack);
       }
-
-      _creditPurchasedCoins(pack);
       if (purchase.pendingCompletePurchase) {
         await _iap.completePurchase(purchase);
       }

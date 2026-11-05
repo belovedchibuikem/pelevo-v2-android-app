@@ -107,6 +107,13 @@ Privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy` ships in the app bundle. Al
 
 ## 5. Pre-upload smoke test
 
+**Play rejection note (Broken Functionality / crash on open):** always sideload the
+**signed release** AAB/APK (or `flutter run --release`) on a physical device before
+uploading. Debug builds hide R8/AdMob ContentProvider crashes. Confirm
+`ADMOB_ANDROID_APP_ID` is your real AdMob app id (not Google’s sample
+`ca-app-pub-3940256099942544~3347511713`). Upload the release mapping file from
+`build/app/outputs/mapping/release/` to Play Console for crash deobfuscation.
+
 - [ ] Fresh install signed release build on physical Android + iPhone
 - [ ] Sign in with Google (Android) / Apple (iOS)
 - [ ] Open Privacy Policy + Terms from About and Privacy & data

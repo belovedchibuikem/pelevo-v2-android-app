@@ -89,51 +89,72 @@ class AuthSessionStore {
 
   Future<String> installationId() async {
     const key = 'pelevo.installation_id';
-    final existing = await _storage.read(key: key);
-    if (existing != null && existing.isNotEmpty) return existing;
-    // A session created without its installation identity cannot be safely
-    // replayed as a different device. Reauthenticate once after this upgrade.
-    await clear();
-    final random = Random.secure();
-    final id =
-        List.generate(
-          16,
-          (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-        ).join();
-    await _storage.write(key: key, value: id);
-    return id;
+    try {
+      final existing = await _storage.read(key: key);
+      if (existing != null && existing.isNotEmpty) return existing;
+      // A session created without its installation identity cannot be safely
+      // replayed as a different device. Reauthenticate once after this upgrade.
+      await clear();
+      final random = Random.secure();
+      final id =
+          List.generate(
+            16,
+            (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+          ).join();
+      await _storage.write(key: key, value: id);
+      return id;
+    } on Object {
+      // Broken Android Keystore must not prevent cold start (Play review).
+      final random = Random.secure();
+      return List.generate(
+        16,
+        (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ).join();
+    }
   }
 
   Future<AuthSession> read() async {
-    final raw = await _storage.read(key: _session);
-    if (raw == null) return const AuthSession();
     try {
+      final raw = await _storage.read(key: _session);
+      if (raw == null) return const AuthSession();
       return AuthSession.fromApi(jsonDecode(raw) as Map<String, dynamic>);
     } on Object {
-      await clear();
+      try {
+        await clear();
+      } on Object {
+        // Ignore secondary Keystore failures while recovering.
+      }
       return const AuthSession();
     }
   }
 
   Future<void> write(AuthSession session) async {
-    await _storage.write(
-      key: _session,
-      value: jsonEncode({
-        'access_token': session.accessToken,
-        'refresh_token': session.refreshToken,
-        'device_id': session.deviceId,
-        'user': session.user,
-      }),
-    );
+    try {
+      await _storage.write(
+        key: _session,
+        value: jsonEncode({
+          'access_token': session.accessToken,
+          'refresh_token': session.refreshToken,
+          'device_id': session.deviceId,
+          'user': session.user,
+        }),
+      );
+    } on Object {
+      // Session stays in-memory via AuthSessionNotifier when Keystore fails.
+    }
   }
 
   Future<void> clear() async {
-    await Future.wait([
-      _storage.delete(key: _access),
-      _storage.delete(key: _refresh),
-      _storage.delete(key: _device),
-      _storage.delete(key: _session),
-    ]);
+    try {
+      await Future.wait([
+        _storage.delete(key: _access),
+        _storage.delete(key: _refresh),
+        _storage.delete(key: _device),
+        _storage.delete(key: _session),
+      ]);
+    } on Object {
+      // Best-effort wipe; caller already treats storage as empty.
+    }
   }
 }
 

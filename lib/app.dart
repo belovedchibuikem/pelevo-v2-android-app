@@ -24,6 +24,9 @@ import 'package:pelevo/features/library/library_utility_screens.dart';
 import 'package:pelevo/features/home/home_see_all_screens.dart';
 import 'package:pelevo/features/onboarding/entry_flow_screens.dart';
 import 'package:pelevo/features/player/playback_insight_screens.dart';
+import 'package:pelevo/features/gifts/gift_data.dart';
+import 'package:pelevo/features/gifts/gift_service.dart';
+import 'package:pelevo/features/premium/plus_store_sync.dart';
 import 'package:pelevo/features/premium/premium_system_screens.dart';
 import 'package:pelevo/features/premium/premium_trial_banner.dart';
 import 'package:pelevo/features/search/discovery_detail_screens.dart';
@@ -98,10 +101,9 @@ final GoRouter pelevoRouter = GoRouter(
     final session = container.read(authSessionProvider);
     final preview = kDebugMode && container.read(catalogPreviewProvider);
     final segments = state.uri.pathSegments;
-    final id =
-        segments.length == 2 && segments.first == 'screen'
-            ? segments.last
-            : null;
+    final id = segments.length == 2 && segments.first == 'screen'
+        ? segments.last
+        : null;
     final publicEntry = _isPublicPath(state.uri.path, id);
     if (!preview &&
         !session.authenticated &&
@@ -125,14 +127,11 @@ final GoRouter pelevoRouter = GoRouter(
     GoRoute(path: '/', redirect: (context, state) => '/screen/splash'),
     GoRoute(
       path: '/legal/:document',
-      builder:
-          (context, state) => switch (state.pathParameters['document']) {
-            'terms' => const LegalDocumentScreen(document: CmsDocument.terms),
-            'privacy' => const LegalDocumentScreen(
-              document: CmsDocument.privacy,
-            ),
-            _ => const _MissingScreen(),
-          },
+      builder: (context, state) => switch (state.pathParameters['document']) {
+        'terms' => const LegalDocumentScreen(document: CmsDocument.terms),
+        'privacy' => const LegalDocumentScreen(document: CmsDocument.privacy),
+        _ => const _MissingScreen(),
+      },
     ),
     GoRoute(path: '/live', builder: (context, state) => const LiveNowScreen()),
     GoRoute(
@@ -144,9 +143,8 @@ final GoRouter pelevoRouter = GoRouter(
     ),
     GoRoute(
       path: '/s/:token',
-      builder:
-          (context, state) =>
-              ShareLinkResolverScreen(token: state.pathParameters['token']!),
+      builder: (context, state) =>
+          ShareLinkResolverScreen(token: state.pathParameters['token']!),
     ),
     GoRoute(
       path: '/playlists/:id',
@@ -245,17 +243,54 @@ class PelevoApp extends ConsumerStatefulWidget {
   ConsumerState<PelevoApp> createState() => _PelevoAppState();
 }
 
-class _PelevoAppState extends ConsumerState<PelevoApp> {
+class _PelevoAppState extends ConsumerState<PelevoApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Gift coins credit only after POST /iap/verify — wire before any purchase.
+    GiftWalletService.instance.configureVerifier((purchase) async {
+      final receipt = purchase.verificationData.serverVerificationData.trim();
+      final fallback = purchase.purchaseID?.trim() ?? '';
+      final token = receipt.isNotEmpty ? receipt : fallback;
+      if (token.isEmpty) return false;
+      final verified = await ref
+          .read(giftRepositoryProvider)
+          .verifyIap(
+            store: GiftWalletService.instance.storeProvider,
+            receipt: token,
+          );
+      ref.read(lastVerifiedGiftPurchaseProvider.notifier).select(verified);
+      return verified.coins > 0;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       PelevoNotificationRouter.bindGo(pelevoRouter.go);
-      if (ref.read(authSessionProvider).userId != null) {
+      final session = ref.read(authSessionProvider);
+      if (session.userId != null) {
         unawaited(ref.read(pelevoFirebasePushProvider).bootstrap());
       }
+      if (session.authenticated) {
+        unawaited(
+          ref.read(plusStoreSyncProvider).sync(accountId: session.userId),
+        );
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    final session = ref.read(authSessionProvider);
+    if (!session.authenticated) return;
+    unawaited(ref.read(plusStoreSyncProvider).sync(accountId: session.userId));
   }
 
   @override
@@ -264,6 +299,11 @@ class _PelevoAppState extends ConsumerState<PelevoApp> {
       pelevoRouter.refresh();
       if (next.userId != null && next.userId != previous?.userId) {
         unawaited(ref.read(pelevoFirebasePushProvider).bootstrap());
+        if (next.authenticated) {
+          unawaited(
+            ref.read(plusStoreSyncProvider).sync(accountId: next.userId),
+          );
+        }
       }
     });
     return MaterialApp.router(
@@ -273,21 +313,20 @@ class _PelevoAppState extends ConsumerState<PelevoApp> {
       darkTheme: PelevoTheme.dark,
       themeMode: ref.watch(pelevoThemeModeProvider),
       routerConfig: pelevoRouter,
-      builder:
-          (context, child) => ResponsiveBreakpoints.builder(
-            child: Stack(
-              children: [
-                child ?? const SizedBox.shrink(),
-                PremiumTrialBannerHost(router: pelevoRouter),
-              ],
-            ),
-            breakpoints: const [
-              Breakpoint(start: 0, end: 359, name: MOBILE),
-              Breakpoint(start: 360, end: 599, name: 'LARGE_MOBILE'),
-              Breakpoint(start: 600, end: 1023, name: TABLET),
-              Breakpoint(start: 1024, end: double.infinity, name: DESKTOP),
-            ],
-          ),
+      builder: (context, child) => ResponsiveBreakpoints.builder(
+        child: Stack(
+          children: [
+            child ?? const SizedBox.shrink(),
+            PremiumTrialBannerHost(router: pelevoRouter),
+          ],
+        ),
+        breakpoints: const [
+          Breakpoint(start: 0, end: 359, name: MOBILE),
+          Breakpoint(start: 360, end: 599, name: 'LARGE_MOBILE'),
+          Breakpoint(start: 600, end: 1023, name: TABLET),
+          Breakpoint(start: 1024, end: double.infinity, name: DESKTOP),
+        ],
+      ),
     );
   }
 }

@@ -203,6 +203,7 @@ class _FreeTierNativeAd extends ConsumerWidget {
     }
 
     final account = ref.watch(premiumAccountProvider);
+    final confirmed = ref.watch(premiumAccountSeedProvider);
     final androidSdk = ref.watch(androidSdkIntProvider);
     if (placement == _NativePlacement.search &&
         !searchNativeAdAllowed(
@@ -217,7 +218,10 @@ class _FreeTierNativeAd extends ConsumerWidget {
       platformSupported: FeedNativeAds.supported,
       hasAdUnit: true,
       entitlementReady: account.hasValue,
-      premiumActive: pelevoPlusRemovesAds(account.asData?.value),
+      premiumActive: pelevoPlusIsActive(
+        account: account.asData?.value,
+        confirmedPurchase: confirmed,
+      ),
     );
     if (!visible) return const SizedBox.shrink();
 
@@ -377,10 +381,9 @@ class _PlatformNativeAdState extends State<_PlatformNativeAd> {
   }
 
   Widget _hostedAd(NativeAd ad, BorderRadius radius) {
-    final view =
-        _hybridSearchAd
-            ? _HybridAndroidNativeAd(key: ObjectKey(ad), ad: ad)
-            : AdWidget(key: ObjectKey(ad), ad: ad);
+    final view = _hybridSearchAd
+        ? _HybridAndroidNativeAd(key: ObjectKey(ad), ad: ad)
+        : AdWidget(key: ObjectKey(ad), ad: ad);
     if (widget.borderRadius <= 0) return view;
     return ClipRRect(borderRadius: radius, child: view);
   }

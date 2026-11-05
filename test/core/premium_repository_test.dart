@@ -182,6 +182,33 @@ void main() {
     expect(planForPlusProduct(plans, 'flutterwave'), isNull);
   });
 
+  test('a confirmed store purchase covers a missing entitlement', () {
+    final confirmed = PremiumAccount.parse(
+      premiumAccountFixture(entitlement: premiumEntitlementFixture()),
+    );
+    final displayed = premiumAccountForDisplay(
+      remote: PremiumAccount.parse(premiumAccountFixture()),
+      confirmedPurchase: confirmed,
+    );
+    expect(displayed.entitlement?.grantsPlus, isTrue);
+    final expired = PremiumAccount.parse(
+      premiumAccountFixture(
+        entitlement: premiumEntitlementFixture(state: 'expired'),
+      ),
+    );
+    expect(
+      premiumAccountForDisplay(
+        remote: expired,
+        confirmedPurchase: confirmed,
+      ).entitlement?.state,
+      'expired',
+    );
+    expect(
+      pelevoPlusIsActive(account: null, confirmedPurchase: confirmed),
+      isTrue,
+    );
+  });
+
   test('charges keep the billed currency exponent', () {
     expect(formatPremiumAmount(160000, 'NGN'), 'NGN 1600.00');
     expect(formatPremiumAmount(6999, 'ZAR'), 'ZAR 69.99');

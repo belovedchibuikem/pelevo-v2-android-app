@@ -23,48 +23,62 @@ abstract final class ReelAds {
         }.contains(defaultTargetPlatform)) {
       return false;
     }
-
-    final consentUpdated = Completer<void>();
-    ConsentInformation.instance.requestConsentInfoUpdate(
-      ConsentRequestParameters(),
-      consentUpdated.complete,
-      (_) => consentUpdated.complete(),
-    );
-    try {
-      await consentUpdated.future.timeout(const Duration(seconds: 8));
-    } on Object {
+    // Build without AdMob: no production unit ids and release mode → skip SDK init.
+    if (kReleaseMode &&
+        adUnitId() == null &&
+        const String.fromEnvironment('ADMOB_HOME_ANDROID_AD_UNIT_ID').isEmpty &&
+        const String.fromEnvironment('ADMOB_SEARCH_ANDROID_AD_UNIT_ID').isEmpty &&
+        const String.fromEnvironment('ADMOB_HOME_IOS_AD_UNIT_ID').isEmpty &&
+        const String.fromEnvironment('ADMOB_SEARCH_IOS_AD_UNIT_ID').isEmpty) {
       return false;
     }
 
-    final formDismissed = Completer<void>();
-    ConsentForm.loadAndShowConsentFormIfRequired(
-      (_) => formDismissed.complete(),
-    );
     try {
-      await formDismissed.future.timeout(const Duration(seconds: 20));
-    } on Object {
-      // Continue; canRequestAds below decides whether ads may load.
-    }
-
-    if (!await ConsentInformation.instance.canRequestAds()) return false;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
-      if (status == TrackingStatus.notDetermined) {
-        await AppTrackingTransparency.requestTrackingAuthorization().timeout(
-          const Duration(seconds: 8),
-        );
+      final consentUpdated = Completer<void>();
+      ConsentInformation.instance.requestConsentInfoUpdate(
+        ConsentRequestParameters(),
+        consentUpdated.complete,
+        (_) => consentUpdated.complete(),
+      );
+      try {
+        await consentUpdated.future.timeout(const Duration(seconds: 8));
+      } on Object {
+        return false;
       }
+
+      final formDismissed = Completer<void>();
+      ConsentForm.loadAndShowConsentFormIfRequired(
+        (_) => formDismissed.complete(),
+      );
+      try {
+        await formDismissed.future.timeout(const Duration(seconds: 20));
+      } on Object {
+        // Continue; canRequestAds below decides whether ads may load.
+      }
+
+      if (!await ConsentInformation.instance.canRequestAds()) return false;
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        if (status == TrackingStatus.notDetermined) {
+          await AppTrackingTransparency.requestTrackingAuthorization().timeout(
+            const Duration(seconds: 8),
+          );
+        }
+      }
+      await MobileAds.instance.initialize().timeout(const Duration(seconds: 10));
+      // Pelevo is 13+ generally; Earn/gifts/cashout are 18+. Not child-directed.
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(
+          maxAdContentRating: MaxAdContentRating.pg,
+          tagForChildDirectedTreatment: TagForChildDirectedTreatment.no,
+          tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.no,
+        ),
+      );
+      return true;
+    } on Object {
+      // Ads must never take down cold start for Play review devices.
+      return false;
     }
-    await MobileAds.instance.initialize().timeout(const Duration(seconds: 10));
-    // Pelevo is 13+ generally; Earn/gifts/cashout are 18+. Not child-directed.
-    await MobileAds.instance.updateRequestConfiguration(
-      RequestConfiguration(
-        maxAdContentRating: MaxAdContentRating.pg,
-        tagForChildDirectedTreatment: TagForChildDirectedTreatment.no,
-        tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.no,
-      ),
-    );
-    return true;
   }
 
   static String? adUnitId([String? serverKey]) {

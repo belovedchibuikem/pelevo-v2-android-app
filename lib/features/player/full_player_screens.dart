@@ -735,16 +735,19 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _utility(
+                              context,
                               Icons.format_list_bulleted_rounded,
                               'Chapters',
                               () => context.go('/screen/player-chapters'),
                             ),
                             _utility(
+                              context,
                               Icons.queue_music_rounded,
                               'Queue',
                               () => context.go('/screen/player-details'),
                             ),
                             _utility(
+                              context,
                               Icons.chat_bubble_outline_rounded,
                               'Comments',
                               () => showPelevoCommentSheet(
@@ -754,11 +757,13 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
                               ),
                             ),
                             _utility(
+                              context,
                               Icons.ios_share_rounded,
                               'Share',
                               () => context.go('/screen/player-video'),
                             ),
                             _utility(
+                              context,
                               (ref
                                           .watch(pelevoCastSnapshotProvider)
                                           .asData
@@ -1374,16 +1379,28 @@ class _PlayerScreenState extends ConsumerState<_PlayerScreen> {
     ],
   );
 
-  Widget _utility(IconData icon, String label, VoidCallback onTap) => InkWell(
+  /// Must use the dark-player [context] (from [_darkPlayer]), not [State.context].
+  /// Light-theme muted greys are nearly invisible on the black player chrome.
+  Widget _utility(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) => InkWell(
     onTap: onTap,
     borderRadius: BorderRadius.circular(40),
     child: Padding(
       padding: const EdgeInsets.all(PelevoSpacing.xs),
       child: Column(
         children: [
-          Icon(icon, color: context.pelevo.text),
+          Icon(icon, color: PelevoColors.text),
           const SizedBox(height: 6),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: PelevoColors.textMuted,
+            ),
+          ),
         ],
       ),
     ),

@@ -227,10 +227,12 @@ class PremiumAccount {
     final entitlement = _optionalMap(data['entitlement']);
     final subscription = _optionalMap(data['subscription']);
     return PremiumAccount(
-      entitlement:
-          entitlement == null ? null : PremiumEntitlement.parse(entitlement),
-      subscription:
-          subscription == null ? null : PremiumSubscription.parse(subscription),
+      entitlement: entitlement == null
+          ? null
+          : PremiumEntitlement.parse(entitlement),
+      subscription: subscription == null
+          ? null
+          : PremiumSubscription.parse(subscription),
     );
   }
 
@@ -242,6 +244,22 @@ class PremiumAccount {
 /// Plus removes ads on the home feed and on search.
 bool pelevoPlusRemovesAds(PremiumAccount? account) =>
     account?.entitlement?.grantsPlus == true;
+
+/// Paywall and ads follow a store confirmation when the account read has not
+/// caught up yet. A server entitlement, including expired or canceled, wins.
+PremiumAccount premiumAccountForDisplay({
+  PremiumAccount? remote,
+  PremiumAccount? confirmedPurchase,
+}) {
+  if (remote?.entitlement != null) return remote!;
+  if (pelevoPlusRemovesAds(confirmedPurchase)) return confirmedPurchase!;
+  return remote ?? confirmedPurchase ?? const PremiumAccount();
+}
+
+bool pelevoPlusIsActive({
+  PremiumAccount? account,
+  PremiumAccount? confirmedPurchase,
+}) => pelevoPlusRemovesAds(account) || pelevoPlusRemovesAds(confirmedPurchase);
 
 class PremiumInvoice {
   const PremiumInvoice({
@@ -535,9 +553,29 @@ class SelectedPremiumPlanIdNotifier extends Notifier<String?> {
   void select(String? id) => state = id;
 }
 
+/// Account returned by a successful store confirmation in this process.
+/// Cleared when the signed-in user changes. Not a substitute for the server
+/// once `GET /premium/me` reports an entitlement.
+class PremiumAccountSeed extends Notifier<PremiumAccount?> {
+  @override
+  PremiumAccount? build() {
+    ref.listen(authSessionProvider, (previous, next) {
+      if (next.userId != previous?.userId) state = null;
+    });
+    return null;
+  }
+
+  void remember(PremiumAccount account) => state = account;
+}
+
 final selectedPremiumPlanIdProvider =
     NotifierProvider<SelectedPremiumPlanIdNotifier, String?>(
       SelectedPremiumPlanIdNotifier.new,
+    );
+
+final premiumAccountSeedProvider =
+    NotifierProvider<PremiumAccountSeed, PremiumAccount?>(
+      PremiumAccountSeed.new,
     );
 
 final premiumRepositoryProvider = Provider(
@@ -555,9 +593,19 @@ final premiumPlansProvider = FutureProvider.autoDispose<List<PremiumPlan>>((
 final premiumAccountProvider = FutureProvider.autoDispose<PremiumAccount>((
   ref,
 ) async {
+  final confirmed = ref.watch(premiumAccountSeedProvider);
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
-  return ref.watch(premiumRepositoryProvider).me(token);
+  try {
+    final remote = await ref.watch(premiumRepositoryProvider).me(token);
+    return premiumAccountForDisplay(
+      remote: remote,
+      confirmedPurchase: confirmed,
+    );
+  } on Object {
+    if (pelevoPlusRemovesAds(confirmed)) return confirmed!;
+    rethrow;
+  }
 }, retry: (count, error) => null);
 
 final premiumInvoicesProvider =

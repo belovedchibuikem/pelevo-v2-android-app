@@ -1,11 +1,8 @@
 allprojects {
     repositories {
-        // Mirrors first — ISP DNS often fails for dl.google.com / repo.maven.apache.org.
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        // Template order only. Unreachable mirrors fail the whole resolve —
+        // Gradle does not skip to the next repo on UnknownHost.
         google()
-        maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
-        maven { url = uri("https://repo1.maven.org/maven2/") }
         mavenCentral()
         maven { url = uri("${rootProject.projectDir}/local-maven-repo") }
     }
@@ -23,23 +20,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-// file_picker 11+ ships Kotlin sources but skips applying KGP under AGP 9
-// (expects built-in Kotlin). With android.builtInKotlin=false, ensure KGP is
-// applied so those sources actually compile into the plugin jar.
-subprojects {
-    pluginManager.withPlugin("com.android.library") {
-        val kotlinSrc = project.file("src/main/kotlin")
-        if (!kotlinSrc.exists()) return@withPlugin
-        val hasKgp =
-            pluginManager.hasPlugin("org.jetbrains.kotlin.android") ||
-                pluginManager.hasPlugin("kotlin-android")
-        if (!hasKgp) {
-            pluginManager.apply("org.jetbrains.kotlin.android")
-            logger.lifecycle("Pelevo: applied KGP to :${project.name} (Kotlin sources under AGP 9)")
-        }
-    }
 }
 
 // 16 KB page sizes: ensure plugin CMake/ndk-build links with 16 KB ELF alignment

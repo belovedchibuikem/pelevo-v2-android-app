@@ -87,8 +87,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     if (route is PageRoute) {
       pelevoRouteObserver.subscribe(this, route);
     }
-    final requested =
-        GoRouterState.of(context).uri.queryParameters['reelId']?.trim();
+    final requested = GoRouterState.of(
+      context,
+    ).uri.queryParameters['reelId']?.trim();
     if (requested != null &&
         requested.isNotEmpty &&
         requested != _focusReelId) {
@@ -176,14 +177,12 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     final source = ref.read(reelsFeedProvider(tab)).asData?.value;
     if (source == null) return null;
     final focusId = _focusReelId;
-    final focused =
-        tab == ReelsFeedKind.forYou && focusId != null
-            ? ref.read(reelByIdProvider(focusId)).asData?.value
-            : null;
-    final rows =
-        focused == null
-            ? source
-            : [focused, ...source.where((reel) => reel.id != focused.id)];
+    final focused = tab == ReelsFeedKind.forYou && focusId != null
+        ? ref.read(reelByIdProvider(focusId)).asData?.value
+        : null;
+    final rows = focused == null
+        ? source
+        : [focused, ...source.where((reel) => reel.id != focused.id)];
     final feed = _visible(rows);
     if (feed.isEmpty) return null;
     final controller = _pageControllers[tab];
@@ -197,8 +196,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     return item is PublishedReel ? item.id : null;
   }
 
-  bool get _proListening => pelevoPlusRemovesAds(
-    ref.read(premiumAccountProvider).asData?.value,
+  bool get _proListening => pelevoPlusIsActive(
+    account: ref.read(premiumAccountProvider).asData?.value,
+    confirmedPurchase: ref.read(premiumAccountSeedProvider),
   );
 
   List<Object> _feedItems(ReelsFeedKind tab, List<PublishedReel> reels) {
@@ -273,8 +273,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
   }
 
   List<PublishedReel> _visible(List<PublishedReel> source) {
-    final filtered =
-        source.where((reel) => !_hidden.contains(reel.id)).toList();
+    final filtered = source
+        .where((reel) => !_hidden.contains(reel.id))
+        .toList();
     if (_query.trim().isEmpty) return filtered;
     final q = _query.trim().toLowerCase();
     return filtered
@@ -293,10 +294,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
   ]) {
     final liked = _liked[reel.id] ?? reel.liked;
     final saved = _saved[reel.id] ?? reel.saved;
-    final Map<String, int> deltas =
-        commentDeltas == null
-            ? Map<String, int>.from(ref.read(commentCountDeltaProvider))
-            : commentDeltas;
+    final Map<String, int> deltas = commentDeltas == null
+        ? Map<String, int>.from(ref.read(commentCountDeltaProvider))
+        : commentDeltas;
     final commentDelta = deltas[CommentTarget.reel(reel.id).key] ?? 0;
     return reel.copyWith(
       liked: liked,
@@ -332,32 +332,31 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
       if (!_canCreate) {
         final shouldClaim = await showDialog<bool>(
           context: context,
-          builder:
-              (dialogContext) => AlertDialog(
-                icon: const Icon(
-                  Icons.lock_outline_rounded,
-                  color: PelevoColors.green,
-                  size: 38,
-                ),
-                title: const Text('Creator access required'),
-                content: const Text(
-                  'Only verified podcast creators can create Reels. Claim and verify your podcast to unlock Reel creation.',
-                  textAlign: TextAlign.center,
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('Not Now'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: PelevoColors.green,
-                    ),
-                    child: const Text('Claim Podcast'),
-                  ),
-                ],
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(
+              Icons.lock_outline_rounded,
+              color: PelevoColors.green,
+              size: 38,
+            ),
+            title: const Text('Creator access required'),
+            content: const Text(
+              'Only verified podcast creators can create Reels. Claim and verify your podcast to unlock Reel creation.',
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Not Now'),
               ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: PelevoColors.green,
+                ),
+                child: const Text('Claim Podcast'),
+              ),
+            ],
+          ),
         );
         if (shouldClaim == true && mounted) {
           context.push('/screen/claim-podcast');
@@ -368,67 +367,66 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
       await showPelevoSheet<void>(
         context: context,
         isScrollControlled: true,
-        builder:
-            (context) => Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: context.pelevo.border,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+        builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.pelevo.border,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Create Reel',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Record a short clip, upload from your library, or continue a draft.',
-                      style: TextStyle(color: context.pelevo.textMuted),
-                    ),
-                    const SizedBox(height: 16),
-                    _SheetAction(
-                      icon: Icons.videocam_rounded,
-                      title: 'Record',
-                      subtitle: 'Capture a new Pelevo Reel',
-                      onTap: () {
-                        Navigator.pop(context);
-                        this.context.push('/screen/reels-record');
-                      },
-                    ),
-                    _SheetAction(
-                      icon: Icons.upload_rounded,
-                      title: 'Upload',
-                      subtitle: 'Choose a video from your device',
-                      onTap: () {
-                        Navigator.pop(context);
-                        this.context.push('/screen/reels-upload');
-                      },
-                    ),
-                    _SheetAction(
-                      icon: Icons.drafts_outlined,
-                      title: 'Drafts',
-                      subtitle: 'Finish an unfinished reel',
-                      onTap: () {
-                        Navigator.pop(context);
-                        ReelCreateService.instance.ensureLoaded();
-                        this.context.push('/screen/reels-drafts');
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'Create Reel',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Record a short clip, upload from your library, or continue a draft.',
+                  style: TextStyle(color: context.pelevo.textMuted),
+                ),
+                const SizedBox(height: 16),
+                _SheetAction(
+                  icon: Icons.videocam_rounded,
+                  title: 'Record',
+                  subtitle: 'Capture a new Pelevo Reel',
+                  onTap: () {
+                    Navigator.pop(context);
+                    this.context.push('/screen/reels-record');
+                  },
+                ),
+                _SheetAction(
+                  icon: Icons.upload_rounded,
+                  title: 'Upload',
+                  subtitle: 'Choose a video from your device',
+                  onTap: () {
+                    Navigator.pop(context);
+                    this.context.push('/screen/reels-upload');
+                  },
+                ),
+                _SheetAction(
+                  icon: Icons.drafts_outlined,
+                  title: 'Drafts',
+                  subtitle: 'Finish an unfinished reel',
+                  onTap: () {
+                    Navigator.pop(context);
+                    ReelCreateService.instance.ensureLoaded();
+                    this.context.push('/screen/reels-drafts');
+                  },
+                ),
+              ],
             ),
+          ),
+        ),
       );
     });
   }
@@ -465,10 +463,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
 
   Future<void> _shareReel(PublishedReel reel) {
     final url = catalogShareReelLink(reel.id);
-    final title =
-        reel.titleText.isNotEmpty
-            ? reel.titleText
-            : (reel.captionText.isNotEmpty ? reel.captionText : 'Pelevo reel');
+    final title = reel.titleText.isNotEmpty
+        ? reel.titleText
+        : (reel.captionText.isNotEmpty ? reel.captionText : 'Pelevo reel');
     return _withPausedPlayback(() async {
       try {
         await pelevoShareEpisodeLink(context: context, url: url, title: title);
@@ -593,76 +590,75 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     await _withPausedPlayback(
       () => showPelevoSheet<void>(
         context: context,
-        builder:
-            (context) => Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SheetAction(
-                    icon: Icons.link_rounded,
-                    title: 'Copy link',
-                    subtitle: 'Share ${reel.creatorName}\'s reel',
-                    onTap: () {
-                      Navigator.pop(context);
-                      unawaited(_copyReelLink(reel));
-                    },
-                  ),
-                  _SheetAction(
-                    icon: Icons.visibility_off_outlined,
-                    title: 'Not interested',
-                    subtitle: 'See fewer reels like this',
-                    onTap: () async {
-                      Navigator.pop(context);
-                      try {
-                        await ref
-                            .read(reelRepositoryProvider)
-                            .notInterested(reel.id);
-                        if (!this.context.mounted) return;
-                        setState(() => _hidden.add(reel.id));
-                      } on Object catch (error) {
-                        if (this.context.mounted) {
-                          this.context.showPelevoMessage(
-                            reelFailure(error).message,
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  _SheetAction(
-                    icon: Icons.flag_outlined,
-                    title: 'Report',
-                    subtitle: 'Flag this reel for review',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showReport(reel);
-                    },
-                  ),
-                  _SheetAction(
-                    icon: Icons.podcasts_rounded,
-                    title: 'Open related podcast',
-                    subtitle: 'Continue listening in Pelevo',
-                    onTap: () async {
-                      Navigator.pop(context);
-                      try {
-                        final show = await ref
-                            .read(reelRepositoryProvider)
-                            .relatedShow(reel.id);
-                        if (!this.context.mounted) return;
-                        this.context.showPelevoMessage(show.title);
-                        this.context.push('/screen/podcast-details');
-                      } on Object catch (error) {
-                        if (this.context.mounted) {
-                          this.context.showPelevoMessage(
-                            reelFailure(error).message,
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
+        builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SheetAction(
+                icon: Icons.link_rounded,
+                title: 'Copy link',
+                subtitle: 'Share ${reel.creatorName}\'s reel',
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(_copyReelLink(reel));
+                },
               ),
-            ),
+              _SheetAction(
+                icon: Icons.visibility_off_outlined,
+                title: 'Not interested',
+                subtitle: 'See fewer reels like this',
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await ref
+                        .read(reelRepositoryProvider)
+                        .notInterested(reel.id);
+                    if (!this.context.mounted) return;
+                    setState(() => _hidden.add(reel.id));
+                  } on Object catch (error) {
+                    if (this.context.mounted) {
+                      this.context.showPelevoMessage(
+                        reelFailure(error).message,
+                      );
+                    }
+                  }
+                },
+              ),
+              _SheetAction(
+                icon: Icons.flag_outlined,
+                title: 'Report',
+                subtitle: 'Flag this reel for review',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReport(reel);
+                },
+              ),
+              _SheetAction(
+                icon: Icons.podcasts_rounded,
+                title: 'Open related podcast',
+                subtitle: 'Continue listening in Pelevo',
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    final show = await ref
+                        .read(reelRepositoryProvider)
+                        .relatedShow(reel.id);
+                    if (!this.context.mounted) return;
+                    this.context.showPelevoMessage(show.title);
+                    this.context.push('/screen/podcast-details');
+                  } on Object catch (error) {
+                    if (this.context.mounted) {
+                      this.context.showPelevoMessage(
+                        reelFailure(error).message,
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -671,61 +667,57 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     String reason = 'Spam';
     await showPelevoSheet<void>(
       context: context,
-      builder:
-          (sheetContext) => Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: StatefulBuilder(
-              builder:
-                  (context, setSheet) => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Report ${reel.creatorName}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      for (final option in reportReasonCodes.keys)
-                        RadioListTile<String>(
-                          contentPadding: EdgeInsets.zero,
-                          value: option,
-                          groupValue: reason,
-                          title: Text(option),
-                          onChanged:
-                              (value) =>
-                                  setSheet(() => reason = value ?? reason),
-                        ),
-                      PelevoButton(
-                        label: 'Submit report',
-                        color: PelevoColors.purple,
-                        onPressed: () async {
-                          final code = reportReasonCodes[reason];
-                          if (code == null) return;
-                          Navigator.pop(sheetContext);
-                          try {
-                            await ref
-                                .read(reelRepositoryProvider)
-                                .report(
-                                  reelId: reel.id,
-                                  reason: code,
-                                  details:
-                                      reason == 'Spoiler' ? 'Spoiler' : null,
-                                );
-                            if (!this.context.mounted) return;
-                            this.context.showPelevoMessage('Report submitted');
-                          } on Object catch (error) {
-                            if (this.context.mounted) {
-                              this.context.showPelevoMessage(
-                                reelFailure(error).message,
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-            ),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: StatefulBuilder(
+          builder: (context, setSheet) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Report ${reel.creatorName}',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              for (final option in reportReasonCodes.keys)
+                RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  value: option,
+                  groupValue: reason,
+                  title: Text(option),
+                  onChanged: (value) =>
+                      setSheet(() => reason = value ?? reason),
+                ),
+              PelevoButton(
+                label: 'Submit report',
+                color: PelevoColors.purple,
+                onPressed: () async {
+                  final code = reportReasonCodes[reason];
+                  if (code == null) return;
+                  Navigator.pop(sheetContext);
+                  try {
+                    await ref
+                        .read(reelRepositoryProvider)
+                        .report(
+                          reelId: reel.id,
+                          reason: code,
+                          details: reason == 'Spoiler' ? 'Spoiler' : null,
+                        );
+                    if (!this.context.mounted) return;
+                    this.context.showPelevoMessage('Report submitted');
+                  } on Object catch (error) {
+                    if (this.context.mounted) {
+                      this.context.showPelevoMessage(
+                        reelFailure(error).message,
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
@@ -749,47 +741,46 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
       () => showPelevoSheet<void>(
         context: context,
         isScrollControlled: true,
-        builder:
-            (context) => Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    textInputAction: TextInputAction.search,
-                    decoration: const InputDecoration(
-                      hintText: 'Search reels, creators, topics',
-                      prefixIcon: Icon(Icons.search_rounded),
-                    ),
-                    onSubmitted: (value) {
-                      Navigator.pop(context);
-                      setState(() => _query = value.trim());
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  PelevoButton(
-                    label: 'Search Reels',
-                    color: PelevoColors.purple,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() => _query = controller.text.trim());
-                    },
-                  ),
-                  if (_query.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        setState(() => _query = '');
-                      },
-                      child: const Text('Clear filter'),
-                    ),
-                  ],
-                ],
+        builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: 'Search reels, creators, topics',
+                  prefixIcon: Icon(Icons.search_rounded),
+                ),
+                onSubmitted: (value) {
+                  Navigator.pop(context);
+                  setState(() => _query = value.trim());
+                },
               ),
-            ),
+              const SizedBox(height: 12),
+              PelevoButton(
+                label: 'Search Reels',
+                color: PelevoColors.purple,
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() => _query = controller.text.trim());
+                },
+              ),
+              if (_query.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() => _query = '');
+                  },
+                  child: const Text('Clear filter'),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
     controller.dispose();
@@ -802,6 +793,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     ref.watch(reelsFeedProvider(ReelsFeedKind.trending));
     ref.watch(commentCountDeltaProvider);
     ref.watch(premiumAccountProvider);
+    ref.watch(premiumAccountSeedProvider);
 
     return ListenableBuilder(
       listenable: PodcastCreatorService.instance,
@@ -949,27 +941,25 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
     }
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error:
-          (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(PelevoSpacing.xl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(reelFailure(error).message, textAlign: TextAlign.center),
-                  TextButton(
-                    onPressed: () => ref.invalidate(reelsFeedProvider(tab)),
-                    child: const Text('Retry'),
-                  ),
-                ],
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(PelevoSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(reelFailure(error).message, textAlign: TextAlign.center),
+              TextButton(
+                onPressed: () => ref.invalidate(reelsFeedProvider(tab)),
+                child: const Text('Retry'),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
       data: (rows) {
-        final feed =
-            _visible(
-              _withFocusedReel(tab, rows),
-            ).map((reel) => _present(reel, commentDeltas)).toList();
+        final feed = _visible(
+          _withFocusedReel(tab, rows),
+        ).map((reel) => _present(reel, commentDeltas)).toList();
         final items = _feedItems(tab, feed);
         if (tab == _activeTab &&
             feed.isNotEmpty &&
@@ -1022,8 +1012,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
             final item = items[index];
             setState(() {
               _playingId = item is PublishedReel ? item.id : null;
-              _activeAdImpressionId =
-                  item is ReelAdDue ? item.impressionId : null;
+              _activeAdImpressionId = item is ReelAdDue
+                  ? item.impressionId
+                  : null;
               _paused = item is! PublishedReel;
               _heartId = null;
             });
@@ -1044,8 +1035,8 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                     due: item,
                     feedSessionId: _heartbeats.feedSessionId,
                     isActive: _activeAdImpressionId == item.impressionId,
-                    onUnavailable:
-                        () => _removeUnavailableAd(tab, item.impressionId),
+                    onUnavailable: () =>
+                        _removeUnavailableAd(tab, item.impressionId),
                   );
             }
             final reel = item as PublishedReel;
@@ -1072,9 +1063,8 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                   playing: playing,
                   muted: _muted,
                   showProgress: false,
-                  onProgress:
-                      (position, duration) =>
-                          _onReelProgress(reel, position, duration),
+                  onProgress: (position, duration) =>
+                      _onReelProgress(reel, position, duration),
                 ),
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -1092,10 +1082,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                 ),
                 Positioned.fill(
                   child: Listener(
-                    key:
-                        isCurrent
-                            ? const ValueKey('active-reel-surface')
-                            : ValueKey('reel-surface-${reel.id}'),
+                    key: isCurrent
+                        ? const ValueKey('active-reel-surface')
+                        : ValueKey('reel-surface-${reel.id}'),
                     behavior: HitTestBehavior.opaque,
                     onPointerDown: (event) {
                       _tapOrigin = event.position;
@@ -1180,29 +1169,25 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                             child: CircleAvatar(
                               radius: 16,
                               backgroundColor: context.pelevo.surfaceHigh,
-                              backgroundImage:
-                                  reel.creatorImageUrl == null
-                                      ? null
-                                      : CachedNetworkImageProvider(
-                                        reel.creatorImageUrl!,
-                                      ),
-                              child:
-                                  reel.creatorImageUrl == null
-                                      ? Text(
-                                        reel.creatorName.isEmpty
-                                            ? '?'
-                                            : reel.creatorName[0],
-                                      )
-                                      : null,
+                              backgroundImage: reel.creatorImageUrl == null
+                                  ? null
+                                  : CachedNetworkImageProvider(
+                                      reel.creatorImageUrl!,
+                                    ),
+                              child: reel.creatorImageUrl == null
+                                  ? Text(
+                                      reel.creatorName.isEmpty
+                                          ? '?'
+                                          : reel.creatorName[0],
+                                    )
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: InkWell(
-                              onTap:
-                                  () => _openCreatorProfile(
-                                    reel.creatorProfileId,
-                                  ),
+                              onTap: () =>
+                                  _openCreatorProfile(reel.creatorProfileId),
                               child: Text(
                                 reel.creatorName,
                                 maxLines: 1,
@@ -1275,10 +1260,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                             TextSpan(
                               children: [
                                 TextSpan(
-                                  text:
-                                      expanded || caption.length <= 140
-                                          ? caption
-                                          : '${caption.substring(0, 140)}... ',
+                                  text: expanded || caption.length <= 140
+                                      ? caption
+                                      : '${caption.substring(0, 140)}... ',
                                 ),
                                 if (!expanded && caption.length > 140)
                                   const TextSpan(
@@ -1312,10 +1296,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                   child: Column(
                     children: [
                       _Action(
-                        icon:
-                            liked
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
+                        icon: liked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
                         label: '${reel.likesCount}',
                         tooltip: 'Like',
                         color: liked ? PelevoColors.red : Colors.white,
@@ -1341,10 +1324,9 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                         onTap: () => _showGift(reel),
                       ),
                       _Action(
-                        icon:
-                            saved
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
+                        icon: saved
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
                         label: '${reel.savesCount}',
                         tooltip: 'Save',
                         onTap: () => _toggleSave(reel),
@@ -1386,12 +1368,11 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
                       if (url == null || url.isEmpty) return;
                       unawaited(ReelVideoCache.instance.seek(url, position));
                       setState(
-                        () =>
-                            _progress[reel.id] = (
-                              position,
-                              _progress[reel.id]?.$2 ??
-                                  Duration(milliseconds: reel.durationMs ?? 0),
-                            ),
+                        () => _progress[reel.id] = (
+                          position,
+                          _progress[reel.id]?.$2 ??
+                              Duration(milliseconds: reel.durationMs ?? 0),
+                        ),
                       );
                     },
                   ),
@@ -1517,15 +1498,15 @@ class _LinkedEpisodeCard extends StatelessWidget {
                       height: 56,
                       child:
                           artwork != null &&
-                                  (artwork.startsWith('http://') ||
-                                      artwork.startsWith('https://'))
-                              ? CachedNetworkImage(
-                                imageUrl: artwork,
-                                fit: BoxFit.cover,
-                                errorWidget:
-                                    (_, _, _) => const _LinkedArtworkFallback(),
-                              )
-                              : const _LinkedArtworkFallback(),
+                              (artwork.startsWith('http://') ||
+                                  artwork.startsWith('https://'))
+                          ? CachedNetworkImage(
+                              imageUrl: artwork,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, _, _) =>
+                                  const _LinkedArtworkFallback(),
+                            )
+                          : const _LinkedArtworkFallback(),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1763,10 +1744,7 @@ class _SheetAction extends StatelessWidget {
       child: Icon(icon, color: PelevoColors.purple),
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-    subtitle: Text(
-      subtitle,
-      style: TextStyle(color: context.pelevo.textMuted),
-    ),
+    subtitle: Text(subtitle, style: TextStyle(color: context.pelevo.textMuted)),
     onTap: onTap,
   );
 }
@@ -1889,13 +1867,12 @@ class _SavedReelsScreenState extends ConsumerState<SavedReelsScreen>
       showMiniPlayer: false,
       child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (error, _) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(PelevoSpacing.xl),
-                child: Text(reelFailure(error).message),
-              ),
-            ),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(PelevoSpacing.xl),
+            child: Text(reelFailure(error).message),
+          ),
+        ),
         data: (items) {
           if (items.isEmpty) {
             return const Center(
@@ -1905,15 +1882,15 @@ class _SavedReelsScreenState extends ConsumerState<SavedReelsScreen>
               ),
             );
           }
-          final startId =
-              GoRouterState.of(context).uri.queryParameters['reelId'];
+          final startId = GoRouterState.of(
+            context,
+          ).uri.queryParameters['reelId'];
           if (_pages == null) {
-            final start =
-                startId == null
-                    ? 0
-                    : items
-                        .indexWhere((reel) => reel.id == startId)
-                        .clamp(0, items.length - 1);
+            final start = startId == null
+                ? 0
+                : items
+                      .indexWhere((reel) => reel.id == startId)
+                      .clamp(0, items.length - 1);
             _index = start < 0 ? 0 : start;
             _playingId = items[_index].id;
             _pages = PageController(initialPage: _index);
@@ -2113,8 +2090,8 @@ class _SavedReelsScreenState extends ConsumerState<SavedReelsScreen>
                             children: [
                               IconButton(
                                 tooltip: _muted ? 'Unmute reels' : 'Mute reels',
-                                onPressed:
-                                    () => setState(() => _muted = !_muted),
+                                onPressed: () =>
+                                    setState(() => _muted = !_muted),
                                 icon: Icon(
                                   _muted
                                       ? Icons.volume_off_rounded
@@ -2123,16 +2100,14 @@ class _SavedReelsScreenState extends ConsumerState<SavedReelsScreen>
                                 ),
                               ),
                               _Action(
-                                icon:
-                                    reel.liked
-                                        ? Icons.favorite_rounded
-                                        : Icons.favorite_border_rounded,
+                                icon: reel.liked
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
                                 label: '${reel.likesCount}',
                                 tooltip: 'Like',
-                                color:
-                                    reel.liked
-                                        ? PelevoColors.red
-                                        : Colors.white,
+                                color: reel.liked
+                                    ? PelevoColors.red
+                                    : Colors.white,
                                 onTap: () async {
                                   final next = !reel.liked;
                                   await ref
@@ -2194,14 +2169,13 @@ class _SavedReelsScreenState extends ConsumerState<SavedReelsScreen>
                                 ReelVideoCache.instance.seek(url, position),
                               );
                               setState(
-                                () =>
-                                    _progress[reel.id] = (
-                                      position,
-                                      _progress[reel.id]?.$2 ??
-                                          Duration(
-                                            milliseconds: reel.durationMs ?? 0,
-                                          ),
-                                    ),
+                                () => _progress[reel.id] = (
+                                  position,
+                                  _progress[reel.id]?.$2 ??
+                                      Duration(
+                                        milliseconds: reel.durationMs ?? 0,
+                                      ),
+                                ),
                               );
                             },
                           ),

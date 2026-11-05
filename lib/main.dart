@@ -67,7 +67,12 @@ Future<void> main() async {
 
   const sentryDsn = String.fromEnvironment('PELEVO_SENTRY_DSN');
   Future<void> startApp() async {
-    final services = await AppServices.initialize();
+    // Hive / Keystore are hardened inside initialize(); still bound the wait so
+    // Play never sees a frozen native splash (reported as crash-on-open).
+    final services = await AppServices.initialize().timeout(
+      const Duration(seconds: 20),
+      onTimeout: AppServices.initializeDegraded,
+    );
     await PodcastCreatorService.instance.initialize(services.preferences);
     // Prefs only — Play Billing catalog loads in the background.
     await GiftWalletService.instance.initialize(services.preferences);
@@ -92,7 +97,14 @@ Future<void> main() async {
       () => PelevoDeepLinks.bind(),
       timeout: const Duration(seconds: 5),
     );
-    unawaited(ReelAds.initialize());
+    unawaited(
+      _guarded(
+        () async {
+          await ReelAds.initialize();
+        },
+        timeout: const Duration(seconds: 30),
+      ),
+    );
     runApp(
       ProviderScope(
         overrides: [
