@@ -321,12 +321,6 @@ class _WithdrawSetupFlutterwaveScreenState
       context.showPelevoMessage('Enter a valid 10-digit account number');
       return;
     }
-    if (proofPath == null || proofName == null) {
-      context.showPelevoMessage(
-        'Upload a cropped proof that shows your full name and account number.',
-      );
-      return;
-    }
     setState(() => _saving = true);
     try {
       await ref.read(profileRepositoryProvider).confirmAgeMajority();
@@ -341,23 +335,39 @@ class _WithdrawSetupFlutterwaveScreenState
                     destination: {
                       'account_number': _account.text.trim(),
                       'bank_code': bank,
+                      'country': 'NG',
+                      if (_name.text.trim().isNotEmpty)
+                        'account_name': _name.text.trim(),
                     },
                   )
               : null;
       final id = method?.id ?? methodId!;
       _pendingMethodId = id;
-      await ref
-          .read(earnWalletRepositoryProvider)
-          .uploadAccountProof(
-            payoutMethodId: id,
-            filePath: proofPath,
-            fileName: proofName,
-          );
+      if (proofPath != null && proofName != null) {
+        await ref
+            .read(earnWalletRepositoryProvider)
+            .uploadAccountProof(
+              payoutMethodId: id,
+              filePath: proofPath,
+              fileName: proofName,
+            );
+      }
       ref.invalidate(earnPayoutMethodsProvider);
       if (!mounted) return;
-      context.showPelevoMessage(
-        'Proof uploaded. A reviewer will check your name and account number.',
-      );
+      final linked = (method != null && method.verified)
+          ? method
+          : _verifiedMethod(
+              await ref.read(earnPayoutMethodsProvider.future),
+              PayoutGateway.flutterwave,
+            );
+      if (linked != null && linked.verified) {
+        ref.read(withdrawDraftProvider.notifier).select(linked);
+        context.showPelevoMessage('Bank account verified and linked');
+      } else {
+        context.showPelevoMessage(
+          'Bank details were saved. Verification is still pending.',
+        );
+      }
       context.go('/screen/withdraw');
     } catch (error) {
       if (!mounted) return;
@@ -419,6 +429,11 @@ class _WithdrawSetupFlutterwaveScreenState
         onChanged: (value) => setState(() => _accountType = value ?? 'NUBAN'),
       ),
       const SizedBox(height: PelevoSpacing.lg),
+      Text(
+        'Optional: upload a statement crop. Your bank account is verified automatically by name enquiry.',
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
+      ),
+      const SizedBox(height: PelevoSpacing.sm),
       AccountProofUpload(fileName: _proofName, onPick: _pickProof),
       const SizedBox(height: PelevoSpacing.md),
       AgeMajorityCheckbox(
@@ -427,7 +442,7 @@ class _WithdrawSetupFlutterwaveScreenState
       ),
       const SizedBox(height: PelevoSpacing.xl),
       PelevoButton(
-        label: _saving ? 'Uploading…' : 'Verify & Link Bank Transfer',
+        label: _saving ? 'Verifying…' : 'Verify & Link Bank Transfer',
         color: PayoutGateway.flutterwave.color,
         onPressed: _saving || !_ageConfirmed ? null : _save,
       ),
@@ -500,7 +515,7 @@ class _WithdrawSetupPaypalScreenState
     gateway: PayoutGateway.paypal,
     children: [
       Text(
-        'PayPal payouts are sent in USD to your verified PayPal email. Confirm the address carefully.',
+        'PayPal payouts are sent in USD to your PayPal email. Enter and confirm the address carefully — it is verified automatically so you can withdraw right away.',
         style: TextStyle(color: context.pelevo.textMuted),
       ),
       const SizedBox(height: PelevoSpacing.lg),
