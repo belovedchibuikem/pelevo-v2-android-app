@@ -212,6 +212,7 @@ class WithdrawHomeScreen extends ConsumerWidget {
                     ref.read(withdrawDraftProvider.notifier).select(method);
                   },
                   onSetup: () => context.push(gateway.setupRoute),
+                  onChange: () => context.push(gateway.setupRoute),
                 ),
               const SizedBox(height: PelevoSpacing.lg),
               Text(
@@ -273,6 +274,8 @@ class _WithdrawSetupFlutterwaveScreenState
   String _accountType = 'NUBAN';
   var _saving = false;
   var _ageConfirmed = false;
+  var _editing = false;
+  var _editChecked = false;
   String? _proofPath;
   String? _proofName;
   String? _pendingMethodId;
@@ -290,6 +293,14 @@ class _WithdrawSetupFlutterwaveScreenState
     _name.dispose();
     _account.dispose();
     super.dispose();
+  }
+
+  void _detectExisting() {
+    if (_editChecked) return;
+    _editChecked = true;
+    final methods = ref.read(earnPayoutMethodsProvider).asData?.value;
+    if (methods == null) return;
+    _editing = _verifiedMethod(methods, PayoutGateway.flutterwave) != null;
   }
 
   Future<void> _pickProof() async {
@@ -362,7 +373,11 @@ class _WithdrawSetupFlutterwaveScreenState
             );
       if (linked != null && linked.verified) {
         ref.read(withdrawDraftProvider.notifier).select(linked);
-        context.showPelevoMessage('Bank account verified and linked');
+        context.showPelevoMessage(
+          _editing
+              ? 'Bank account updated and linked'
+              : 'Bank account verified and linked',
+        );
       } else {
         context.showPelevoMessage(
           'Bank details were saved. Verification is still pending.',
@@ -378,76 +393,84 @@ class _WithdrawSetupFlutterwaveScreenState
   }
 
   @override
-  Widget build(BuildContext context) => _SetupScaffold(
-    title: 'Set up Bank Transfer',
-    gateway: PayoutGateway.flutterwave,
-    children: [
-      Text(
-        'Bank transfer pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
-        style: TextStyle(color: context.pelevo.textMuted),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      TextField(
-        controller: _name,
-        decoration: const InputDecoration(labelText: 'Account name'),
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      SearchableSelectField(
-        valueLabel: _banks.where((bank) => bank.$1 == _bank).isEmpty
-            ? null
-            : _banks.firstWhere((bank) => bank.$1 == _bank).$2,
-        hint: 'Select your bank',
-        searchHint: 'Search banks',
-        sheetTitle: 'Select bank',
-        options: [
-          for (final bank in _banks) (value: bank.$1, label: bank.$2),
-        ],
-        onSelected: (value) => setState(() {
-          _bank = value;
-          _pendingMethodId = null;
-        }),
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      TextField(
-        controller: _account,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          labelText: 'Account number',
-          hintText: '10-digit NUBAN',
+  Widget build(BuildContext context) {
+    _detectExisting();
+    return _SetupScaffold(
+      title: _editing ? 'Change Bank Transfer' : 'Set up Bank Transfer',
+      gateway: PayoutGateway.flutterwave,
+      children: [
+        Text(
+          'Bank transfer pays verified Nigerian bank accounts. Enter NUBAN details exactly as they appear on your account.',
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
-        onChanged: (_) => _pendingMethodId = null,
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      DropdownButtonFormField<String>(
-        value: _accountType,
-        decoration: const InputDecoration(labelText: 'Account type'),
-        items: const [
-          DropdownMenuItem(value: 'NUBAN', child: Text('NUBAN')),
-          DropdownMenuItem(value: 'Mobile Money', child: Text('Mobile Money')),
-        ],
-        onChanged: (value) => setState(() => _accountType = value ?? 'NUBAN'),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      Text(
-        'Optional: upload a statement crop. Your bank account is verified automatically by name enquiry.',
-        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      AccountProofUpload(fileName: _proofName, onPick: _pickProof),
-      const SizedBox(height: PelevoSpacing.md),
-      AgeMajorityCheckbox(
-        value: _ageConfirmed,
-        onChanged: (value) => setState(() => _ageConfirmed = value),
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      PelevoButton(
-        label: _saving ? 'Verifying…' : 'Verify & Link Bank Transfer',
-        color: PayoutGateway.flutterwave.color,
-        onPressed: _saving || !_ageConfirmed ? null : _save,
-      ),
-    ],
-  );
+        const SizedBox(height: PelevoSpacing.lg),
+        TextField(
+          controller: _name,
+          decoration: const InputDecoration(labelText: 'Account name'),
+        ),
+        const SizedBox(height: PelevoSpacing.sm),
+        SearchableSelectField(
+          valueLabel: _banks.where((bank) => bank.$1 == _bank).isEmpty
+              ? null
+              : _banks.firstWhere((bank) => bank.$1 == _bank).$2,
+          hint: 'Select your bank',
+          searchHint: 'Search banks',
+          sheetTitle: 'Select bank',
+          options: [
+            for (final bank in _banks) (value: bank.$1, label: bank.$2),
+          ],
+          onSelected: (value) => setState(() {
+            _bank = value;
+            _pendingMethodId = null;
+          }),
+        ),
+        const SizedBox(height: PelevoSpacing.sm),
+        TextField(
+          controller: _account,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            labelText: 'Account number',
+            hintText: '10-digit NUBAN',
+          ),
+          onChanged: (_) => _pendingMethodId = null,
+        ),
+        const SizedBox(height: PelevoSpacing.sm),
+        DropdownButtonFormField<String>(
+          value: _accountType,
+          decoration: const InputDecoration(labelText: 'Account type'),
+          items: const [
+            DropdownMenuItem(value: 'NUBAN', child: Text('NUBAN')),
+            DropdownMenuItem(value: 'Mobile Money', child: Text('Mobile Money')),
+          ],
+          onChanged: (value) => setState(() => _accountType = value ?? 'NUBAN'),
+        ),
+        const SizedBox(height: PelevoSpacing.lg),
+        Text(
+          'Optional: upload a statement crop. Your bank account is verified automatically by name enquiry.',
+          style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
+        ),
+        const SizedBox(height: PelevoSpacing.sm),
+        AccountProofUpload(fileName: _proofName, onPick: _pickProof),
+        const SizedBox(height: PelevoSpacing.md),
+        AgeMajorityCheckbox(
+          value: _ageConfirmed,
+          onChanged: (value) => setState(() => _ageConfirmed = value),
+        ),
+        const SizedBox(height: PelevoSpacing.xl),
+        PelevoButton(
+          label:
+              _saving
+                  ? 'Verifying…'
+                  : (_editing
+                      ? 'Update Bank Transfer'
+                      : 'Verify & Link Bank Transfer'),
+          color: PayoutGateway.flutterwave.color,
+          onPressed: _saving || !_ageConfirmed ? null : _save,
+        ),
+      ],
+    );
+  }
 }
 
 class WithdrawSetupPaypalScreen extends ConsumerStatefulWidget {
@@ -464,6 +487,10 @@ class _WithdrawSetupPaypalScreenState
   final _confirm = TextEditingController();
   var _saving = false;
   var _ageConfirmed = false;
+  var _editing = false;
+  var _prefilled = false;
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   @override
   void dispose() {
@@ -472,10 +499,28 @@ class _WithdrawSetupPaypalScreenState
     super.dispose();
   }
 
+  void _prefillIfNeeded() {
+    if (_prefilled) return;
+    _prefilled = true;
+    final methods = ref.read(earnPayoutMethodsProvider).asData?.value;
+    if (methods == null) return;
+    final existing = _verifiedMethod(methods, PayoutGateway.paypal);
+    final email = existing?.label?.trim();
+    if (email == null || email.isEmpty) return;
+    _email.text = email;
+    _confirm.text = email;
+    _editing = true;
+  }
+
   Future<void> _save() async {
     if (_saving || !_ageConfirmed) return;
-    final email = _email.text.trim();
-    if (!email.contains('@') || email != _confirm.text.trim()) {
+    final email = _email.text.trim().toLowerCase();
+    final confirm = _confirm.text.trim().toLowerCase();
+    if (!_emailPattern.hasMatch(email)) {
+      context.showPelevoMessage('Enter a valid PayPal email');
+      return;
+    }
+    if (email != confirm) {
       context.showPelevoMessage('PayPal emails must match');
       return;
     }
@@ -499,7 +544,9 @@ class _WithdrawSetupPaypalScreenState
         return;
       }
       ref.read(withdrawDraftProvider.notifier).select(method);
-      context.showPelevoMessage('PayPal account linked');
+      context.showPelevoMessage(
+        _editing ? 'PayPal account updated' : 'PayPal account linked',
+      );
       context.go('/screen/withdraw');
     } catch (error) {
       if (!mounted) return;
@@ -510,42 +557,50 @@ class _WithdrawSetupPaypalScreenState
   }
 
   @override
-  Widget build(BuildContext context) => _SetupScaffold(
-    title: 'Set up PayPal',
-    gateway: PayoutGateway.paypal,
-    children: [
-      Text(
-        'PayPal payouts are sent in USD to your PayPal email. Enter and confirm the address carefully — it is verified automatically so you can withdraw right away.',
-        style: TextStyle(color: context.pelevo.textMuted),
-      ),
-      const SizedBox(height: PelevoSpacing.lg),
-      TextField(
-        controller: _email,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(
-          labelText: 'PayPal email',
-          hintText: 'name@email.com',
+  Widget build(BuildContext context) {
+    _prefillIfNeeded();
+    return _SetupScaffold(
+      title: _editing ? 'Change PayPal' : 'Set up PayPal',
+      gateway: PayoutGateway.paypal,
+      children: [
+        Text(
+          'PayPal payouts are sent in USD to your PayPal email. Enter and confirm the address carefully — it is verified automatically so you can withdraw right away.',
+          style: TextStyle(color: context.pelevo.textMuted),
         ),
-      ),
-      const SizedBox(height: PelevoSpacing.sm),
-      TextField(
-        controller: _confirm,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(labelText: 'Confirm PayPal email'),
-      ),
-      const SizedBox(height: PelevoSpacing.md),
-      AgeMajorityCheckbox(
-        value: _ageConfirmed,
-        onChanged: (value) => setState(() => _ageConfirmed = value),
-      ),
-      const SizedBox(height: PelevoSpacing.xl),
-      PelevoButton(
-        label: _saving ? 'Verifying…' : 'Verify & Link PayPal',
-        color: PayoutGateway.paypal.color,
-        onPressed: _saving || !_ageConfirmed ? null : _save,
-      ),
-    ],
-  );
+        const SizedBox(height: PelevoSpacing.lg),
+        TextField(
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'PayPal email',
+            hintText: 'name@email.com',
+          ),
+        ),
+        const SizedBox(height: PelevoSpacing.sm),
+        TextField(
+          controller: _confirm,
+          keyboardType: TextInputType.emailAddress,
+          autocorrect: false,
+          decoration: const InputDecoration(labelText: 'Confirm PayPal email'),
+        ),
+        const SizedBox(height: PelevoSpacing.md),
+        AgeMajorityCheckbox(
+          value: _ageConfirmed,
+          onChanged: (value) => setState(() => _ageConfirmed = value),
+        ),
+        const SizedBox(height: PelevoSpacing.xl),
+        PelevoButton(
+          label:
+              _saving
+                  ? 'Verifying…'
+                  : (_editing ? 'Update PayPal' : 'Verify & Link PayPal'),
+          color: PayoutGateway.paypal.color,
+          onPressed: _saving || !_ageConfirmed ? null : _save,
+        ),
+      ],
+    );
+  }
 }
 
 class WithdrawAmountScreen extends ConsumerStatefulWidget {
@@ -1027,6 +1082,7 @@ class _GatewayTile extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onSetup,
+    required this.onChange,
   });
 
   final PayoutGateway gateway;
@@ -1034,6 +1090,7 @@ class _GatewayTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onSelect;
   final VoidCallback onSetup;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -1063,11 +1120,20 @@ class _GatewayTile extends StatelessWidget {
         ),
         trailing:
             linked
-                ? Icon(
-                  selected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  color: selected ? gateway.color : context.pelevo.textDim,
+                ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: onChange,
+                      child: const Text('Change'),
+                    ),
+                    Icon(
+                      selected
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      color: selected ? gateway.color : context.pelevo.textDim,
+                    ),
+                  ],
                 )
                 : TextButton(onPressed: onSetup, child: const Text('Set up')),
       ),

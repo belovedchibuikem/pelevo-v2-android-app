@@ -151,6 +151,9 @@ class EarnPayoutMethod {
   bool get verified => verifiedAt != null && verifiedAt!.isNotEmpty;
 
   String get destinationLabel {
+    if (kind == 'paypal' && label != null && label!.isNotEmpty) {
+      return label!;
+    }
     final lastFour = destinationLastFour;
     if (lastFour != null && lastFour.isNotEmpty) {
       return '•••• $lastFour';

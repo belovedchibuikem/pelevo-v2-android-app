@@ -898,59 +898,63 @@ class _CreatorAddPayoutMethodScreenState
           }
           return;
         }
-        if (proofPath == null || proofName == null) {
-          if (mounted) {
-            context.showPelevoMessage(
-              'Upload a cropped proof that shows your full name and account number.',
-            );
-          }
-          return;
-        }
-        final methodId =
-            _pendingMethodId ??
-            (await ref
-                .read(studioRepositoryProvider)
-                .createPayoutMethod(
-                  provider: 'flutterwave',
-                  kind: 'bank',
-                  destination: {
-                    'account_number': number,
-                    'bank_code': bank,
-                    'country': country,
-                    'account_name': name,
-                  },
-                )).id;
+        final method =
+            _pendingMethodId == null
+                ? await ref
+                    .read(studioRepositoryProvider)
+                    .createPayoutMethod(
+                      provider: 'flutterwave',
+                      kind: 'bank',
+                      destination: {
+                        'account_number': number,
+                        'bank_code': bank,
+                        'country': country,
+                        'account_name': name,
+                      },
+                    )
+                : null;
+        final methodId = method?.id ?? _pendingMethodId!;
         _pendingMethodId = methodId;
-        await ref
-            .read(studioRepositoryProvider)
-            .uploadAccountProof(
-              payoutMethodId: methodId,
-              filePath: proofPath,
-              fileName: proofName,
-            );
+        if (proofPath != null && proofName != null) {
+          await ref
+              .read(studioRepositoryProvider)
+              .uploadAccountProof(
+                payoutMethodId: methodId,
+                filePath: proofPath,
+                fileName: proofName,
+              );
+        }
       } else {
-        final email = _paypalEmail.text.trim();
-        if (email.isEmpty) {
+        final email = _paypalEmail.text.trim().toLowerCase();
+        if (email.isEmpty || !email.contains('@')) {
           if (mounted) {
-            context.showPelevoMessage('Enter a PayPal email to continue.');
+            context.showPelevoMessage('Enter a valid PayPal email to continue.');
           }
           return;
         }
-        await ref
+        final method = await ref
             .read(studioRepositoryProvider)
             .createPayoutMethod(
               provider: 'paypal',
               kind: 'paypal',
               destination: {'email': email},
             );
+        if (!method.verified) {
+          if (mounted) {
+            context.showPelevoMessage(
+              'PayPal was saved but is not verified yet.',
+            );
+          }
+          return;
+        }
       }
       ref.invalidate(studioPayoutWorkspaceProvider);
       ref.invalidate(creatorWithdrawalWorkspaceProvider);
       if (!mounted) return;
       context.showPelevoMessage(
         _method == 0
-            ? 'Proof uploaded. Finance will finish verifying your payout account.'
-            : 'Payout method saved',
+            ? 'Bank account verified and saved for payouts.'
+            : 'PayPal account verified and saved for payouts.',
       );
       context.go(returnTo);
     } on Object catch (error) {
@@ -1171,6 +1175,14 @@ class _CreatorAddPayoutMethodScreenState
                     ),
                   ),
                   const SizedBox(height: 18),
+                  Text(
+                    'Optional: upload a statement crop. Name enquiry verifies the account automatically.',
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   AccountProofUpload(fileName: _proofName, onPick: _pickProof),
                 ] else ...[
                   const Text('PayPal Email'),
@@ -1178,8 +1190,17 @@ class _CreatorAddPayoutMethodScreenState
                   TextField(
                     controller: _paypalEmail,
                     keyboardType: TextInputType.emailAddress,
+                    autocorrect: false,
                     decoration: const InputDecoration(
                       hintText: 'you@example.com',
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Your PayPal email is verified automatically and can be changed later.',
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
+                      fontSize: 11,
                     ),
                   ),
                 ],
