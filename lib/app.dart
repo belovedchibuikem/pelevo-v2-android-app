@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -255,11 +256,20 @@ class _PelevoAppState extends ConsumerState<PelevoApp>
       final fallback = purchase.purchaseID?.trim() ?? '';
       final token = receipt.isNotEmpty ? receipt : fallback;
       if (token.isEmpty) return false;
+      // Play product verify needs the SKU; wrap the purchase token for the API.
+      final payload =
+          GiftWalletService.instance.storeProvider == 'google'
+              ? jsonEncode({
+                'purchaseToken': token,
+                'productId': purchase.productID,
+              })
+              : token;
       final verified = await ref
           .read(giftRepositoryProvider)
           .verifyIap(
             store: GiftWalletService.instance.storeProvider,
-            receipt: token,
+            receipt: payload,
+            productId: purchase.productID,
           );
       ref.read(lastVerifiedGiftPurchaseProvider.notifier).select(verified);
       return verified.coins > 0;

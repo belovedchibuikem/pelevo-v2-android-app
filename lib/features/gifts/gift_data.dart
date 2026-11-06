@@ -306,11 +306,16 @@ class GiftRepository {
   Future<VerifiedGiftPurchase> verifyIap({
     required String store,
     required String receipt,
+    String? productId,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/iap/verify',
-        data: {'store': store, 'receipt': receipt},
+        data: {
+          'store': store,
+          'receipt': receipt,
+          if (productId != null && productId.isNotEmpty) 'product_id': productId,
+        },
       );
       return VerifiedGiftPurchase.fromApi(requireApiData(response.data));
     } on ApiFailure {

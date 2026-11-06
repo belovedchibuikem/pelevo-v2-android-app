@@ -540,7 +540,46 @@ class _UpgradeProCard extends ConsumerWidget {
     final account = ref.watch(premiumAccountProvider).asData?.value;
     final confirmed = ref.watch(premiumAccountSeedProvider);
     if (pelevoPlusIsActive(account: account, confirmedPurchase: confirmed)) {
-      return const SizedBox.shrink();
+      return _GradientCard(
+        colors: const [Color(0xFF4C146F), Color(0xFF21082F)],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.workspace_premium_rounded, color: Colors.white),
+                SizedBox(width: PelevoSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Pelevo Plus is active',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: PelevoSpacing.xs),
+            Text(
+              account?.subscription?.currentPeriodEnd == null
+                  ? 'Manage billing, receipts, or cancel in your store account.'
+                  : 'Current period ends ${account!.subscription!.currentPeriodEnd}. Manage billing or cancel anytime.',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
+            ),
+            const SizedBox(height: PelevoSpacing.md),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: PelevoColors.yellow,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () => context.go('/screen/premium-subscription'),
+              child: const Text('Manage Subscription'),
+            ),
+          ],
+        ),
+      );
     }
     final hadSubscription = account?.entitlement != null;
     final title = hadSubscription

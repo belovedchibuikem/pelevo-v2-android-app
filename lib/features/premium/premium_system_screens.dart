@@ -349,6 +349,12 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       }
       ref.invalidate(premiumAccountProvider);
       ref.invalidate(premiumInvoicesProvider);
+      // Pull the store invoice / receipt URL created by store-purchase.
+      try {
+        await ref.read(premiumInvoicesProvider.future);
+      } on Object {
+        // Confirmed screen still works without invoices.
+      }
       // Force a fresh entitlement so ads / upgrade cards dismiss immediately.
       try {
         await ref.read(premiumAccountProvider.future);
@@ -904,13 +910,13 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
           foregroundColor: Colors.black,
           onPressed: () => context.go('/screen/premium-features'),
         ),
+        const SizedBox(height: PelevoSpacing.sm),
+        OutlinedButton(
+          onPressed: () => context.go('/screen/premium-subscription'),
+          child: const Text('Manage Subscription'),
+        ),
         TextButton(
-          onPressed: () {
-            final url = receiptUrl;
-            context.showPelevoMessage(
-              url == null || url.isEmpty ? 'No receipt URL is available.' : url,
-            );
-          },
+          onPressed: () => unawaited(_openReceipt(receiptUrl)),
           child: const Text('View Receipt'),
         ),
       ],
@@ -1043,19 +1049,17 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         _menuRow(
           Icons.receipt_long_outlined,
           'Subscription Details',
-          () => context.showPelevoMessage(
-            me.subscription?.state ?? 'No subscription is on file.',
-          ),
+          () => _showSubscriptionDetails(me),
+        ),
+        _menuRow(
+          Icons.open_in_new_rounded,
+          'Manage in $_storeName',
+          () => unawaited(_cancelInStore(me)),
         ),
         _menuRow(
           Icons.swap_horiz_rounded,
           'Change Plan',
           () => context.go('/screen/premium-change-plan'),
-        ),
-        _menuRow(
-          Icons.credit_card_rounded,
-          'Payment Method',
-          () => context.go('/screen/premium-payment'),
         ),
         _menuRow(
           Icons.history_rounded,
@@ -1065,7 +1069,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
         _menuRow(
           Icons.cancel_outlined,
           'Cancel Subscription',
-          () => _cancelInStore(me),
+          () => unawaited(_cancelInStore(me)),
           color: PelevoColors.red,
         ),
         const SizedBox(height: PelevoSpacing.lg),
@@ -1174,13 +1178,11 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
               trailing: Text(
                 formatPremiumAmount(item.totalMinor, item.currency),
               ),
-              onTap: () => context.showPelevoMessage(
-                item.receiptUrl ?? 'No receipt URL is available.',
-              ),
+              onTap: () => unawaited(_openReceipt(item.receiptUrl)),
             ),
         const SizedBox(height: PelevoSpacing.xl),
         PelevoButton(
-          label: 'Download Invoice',
+          label: 'View Receipt / Orders',
           color: PelevoColors.yellow,
           foregroundColor: Colors.black,
           onPressed: () {
@@ -1189,7 +1191,7 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
                 .whereType<String>()
                 .where((value) => value.isNotEmpty)
                 .firstOrNull;
-            context.showPelevoMessage(url ?? 'No receipt URL is available.');
+            unawaited(_openReceipt(url));
           },
         ),
       ],
@@ -1203,6 +1205,43 @@ class _PremiumScreenState extends ConsumerState<_PremiumScreen> {
       return PremiumStore.instance.productIdFor(plan);
     }
     return null;
+  }
+
+  Future<void> _openReceipt(String? receiptUrl) async {
+    final trimmed = receiptUrl?.trim();
+    Uri? uri;
+    if (trimmed != null && trimmed.isNotEmpty) {
+      uri = Uri.tryParse(trimmed);
+    }
+    uri ??= plusStoreSubscriptionUri(
+      provider: PremiumStore.instance.storeProvider,
+      productId: PremiumStore.googleProductId,
+    );
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await openPelevoExternalLink(uri);
+      } on Object {
+        opened = false;
+      }
+    }
+    if (!mounted || opened) return;
+    context.showPelevoMessage(
+      'Open $_storeBillingName to view your Pelevo Plus order or receipt.',
+    );
+  }
+
+  void _showSubscriptionDetails(PremiumAccount me) {
+    final sub = me.subscription;
+    final lines = <String>[
+      if (sub != null) _subscriptionProviderLabel(sub.provider),
+      if (sub != null) 'Status: ${_membershipLabel(me.entitlement)}',
+      if (sub?.currentPeriodEnd != null)
+        'Current period ends: ${sub!.currentPeriodEnd}',
+      if (sub?.cancelAt != null) 'Auto-renew off from: ${sub!.cancelAt}',
+      'Cancel or update billing in $_storeBillingName.',
+    ];
+    context.showPelevoMessage(lines.join('\n'));
   }
 
   Future<void> _cancelInStore(PremiumAccount me) async {
