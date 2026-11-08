@@ -70,7 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return PelevoPage(
         appBar: AppBar(title: const Text('Profile')),
         bottomNavigationBar: PelevoBottomNavigation(
-          index: 0,
+          selectedRoute: '/screen/profile',
           onDestinationSelected: context.openPelevoTab,
         ),
         child: ProfileLoadState(
@@ -82,11 +82,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isCreator = user.creatorAccess;
     return PelevoPage(
       appBar: AppBar(
-        leading: const PelevoBackButton(),
         title: const Text('Profile'),
       ),
       bottomNavigationBar: PelevoBottomNavigation(
-        index: 0,
+        selectedRoute: '/screen/profile',
         onDestinationSelected: context.openPelevoTab,
       ),
       child: Center(

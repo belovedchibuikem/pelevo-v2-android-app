@@ -925,28 +925,10 @@ class _CreatorAddPayoutMethodScreenState
               );
         }
       } else {
-        final email = _paypalEmail.text.trim().toLowerCase();
-        if (email.isEmpty || !email.contains('@')) {
-          if (mounted) {
-            context.showPelevoMessage('Enter a valid PayPal email to continue.');
-          }
-          return;
+        if (mounted) {
+          context.showPelevoMessage('PayPal payouts are coming soon.');
         }
-        final method = await ref
-            .read(studioRepositoryProvider)
-            .createPayoutMethod(
-              provider: 'paypal',
-              kind: 'paypal',
-              destination: {'email': email},
-            );
-        if (!method.verified) {
-          if (mounted) {
-            context.showPelevoMessage(
-              'PayPal was saved but is not verified yet.',
-            );
-          }
-          return;
-        }
+        return;
       }
       ref.invalidate(studioPayoutWorkspaceProvider);
       ref.invalidate(creatorWithdrawalWorkspaceProvider);
@@ -1014,23 +996,20 @@ class _CreatorAddPayoutMethodScreenState
           ),
           const SizedBox(height: 10),
           _PayoutMethodCard(
-            selected: _method == 1,
+            selected: false,
+            comingSoon: true,
             icon: Icons.paypal_rounded,
             title: 'PayPal',
-            subtitle: 'Receive your earnings\nvia PayPal account',
-            onTap:
-                () => setState(() {
-                  _method = 1;
-                  _pendingMethodId = null;
-                }),
+            subtitle: 'Coming soon — use local bank transfer for now',
+            onTap: () {
+              context.showPelevoMessage('PayPal payouts are coming soon.');
+            },
           ),
           const SizedBox(height: 16),
           _SettingsSection(
-            title: _method == 0 ? 'Bank transfer details' : 'PayPal Details',
+            title: 'Bank transfer details',
             subtitle:
-                _method == 0
-                    ? 'Choose a supported country, then verify the bank account'
-                    : 'Enter your PayPal account details',
+                'Choose a supported country, then verify the bank account',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1872,7 +1851,7 @@ class _CreatorWithdrawScreenState extends ConsumerState<CreatorWithdrawScreen> {
                   ),
                   subtitle: Text(
                     value.verifiedMethod?.subtitle ??
-                        'Add Bank Transfer (Local Banks) or PayPal details for all podcasts and gifts.',
+                        'Add a verified Bank Transfer (Local Banks) payout method. PayPal is coming soon.',
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap:
@@ -2385,59 +2364,91 @@ class _PayoutMethodCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.comingSoon = false,
   });
   final bool selected;
+  final bool comingSoon;
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: PelevoRadii.card,
-    child: Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: context.pelevo.surface,
-        borderRadius: PelevoRadii.card,
-        border: Border.all(
-          color: selected ? PelevoColors.green : context.pelevo.border,
+  Widget build(BuildContext context) => Opacity(
+    opacity: comingSoon ? 0.72 : 1,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: PelevoRadii.card,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: context.pelevo.surface,
+          borderRadius: PelevoRadii.card,
+          border: Border.all(
+            color: selected ? PelevoColors.green : context.pelevo.border,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            selected
-                ? Icons.radio_button_checked_rounded
-                : Icons.radio_button_off_rounded,
-            color: selected ? PelevoColors.green : context.pelevo.textMuted,
-          ),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            backgroundColor: context.pelevo.surfaceHigh,
-            child: Icon(icon),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+        child: Row(
+          children: [
+            Icon(
+              comingSoon
+                  ? Icons.schedule_rounded
+                  : selected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color:
+                  comingSoon
+                      ? context.pelevo.textMuted
+                      : selected
+                      ? PelevoColors.green
+                      : context.pelevo.textMuted,
+            ),
+            const SizedBox(width: 12),
+            CircleAvatar(
+              backgroundColor: context.pelevo.surfaceHigh,
+              child: Icon(icon),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: context.pelevo.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (comingSoon)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-                Text(
-                  subtitle,
+                decoration: BoxDecoration(
+                  color: context.pelevo.surfaceHigh,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: context.pelevo.border),
+                ),
+                child: Text(
+                  'Coming soon',
                   style: TextStyle(
                     color: context.pelevo.textMuted,
                     fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     ),
   );

@@ -480,19 +480,25 @@ class PelevoStateHero extends StatelessWidget {
 
 class PelevoBottomNavigation extends ConsumerWidget {
   const PelevoBottomNavigation({
-    required this.index,
+    this.index,
+    this.selectedRoute,
     required this.onDestinationSelected,
     super.key,
-  });
+  }) : assert(
+         index != null || selectedRoute != null,
+         'Provide index or selectedRoute',
+       );
 
-  final int index;
+  final int? index;
+  final String? selectedRoute;
   final ValueChanged<int> onDestinationSelected;
 
   static List<
     ({String label, IconData icon, IconData selectedIcon, String route})
   >
   tabsFor(AppConfig? config) {
-    final earnEnabled = config?.enabled('earn_enabled', fallback: true) ?? true;
+    // Earn stays wired for a future relaunch; muted from the bar until earn_enabled.
+    final earnEnabled = config?.enabled('earn_enabled') ?? false;
     return [
       (
         label: 'Home',
@@ -525,6 +531,12 @@ class PelevoBottomNavigation extends ConsumerWidget {
         selectedIcon: Icons.movie_rounded,
         route: '/screen/reels',
       ),
+      (
+        label: 'Profile',
+        icon: Icons.person_outline_rounded,
+        selectedIcon: Icons.person_rounded,
+        route: '/screen/profile',
+      ),
     ];
   }
 
@@ -537,7 +549,11 @@ class PelevoBottomNavigation extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider).asData?.value;
     final tabs = tabsFor(config);
-    final selected = index.clamp(0, tabs.length - 1);
+    final resolved =
+        selectedRoute != null
+            ? indexForRoute(config, selectedRoute!)
+            : (index ?? 0);
+    final selected = resolved.clamp(0, tabs.length - 1);
     return SafeArea(
       top: false,
       child: Container(

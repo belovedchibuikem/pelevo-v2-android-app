@@ -826,7 +826,7 @@ class CoinWalletScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       bottomNavigationBar: PelevoBottomNavigation(
-        index: 4,
+        selectedRoute: '/screen/reels',
         onDestinationSelected: context.openPelevoTab,
       ),
       child: Center(

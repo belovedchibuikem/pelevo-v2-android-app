@@ -805,7 +805,7 @@ class _ReelsScreenState extends ConsumerState<ReelsScreen>
           extendBody: true,
           showMiniPlayer: false,
           bottomNavigationBar: PelevoBottomNavigation(
-            index: 4,
+            selectedRoute: '/screen/reels',
             onDestinationSelected: context.openPelevoTab,
           ),
           child: Stack(

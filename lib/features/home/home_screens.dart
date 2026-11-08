@@ -1033,15 +1033,7 @@ class _HomeShellState extends State<_HomeShell> {
       index: _navigationIndex,
       onDestinationSelected: (index) {
         setState(() => _navigationIndex = index);
-        context.go(
-          const [
-            '/screen/home-feed',
-            '/screen/search',
-            '/screen/library-1',
-            '/screen/earn',
-            '/screen/reels',
-          ][index],
-        );
+        context.openPelevoTab(index);
       },
     ),
     child: Center(

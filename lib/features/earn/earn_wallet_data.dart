@@ -369,6 +369,12 @@ class WithdrawDraftNotifier extends Notifier<WithdrawDraft> {
   void select(EarnPayoutMethod method) =>
       state = state.copyWith(method: method, clearReceipt: true, clearKey: true);
 
+  void clearMethod() => state = WithdrawDraft(
+        coins: state.coins,
+        receipt: state.receipt,
+        key: state.key,
+      );
+
   void setCoins(BigInt coins) =>
       state = state.copyWith(coins: coins, clearReceipt: true, clearKey: true);
 

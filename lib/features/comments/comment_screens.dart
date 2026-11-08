@@ -134,7 +134,10 @@ class CommentThreadPage extends ConsumerWidget {
         centerTitle: true,
       ),
       bottomNavigationBar: PelevoBottomNavigation(
-        index: type == CommentTargetType.reel ? 4 : 0,
+        selectedRoute:
+            type == CommentTargetType.reel
+                ? '/screen/reels'
+                : '/screen/home-feed',
         onDestinationSelected: context.openPelevoTab,
       ),
       child: Center(

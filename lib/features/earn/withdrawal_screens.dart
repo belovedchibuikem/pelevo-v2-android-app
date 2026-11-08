@@ -10,6 +10,9 @@ import 'package:pelevo/features/profile/profile_data.dart';
 
 enum PayoutGateway { paypal, flutterwave }
 
+/// PayPal payouts stay visible as Coming soon until merchant registration is complete.
+const bool kPaypalPayoutsEnabled = false;
+
 extension PayoutGatewayX on PayoutGateway {
   String get label => switch (this) {
     PayoutGateway.paypal => 'PayPal',
@@ -17,7 +20,10 @@ extension PayoutGatewayX on PayoutGateway {
   };
 
   String get subtitle => switch (this) {
-    PayoutGateway.paypal => 'Global PayPal balance payouts',
+    PayoutGateway.paypal =>
+      kPaypalPayoutsEnabled
+          ? 'Global PayPal balance payouts'
+          : 'Coming soon — Flutterwave bank transfer is available now',
     PayoutGateway.flutterwave => 'Local banks & mobile money',
   };
 
@@ -37,6 +43,8 @@ extension PayoutGatewayX on PayoutGateway {
   };
 
   String get provider => name;
+
+  bool get comingSoon => this == PayoutGateway.paypal && !kPaypalPayoutsEnabled;
 }
 
 String payoutProviderLabel(String provider) => switch (provider) {
@@ -155,6 +163,11 @@ class WithdrawHomeScreen extends ConsumerWidget {
     final balance = wallet.requireValue;
     final payouts = methods.requireValue;
     final draft = ref.watch(withdrawDraftProvider);
+    if (!kPaypalPayoutsEnabled && draft.method?.provider == 'paypal') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(withdrawDraftProvider.notifier).clearMethod();
+      });
+    }
     final meets = balance.balance >= balance.minimum;
     return PelevoPage(
       appBar: AppBar(
@@ -191,7 +204,9 @@ class WithdrawHomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: PelevoSpacing.sm),
               Text(
-                'Earn coins are separate from gift coins. Withdraw to a local bank, or to PayPal in USD.',
+                kPaypalPayoutsEnabled
+                    ? 'Earn coins are separate from gift coins. Withdraw to a local bank, or to PayPal in USD.'
+                    : 'Earn coins are separate from gift coins. Withdraw to a verified local bank account. PayPal is coming soon.',
                 style: TextStyle(color: context.pelevo.textMuted, height: 1.35),
               ),
               const SizedBox(height: PelevoSpacing.sm),
@@ -201,9 +216,20 @@ class WithdrawHomeScreen extends ConsumerWidget {
               ])
                 _GatewayTile(
                   gateway: gateway,
-                  method: _verifiedMethod(payouts, gateway),
-                  selected: draft.method?.provider == gateway.provider,
+                  method:
+                      gateway.comingSoon
+                          ? null
+                          : _verifiedMethod(payouts, gateway),
+                  selected:
+                      !gateway.comingSoon &&
+                      draft.method?.provider == gateway.provider,
                   onSelect: () {
+                    if (gateway.comingSoon) {
+                      context.showPelevoMessage(
+                        'PayPal withdrawals are coming soon.',
+                      );
+                      return;
+                    }
                     final method = _verifiedMethod(payouts, gateway);
                     if (method == null) {
                       context.push(gateway.setupRoute);
@@ -211,8 +237,19 @@ class WithdrawHomeScreen extends ConsumerWidget {
                     }
                     ref.read(withdrawDraftProvider.notifier).select(method);
                   },
-                  onSetup: () => context.push(gateway.setupRoute),
-                  onChange: () => context.push(gateway.setupRoute),
+                  onSetup: () {
+                    if (gateway.comingSoon) {
+                      context.showPelevoMessage(
+                        'PayPal withdrawals are coming soon.',
+                      );
+                      return;
+                    }
+                    context.push(gateway.setupRoute);
+                  },
+                  onChange: () {
+                    if (gateway.comingSoon) return;
+                    context.push(gateway.setupRoute);
+                  },
                 ),
               const SizedBox(height: PelevoSpacing.lg),
               Text(
@@ -514,6 +551,10 @@ class _WithdrawSetupPaypalScreenState
 
   Future<void> _save() async {
     if (_saving || !_ageConfirmed) return;
+    if (!kPaypalPayoutsEnabled) {
+      context.showPelevoMessage('PayPal withdrawals are coming soon.');
+      return;
+    }
     final email = _email.text.trim().toLowerCase();
     final confirm = _confirm.text.trim().toLowerCase();
     if (!_emailPattern.hasMatch(email)) {
@@ -559,6 +600,30 @@ class _WithdrawSetupPaypalScreenState
   @override
   Widget build(BuildContext context) {
     _prefillIfNeeded();
+    if (!kPaypalPayoutsEnabled) {
+      return _SetupScaffold(
+        title: 'PayPal',
+        gateway: PayoutGateway.paypal,
+        children: [
+          Text(
+            'PayPal withdrawals are coming soon. For now, withdraw with Flutterwave bank transfer.',
+            style: TextStyle(color: context.pelevo.textMuted, height: 1.35),
+          ),
+          const SizedBox(height: PelevoSpacing.xl),
+          PelevoButton(
+            label: 'Use bank transfer',
+            color: PayoutGateway.flutterwave.color,
+            onPressed:
+                () => context.go('/screen/withdraw-setup-flutterwave'),
+          ),
+          const SizedBox(height: PelevoSpacing.sm),
+          TextButton(
+            onPressed: () => context.go('/screen/withdraw'),
+            child: const Text('Back to withdrawal'),
+          ),
+        ],
+      );
+    }
     return _SetupScaffold(
       title: _editing ? 'Change PayPal' : 'Set up PayPal',
       gateway: PayoutGateway.paypal,
@@ -1095,47 +1160,72 @@ class _GatewayTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final linked = method != null;
-    return Card(
-      margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(PelevoRadii.large),
-        side: BorderSide(
-          color: selected ? gateway.color : context.pelevo.border,
-          width: selected ? 1.4 : 1,
+    final comingSoon = gateway.comingSoon;
+    return Opacity(
+      opacity: comingSoon ? 0.72 : 1,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: PelevoSpacing.sm),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PelevoRadii.large),
+          side: BorderSide(
+            color: selected ? gateway.color : context.pelevo.border,
+            width: selected ? 1.4 : 1,
+          ),
         ),
-      ),
-      child: ListTile(
-        onTap: onSelect,
-        leading: CircleAvatar(
-          backgroundColor: gateway.color.withValues(alpha: .16),
-          child: Icon(gateway.icon, color: gateway.color),
-        ),
-        title: Text(
-          gateway.label,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: Text(
-          linked ? method!.destinationLabel : gateway.subtitle,
-          style: TextStyle(color: context.pelevo.textMuted),
-        ),
-        trailing:
-            linked
-                ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton(
-                      onPressed: onChange,
-                      child: const Text('Change'),
+        child: ListTile(
+          onTap: onSelect,
+          leading: CircleAvatar(
+            backgroundColor: gateway.color.withValues(alpha: .16),
+            child: Icon(gateway.icon, color: gateway.color),
+          ),
+          title: Text(
+            gateway.label,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            linked ? method!.destinationLabel : gateway.subtitle,
+            style: TextStyle(color: context.pelevo.textMuted),
+          ),
+          trailing:
+              comingSoon
+                  ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
                     ),
-                    Icon(
-                      selected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_off,
-                      color: selected ? gateway.color : context.pelevo.textDim,
+                    decoration: BoxDecoration(
+                      color: context.pelevo.surfaceHigh,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: context.pelevo.border),
                     ),
-                  ],
-                )
-                : TextButton(onPressed: onSetup, child: const Text('Set up')),
+                    child: Text(
+                      'Coming soon',
+                      style: TextStyle(
+                        color: context.pelevo.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                  : linked
+                  ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: onChange,
+                        child: const Text('Change'),
+                      ),
+                      Icon(
+                        selected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color:
+                            selected ? gateway.color : context.pelevo.textDim,
+                      ),
+                    ],
+                  )
+                  : TextButton(onPressed: onSetup, child: const Text('Set up')),
+        ),
       ),
     );
   }
