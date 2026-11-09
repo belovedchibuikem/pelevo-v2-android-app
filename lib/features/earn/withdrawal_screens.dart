@@ -369,6 +369,12 @@ class _WithdrawSetupFlutterwaveScreenState
       context.showPelevoMessage('Enter a valid 10-digit account number');
       return;
     }
+    if (proofPath == null || proofName == null) {
+      context.showPelevoMessage(
+        'Upload a cropped proof that shows your full name and account number.',
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       await ref.read(profileRepositoryProvider).confirmAgeMajority();
@@ -391,15 +397,13 @@ class _WithdrawSetupFlutterwaveScreenState
               : null;
       final id = method?.id ?? methodId!;
       _pendingMethodId = id;
-      if (proofPath != null && proofName != null) {
-        await ref
-            .read(earnWalletRepositoryProvider)
-            .uploadAccountProof(
-              payoutMethodId: id,
-              filePath: proofPath,
-              fileName: proofName,
-            );
-      }
+      await ref
+          .read(earnWalletRepositoryProvider)
+          .uploadAccountProof(
+            payoutMethodId: id,
+            filePath: proofPath,
+            fileName: proofName,
+          );
       ref.invalidate(earnPayoutMethodsProvider);
       if (!mounted) return;
       final linked = (method != null && method.verified)
@@ -483,12 +487,12 @@ class _WithdrawSetupFlutterwaveScreenState
           onChanged: (value) => setState(() => _accountType = value ?? 'NUBAN'),
         ),
         const SizedBox(height: PelevoSpacing.lg),
-        Text(
-          'Optional: upload a statement crop. Your bank account is verified automatically by name enquiry.',
-          style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
-        ),
-        const SizedBox(height: PelevoSpacing.sm),
-        AccountProofUpload(fileName: _proofName, onPick: _pickProof),
+      Text(
+        'Upload a cropped statement that shows your full name and account number. Name enquiry still verifies the account.',
+        style: TextStyle(color: context.pelevo.textMuted, fontSize: 12),
+      ),
+      const SizedBox(height: PelevoSpacing.sm),
+      AccountProofUpload(fileName: _proofName, onPick: _pickProof),
         const SizedBox(height: PelevoSpacing.md),
         AgeMajorityCheckbox(
           value: _ageConfirmed,

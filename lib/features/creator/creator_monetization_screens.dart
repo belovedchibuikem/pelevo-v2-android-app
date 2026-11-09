@@ -577,11 +577,56 @@ class CreatorTransactionDetailsScreen extends ConsumerWidget {
   }
 }
 
-class CreatorPayoutSettingsScreen extends ConsumerWidget {
+class CreatorPayoutSettingsScreen extends ConsumerStatefulWidget {
   const CreatorPayoutSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreatorPayoutSettingsScreen> createState() =>
+      _CreatorPayoutSettingsScreenState();
+}
+
+class _CreatorPayoutSettingsScreenState
+    extends ConsumerState<CreatorPayoutSettingsScreen> {
+  var _selecting = false;
+
+  Future<void> _selectMethod(StudioPayoutMethod method) async {
+    if (_selecting) return;
+    if (method.kind == 'paypal' || method.provider == 'paypal') {
+      context.showPelevoMessage('PayPal payouts are coming soon.');
+      return;
+    }
+    if (!method.verified) {
+      context.showPelevoMessage('Verify this bank account before selecting it.');
+      return;
+    }
+    setState(() => _selecting = true);
+    try {
+      await ref
+          .read(studioRepositoryProvider)
+          .updatePayoutSettings(payoutMethodId: method.id);
+      ref.invalidate(studioPayoutWorkspaceProvider);
+      ref.invalidate(creatorWithdrawalWorkspaceProvider);
+      if (!mounted) return;
+      context.showPelevoMessage('Payout method selected');
+    } on Object catch (error) {
+      if (!mounted) return;
+      final failure =
+          error is ApiFailure
+              ? error
+              : error is DioException
+              ? apiFailureFromDio(error)
+              : const ApiFailure(
+                code: 'UNEXPECTED',
+                message: 'Could not select that payout method.',
+              );
+      context.showPelevoMessage(failure.message);
+    } finally {
+      if (mounted) setState(() => _selecting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final payout = ref.watch(studioPayoutWorkspaceProvider);
     final back =
         GoRouterState.of(context).uri.queryParameters['return'] ??
@@ -604,7 +649,8 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
             ),
         data: (value) {
           final gifts = value.monetization.gifts;
-          final method = value.selectedMethod;
+          final selectedId = value.selectedMethod?.id;
+          final methods = value.methods;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -618,7 +664,7 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'One payout account covers every claimed podcast and all gift earnings.',
+                      'Choose which verified local bank account receives withdrawals. PayPal is coming soon.',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 10),
@@ -660,65 +706,90 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _SettingsSection(
                 title: 'Payout Method',
-                subtitle: 'This is how you will receive your earnings',
+                subtitle: 'Select the method you want to use for withdrawals',
                 child: Column(
                   children: [
-                    if (method != null)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF24430E),
-                          child: Icon(
-                            method.kind == 'paypal'
-                                ? Icons.paypal_rounded
-                                : Icons.account_balance_rounded,
-                            color: PelevoColors.green,
-                          ),
-                        ),
-                        title: Row(
-                          children: [
-                            Expanded(child: Text(method.title)),
-                            if (method.verified)
-                              const Text(
-                                'Verified',
-                                style: TextStyle(
-                                  color: PelevoColors.green,
-                                  fontSize: 11,
-                                ),
-                              )
-                            else if (method.proofStatus == 'pending')
-                              Text(
-                                'Pending review',
-                                style: TextStyle(
-                                  color: context.pelevo.textMuted,
-                                  fontSize: 11,
-                                ),
-                              )
-                            else if (method.proofStatus == 'rejected')
-                              const Text(
-                                'Proof rejected',
-                                style: TextStyle(
-                                  color: PelevoColors.red,
-                                  fontSize: 11,
-                                ),
-                              ),
-                          ],
-                        ),
-                        subtitle: Text(method.subtitle),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap:
-                            () => context.push(
-                              '/screen/creator-add-payout?return=${Uri.encodeComponent('/screen/creator-payout-settings')}',
-                            ),
-                      )
-                    else
+                    if (methods.isEmpty)
                       const ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text('No payout method yet'),
                         subtitle: Text(
-                          'Add a verified payout method to receive earnings.',
+                          'Add a verified local bank account to receive earnings.',
                         ),
-                      ),
+                      )
+                    else
+                      for (final method in methods)
+                        Opacity(
+                          opacity:
+                              method.kind == 'paypal' || !method.verified
+                                  ? 0.72
+                                  : 1,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            enabled: !_selecting,
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF24430E),
+                              child: Icon(
+                                method.kind == 'paypal'
+                                    ? Icons.paypal_rounded
+                                    : Icons.account_balance_rounded,
+                                color: PelevoColors.green,
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(child: Text(method.title)),
+                                if (method.kind == 'paypal')
+                                  Text(
+                                    'Coming soon',
+                                    style: TextStyle(
+                                      color: context.pelevo.textMuted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  )
+                                else if (method.verified)
+                                  const Text(
+                                    'Verified',
+                                    style: TextStyle(
+                                      color: PelevoColors.green,
+                                      fontSize: 11,
+                                    ),
+                                  )
+                                else if (method.proofStatus == 'pending')
+                                  Text(
+                                    'Pending review',
+                                    style: TextStyle(
+                                      color: context.pelevo.textMuted,
+                                      fontSize: 11,
+                                    ),
+                                  )
+                                else if (method.proofStatus == 'rejected')
+                                  const Text(
+                                    'Proof rejected',
+                                    style: TextStyle(
+                                      color: PelevoColors.red,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Text(method.subtitle),
+                            trailing: Icon(
+                              method.kind == 'paypal'
+                                  ? Icons.schedule_rounded
+                                  : selectedId == method.id
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              color:
+                                  selectedId == method.id &&
+                                          method.kind != 'paypal'
+                                      ? PelevoColors.green
+                                      : context.pelevo.textMuted,
+                            ),
+                            onTap: () => _selectMethod(method),
+                          ),
+                        ),
                     const Divider(),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -761,7 +832,7 @@ class CreatorPayoutSettingsScreen extends ConsumerWidget {
                 child: Text(
                   '• Withdrawals are requested by you and paid by Pelevo finance.\n'
                   '• Gift withdrawals start at \$15. Ad withdrawals start at \$100.\n'
-                  '• One payout method covers all claimed podcasts and gifts.\n'
+                  '• Select a verified local bank account for payouts. PayPal is coming soon.\n'
                   '• Ensure your bank details are accurate to avoid delays.',
                   style: TextStyle(
                     color: context.pelevo.textMuted,
@@ -898,6 +969,14 @@ class _CreatorAddPayoutMethodScreenState
           }
           return;
         }
+        if (proofPath == null || proofName == null) {
+          if (mounted) {
+            context.showPelevoMessage(
+              'Upload a cropped proof that shows your full name and account number.',
+            );
+          }
+          return;
+        }
         final method =
             _pendingMethodId == null
                 ? await ref
@@ -915,15 +994,13 @@ class _CreatorAddPayoutMethodScreenState
                 : null;
         final methodId = method?.id ?? _pendingMethodId!;
         _pendingMethodId = methodId;
-        if (proofPath != null && proofName != null) {
-          await ref
-              .read(studioRepositoryProvider)
-              .uploadAccountProof(
-                payoutMethodId: methodId,
-                filePath: proofPath,
-                fileName: proofName,
-              );
-        }
+        await ref
+            .read(studioRepositoryProvider)
+            .uploadAccountProof(
+              payoutMethodId: methodId,
+              filePath: proofPath,
+              fileName: proofName,
+            );
       } else {
         if (mounted) {
           context.showPelevoMessage('PayPal payouts are coming soon.');
@@ -1155,7 +1232,7 @@ class _CreatorAddPayoutMethodScreenState
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Optional: upload a statement crop. Name enquiry verifies the account automatically.',
+                    'Upload a cropped statement that shows your full name and account number.',
                     style: TextStyle(
                       color: context.pelevo.textMuted,
                       fontSize: 11,

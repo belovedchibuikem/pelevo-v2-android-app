@@ -81,6 +81,7 @@ class CreatorWithdrawalWorkspace {
     required this.methods,
     required this.hasVerifiedPayoutMethod,
     required this.manualPayout,
+    this.selectedPayoutMethodId,
     this.payoutCurrency,
     this.note,
   });
@@ -107,6 +108,10 @@ class CreatorWithdrawalWorkspace {
         json['payout_currency'] is String
             ? (json['payout_currency'] as String).toUpperCase()
             : null;
+    final selectedId =
+        json['selected_payout_method_id'] == null
+            ? null
+            : '${json['selected_payout_method_id']}';
     return CreatorWithdrawalWorkspace(
       gifts: CreatorWithdrawalSource(
         eligible: gifts['eligible'] == true,
@@ -137,6 +142,7 @@ class CreatorWithdrawalWorkspace {
               .whereType<Map<String, dynamic>>()
               .map(StudioPayoutMethod.fromJson)
               .toList(growable: false),
+      selectedPayoutMethodId: selectedId,
       hasVerifiedPayoutMethod: json['has_verified_payout_method'] == true,
       payoutCurrency: payoutCurrency,
       manualPayout: json['manual_payout'] != false,
@@ -147,16 +153,30 @@ class CreatorWithdrawalWorkspace {
   final CreatorWithdrawalSource gifts;
   final CreatorWithdrawalSource ads;
   final List<StudioPayoutMethod> methods;
+  final String? selectedPayoutMethodId;
   final bool hasVerifiedPayoutMethod;
   final String? payoutCurrency;
   final bool manualPayout;
   final String? note;
 
   StudioPayoutMethod? get verifiedMethod {
-    for (final method in methods) {
-      if (method.verified) return method;
+    final banks =
+        methods
+            .where(
+              (method) =>
+                  method.verified &&
+                  method.kind != 'paypal' &&
+                  method.provider != 'paypal',
+            )
+            .toList(growable: false);
+    if (banks.isEmpty) return null;
+    final selectedId = selectedPayoutMethodId;
+    if (selectedId != null) {
+      for (final method in banks) {
+        if (method.id == selectedId) return method;
+      }
     }
-    return null;
+    return banks.first;
   }
 }
 

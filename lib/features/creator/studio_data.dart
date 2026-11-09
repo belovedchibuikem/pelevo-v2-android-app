@@ -1196,16 +1196,25 @@ class StudioPayoutWorkspace {
   final StudioTaxProfile? taxProfile;
 
   StudioPayoutMethod? get selectedMethod {
+    final banks =
+        methods
+            .where(
+              (method) =>
+                  method.kind != 'paypal' && method.provider != 'paypal',
+            )
+            .toList(growable: false);
     final id = config.payoutMethodId;
-    if (id == null || id.isEmpty) {
-      return methods.isEmpty ? null : methods.first;
-    }
-    for (final method in methods) {
-      if (method.id == id) {
-        return method;
+    if (id != null && id.isNotEmpty) {
+      for (final method in banks) {
+        if (method.id == id) {
+          return method;
+        }
       }
     }
-    return methods.isEmpty ? null : methods.first;
+    for (final method in banks) {
+      if (method.verified) return method;
+    }
+    return banks.isEmpty ? null : banks.first;
   }
 }
 

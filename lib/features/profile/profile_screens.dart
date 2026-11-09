@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pelevo/core/config/app_config.dart';
 import 'package:pelevo/core/theme/app_theme.dart';
 import 'package:pelevo/core/theme/pelevo_appearance.dart';
 import 'package:pelevo/core/widgets/pelevo_widgets.dart';
@@ -248,9 +249,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: PelevoSpacing.sm),
               ],
-              _EarnWalletCard(
-                onPressed: () => context.push('/screen/earn-wallet'),
-              ),
+              if (ref.watch(appConfigProvider).asData?.value?.enabled(
+                    'earn_enabled',
+                  ) ??
+                  false) ...[
+                _EarnWalletCard(
+                  onPressed: () => context.push('/screen/earn-wallet'),
+                ),
+                const SizedBox(height: PelevoSpacing.sm),
+              ],
               if (!isCreator) ...[
                 const SizedBox(height: PelevoSpacing.sm),
                 _ProfileMenuPanel(
