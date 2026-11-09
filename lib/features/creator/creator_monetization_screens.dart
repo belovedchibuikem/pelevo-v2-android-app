@@ -159,9 +159,16 @@ class _CreatorMonetizationScreenState
                       caption:
                           period == null
                               ? null
-                              : value.gifts.moneyLabel == null
-                              ? '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'} received'
-                              : '≈ ${value.gifts.moneyLabel} · ${period.giftCount} gift${period.giftCount == 1 ? '' : 's'}',
+                              : () {
+                                final local = value.gifts.moneyLabelFor(
+                                  period.giftCoins,
+                                );
+                                final giftsLabel =
+                                    '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'}';
+                                return local == null
+                                    ? '$giftsLabel received'
+                                    : '≈ $local · $giftsLabel';
+                              }(),
                       accent: PelevoColors.yellow,
                     ),
                   ),
@@ -229,7 +236,7 @@ class _CreatorMonetizationScreenState
                       if (value.currencyConversions.isNotEmpty) ...[
                         const Divider(),
                         const Text(
-                          'Recent USD to NGN conversions',
+                          'Recent currency conversions',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                         for (final conversion in value.currencyConversions.take(
@@ -238,9 +245,7 @@ class _CreatorMonetizationScreenState
                           ListTile(
                             dense: true,
                             contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              '\$${(conversion.sourceAmountMicros / 1000000).toStringAsFixed(4)} → ₦${(conversion.destinationAmountKobo / 100).toStringAsFixed(2)}',
-                            ),
+                            title: Text(conversion.label),
                             subtitle: Text(
                               '${conversion.rateSource} · rate ${conversion.netRate} · ${conversion.spreadBps} bps · ${conversion.quotedAt}',
                             ),
@@ -676,15 +681,16 @@ class _CreatorPayoutSettingsScreenState
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (gifts.moneyLabel != null)
+                    if (gifts.moneyLabelFor(gifts.balance) != null)
                       Text(
-                        '≈ ${gifts.moneyLabel}',
+                        '≈ ${gifts.moneyLabelFor(gifts.balance)}',
                         style: TextStyle(
                           color: context.pelevo.textMuted,
                           fontSize: 13,
                         ),
                       ),
-                    if (value.monetization.adAvailableUsd != null)
+                    if (value.monetization.adAvailableLabel != null ||
+                        value.monetization.adAvailableUsd != null)
                       Text(
                         'Ads available: ${value.monetization.adAvailableLabel ?? value.monetization.adAvailableUsd}',
                         style: TextStyle(
@@ -2087,10 +2093,10 @@ class _BreakdownCard extends StatelessWidget {
                           gifts.balance > 0
                               ? '${gifts.balance} coins'
                               : (balance?.balanceLabel ?? '0'),
-                      amount:
-                          gifts.moneyLabel == null
-                              ? 'From gifts'
-                              : '≈ ${gifts.moneyLabel}',
+                      amount: () {
+                        final local = gifts.moneyLabelFor(gifts.balance);
+                        return local == null ? 'From gifts' : '≈ $local';
+                      }(),
                     ),
                     if (adAvailableLabel != null) ...[
                       const SizedBox(height: 12),

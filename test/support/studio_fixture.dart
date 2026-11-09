@@ -112,7 +112,9 @@ Map<String, dynamic> studioMonetizationFixture({
   'ad_clearance': {
     'available_usd': '\$0.00',
     'cleared_ad_usd': '\$0.00',
+    'cleared_ad_usd_micros': 0,
     'display_available': '\$0.00 USD',
+    'currency': 'USD',
   },
   'ad_revenue_allocations': const <Map<String, dynamic>>[],
   'currency_conversions': const <Map<String, dynamic>>[],
