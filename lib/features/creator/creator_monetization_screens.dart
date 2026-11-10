@@ -155,20 +155,15 @@ class _CreatorMonetizationScreenState
                   Expanded(
                     child: _MoneyMetric(
                       title: 'Gifts (Coins)',
-                      value: period == null ? '—' : '${period.giftCoins}',
-                      caption:
-                          period == null
-                              ? null
-                              : () {
-                                final local = value.gifts.moneyLabelFor(
-                                  period.giftCoins,
-                                );
-                                final giftsLabel =
-                                    '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'}';
-                                return local == null
-                                    ? '$giftsLabel received'
-                                    : '≈ $local · $giftsLabel';
-                              }(),
+                      value: '${value.gifts.balance}',
+                      caption: () {
+                        final usd = value.gifts.moneyLabel;
+                        final periodNote =
+                            period == null || period.giftCount == 0
+                                ? 'Current wallet'
+                                : '${period.giftCount} gift${period.giftCount == 1 ? '' : 's'} this period';
+                        return usd == null ? periodNote : '≈ $usd · $periodNote';
+                      }(),
                       accent: PelevoColors.yellow,
                     ),
                   ),
@@ -236,7 +231,7 @@ class _CreatorMonetizationScreenState
                       if (value.currencyConversions.isNotEmpty) ...[
                         const Divider(),
                         const Text(
-                          'Recent currency conversions',
+                          'Recent payout FX conversions',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                         for (final conversion in value.currencyConversions.take(
@@ -700,7 +695,7 @@ class _CreatorPayoutSettingsScreenState
                       ),
                     const SizedBox(height: 8),
                     Text(
-                      'Gifts withdraw from \$15. Ads withdraw from \$100. Finance pays approved requests manually.',
+                      'Gifts withdraw from \$10. Ads withdraw from \$100. Finance pays approved requests manually.',
                       style: TextStyle(
                         color: context.pelevo.textMuted,
                         fontSize: 12,
@@ -837,7 +832,7 @@ class _CreatorPayoutSettingsScreenState
                 title: 'Important Information',
                 child: Text(
                   '• Withdrawals are requested by you and paid by Pelevo finance.\n'
-                  '• Gift withdrawals start at \$15. Ad withdrawals start at \$100.\n'
+                  '• Gift withdrawals start at \$10. Ad withdrawals start at \$100.\n'
                   '• Select a verified local bank account for payouts. PayPal is coming soon.\n'
                   '• Ensure your bank details are accurate to avoid delays.',
                   style: TextStyle(
@@ -1813,7 +1808,7 @@ class _CreatorWithdrawScreenState extends ConsumerState<CreatorWithdrawScreen> {
       context.showPelevoMessage(
         _source == 'ads'
             ? 'Ad revenue withdrawals start at \$100.'
-            : 'Gift withdrawals start at \$15.',
+            : 'Gift withdrawals start at \$10.',
       );
       return;
     }
@@ -2094,8 +2089,8 @@ class _BreakdownCard extends StatelessWidget {
                               ? '${gifts.balance} coins'
                               : (balance?.balanceLabel ?? '0'),
                       amount: () {
-                        final local = gifts.moneyLabelFor(gifts.balance);
-                        return local == null ? 'From gifts' : '≈ $local';
+                        final usd = gifts.moneyLabelFor(gifts.balance);
+                        return usd == null ? 'From gifts' : '≈ $usd';
                       }(),
                     ),
                     if (adAvailableLabel != null) ...[

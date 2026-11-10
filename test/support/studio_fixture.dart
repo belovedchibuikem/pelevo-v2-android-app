@@ -100,7 +100,7 @@ Map<String, dynamic> studioMonetizationFixture({
   ],
   'diamonds': {
     'balance': giftCoins,
-    'min_cashout_diamonds': 2417,
+    'min_cashout_diamonds': 16103,
     'quotes': {
       'USD': {'gross_minor': 38, 'net_minor': 38, 'payable': false},
     },
@@ -110,10 +110,10 @@ Map<String, dynamic> studioMonetizationFixture({
     },
   },
   'ad_clearance': {
-    'available_usd': '\$0.00',
-    'cleared_ad_usd': '\$0.00',
+    'available_usd': '0.00',
+    'cleared_ad_usd': '0.00',
     'cleared_ad_usd_micros': 0,
-    'display_available': '\$0.00 USD',
+    'display_available': '\$0.00',
     'currency': 'USD',
   },
   'ad_revenue_allocations': const <Map<String, dynamic>>[],
@@ -135,9 +135,9 @@ Map<String, dynamic> creatorWithdrawalWorkspaceFixture({
 }) => {
   'gifts': {
     'balance': giftCoins,
-    'min_cashout_diamonds': 2417,
-    'threshold_usd': '\$15.00',
-    'threshold_usd_cents': 1500,
+    'min_cashout_diamonds': 16103,
+    'threshold_usd': '\$10.00',
+    'threshold_usd_cents': 1000,
     'eligible': false,
     'quotes': {
       'USD': {'gross_minor': 38, 'net_minor': 38, 'payable': false},

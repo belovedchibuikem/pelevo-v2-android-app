@@ -844,7 +844,7 @@ class CreatorStudioScreen extends ConsumerWidget {
                     Icons.payments_outlined,
                     PelevoColors.green,
                     'Request withdrawal',
-                    'Withdraw gift earnings (from \$15) or ads (from \$100)',
+                    'Withdraw gift earnings (from \$10) or ads (from \$100)',
                     () => context.push('/screen/creator-withdraw'),
                   ),
                   _CreatorAction(

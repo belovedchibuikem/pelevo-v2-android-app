@@ -96,12 +96,9 @@ class CreatorWithdrawalWorkspace {
       throw _invalidWithdrawal;
     }
     final giftQuote = gifts['quotes'] is Map ? gifts['quotes']['USD'] : null;
-    final giftDisplay = gifts['display'];
     final giftBalance = (gifts['balance'] as num?)?.toInt() ?? 0;
     final giftMoney =
-        giftDisplay is Map && giftDisplay['display_available'] is String
-            ? giftDisplay['display_available'] as String
-            : giftQuote is Map && giftQuote['gross_minor'] is num
+        giftQuote is Map && giftQuote['gross_minor'] is num
             ? '\$${((giftQuote['gross_minor'] as num) / 100).toStringAsFixed(2)} USD'
             : null;
     final payoutCurrency =
@@ -112,16 +109,23 @@ class CreatorWithdrawalWorkspace {
         json['selected_payout_method_id'] == null
             ? null
             : '${json['selected_payout_method_id']}';
+    final adsUsdRaw =
+        '${ads['available_usd'] ?? ads['cleared_ad_usd'] ?? '0.00'}';
+    final adsUsdLabel =
+        adsUsdRaw.contains('USD')
+            ? adsUsdRaw
+            : adsUsdRaw.contains('\$')
+            ? '$adsUsdRaw USD'
+            : '\$$adsUsdRaw USD';
     return CreatorWithdrawalWorkspace(
       gifts: CreatorWithdrawalSource(
         eligible: gifts['eligible'] == true,
-        thresholdUsd: '${gifts['threshold_usd'] ?? '\$15.00'}',
-        thresholdUsdCents: (gifts['threshold_usd_cents'] as num?)?.toInt() ?? 1500,
+        thresholdUsd: '${gifts['threshold_usd'] ?? '\$10.00'}',
+        thresholdUsdCents: (gifts['threshold_usd_cents'] as num?)?.toInt() ?? 1000,
         balanceLabel: '$giftBalance coins',
         moneyLabel: giftMoney,
-        currency: payoutCurrency ??
-            (giftDisplay is Map ? giftDisplay['currency'] as String? : null) ??
-            'USD',
+        // Request currency stays on the bank route for Flutterwave FX.
+        currency: payoutCurrency ?? 'USD',
         diamonds: giftBalance,
         minDiamonds: (gifts['min_cashout_diamonds'] as num?)?.toInt(),
       ),
@@ -129,12 +133,9 @@ class CreatorWithdrawalWorkspace {
         eligible: ads['eligible'] == true,
         thresholdUsd: '${ads['threshold_usd'] ?? '\$100.00'}',
         thresholdUsdCents: (ads['threshold_usd_cents'] as num?)?.toInt() ?? 10000,
-        balanceLabel: '${ads['available_usd'] ?? ads['cleared_ad_usd'] ?? '\$0.00'}',
-        moneyLabel:
-            ads['display_available'] is String
-                ? ads['display_available'] as String
-                : '${ads['available_usd'] ?? '\$0.00'}',
-        currency: payoutCurrency ?? ads['currency'] as String? ?? 'USD',
+        balanceLabel: adsUsdLabel,
+        moneyLabel: adsUsdLabel,
+        currency: payoutCurrency ?? 'USD',
         availableUsdCents: (ads['available_usd_cents'] as num?)?.toInt() ?? 0,
       ),
       methods:

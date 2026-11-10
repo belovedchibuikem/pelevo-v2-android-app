@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
 import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
-import 'package:pelevo/features/store/fx_rates.dart';
 
 const _invalidStudio = ApiFailure(
   code: 'INVALID_RESPONSE',
@@ -581,12 +580,8 @@ String formatUsdMicros(int micros) {
   return '\$${dollars.toStringAsFixed(dollars >= 1 ? 2 : 4)} USD';
 }
 
-bool _looksZeroMoney(String? value) {
-  if (value == null || value.trim().isEmpty) return true;
-  final normalized = value.replaceAll(RegExp(r'[^0-9.]'), '');
-  final amount = double.tryParse(normalized);
-  return amount == null || amount == 0;
-}
+String formatUsdCents(int cents) =>
+    '\$${(cents / 100).toStringAsFixed(2)} USD';
 
 class StudioEarningsPeriod {
   const StudioEarningsPeriod({
@@ -679,11 +674,9 @@ class StudioAccount {
   final int balance;
 
   String get balanceLabel {
+    // Creator Studio balances are shown in USD; non-USD ledger rows stay raw.
     if (type.startsWith('reels_ad_') && unit == 'USD') {
       return formatUsdMicros(balance);
-    }
-    if (type.startsWith('reels_ad_')) {
-      return '${formatMoney(balance, unit)} $unit';
     }
     return '$balance $unit';
   }
@@ -780,9 +773,10 @@ class StudioCurrencyConversion {
     final source =
         sourceCurrency == 'USD'
             ? formatUsdMicros(sourceAmountMicros)
-            : '${formatMoney(sourceAmountMicros, sourceCurrency)} $sourceCurrency';
+            : '$sourceAmountMicros $sourceCurrency';
+    // Studio UI is USD-first; destination is audit-only (Flutterwave FX at payout).
     final destination =
-        '${formatMoney(destinationAmountMinor, destinationCurrency)} $destinationCurrency';
+        '${(destinationAmountMinor / 100).toStringAsFixed(2)} $destinationCurrency';
     return '$source → $destination';
   }
 }
@@ -820,8 +814,6 @@ class StudioGiftMoney {
     required this.balance,
     this.moneyLabel,
     this.usdLabel,
-    this.currency,
-    this.fxRate,
     this.usdCents,
   });
 
@@ -830,32 +822,17 @@ class StudioGiftMoney {
       return const StudioGiftMoney(balance: 0);
     }
     final balance = (json['balance'] as num?)?.toInt() ?? 0;
-    final display = json['display'];
     final quotes = json['quotes'];
     final usdQuote = quotes is Map ? quotes['USD'] : null;
     final usdCents =
         usdQuote is Map && usdQuote['gross_minor'] is num
             ? (usdQuote['gross_minor'] as num).toInt()
             : null;
-    final currency =
-        display is Map ? (display['currency'] as String?)?.toUpperCase() : null;
-    final fxRate =
-        display is Map && display['fx_rate'] != null
-            ? '${display['fx_rate']}'
-            : null;
-    final money =
-        display is Map && display['display_available'] is String
-            ? display['display_available'] as String
-            : usdCents != null
-            ? '${formatMoney(usdCents, 'USD')} USD'
-            : null;
+    final money = usdCents != null ? formatUsdCents(usdCents) : null;
     return StudioGiftMoney(
       balance: balance,
       moneyLabel: money,
-      usdLabel:
-          usdCents != null ? formatMoney(usdCents, 'USD') : null,
-      currency: currency,
-      fxRate: fxRate,
+      usdLabel: money,
       usdCents: usdCents,
     );
   }
@@ -863,29 +840,16 @@ class StudioGiftMoney {
   final int balance;
   final String? moneyLabel;
   final String? usdLabel;
-  final String? currency;
-  final String? fxRate;
   final int? usdCents;
 
-  /// Local fiat label for an arbitrary coin amount using the wallet FX snapshot.
+  /// USD label for an arbitrary coin amount from the wallet USD quote.
   String? moneyLabelFor(int coins) {
     if (coins <= 0) return null;
     final cents = _usdCentsFor(coins);
     if (cents == null) {
       return coins == balance ? moneyLabel : null;
     }
-    final code = (currency ?? 'USD').toUpperCase();
-    if (code == 'USD') {
-      return '${formatMoney(cents, 'USD')} USD';
-    }
-    final rate = double.tryParse(fxRate ?? '');
-    if (rate == null || rate <= 0) {
-      return '${formatMoney(cents, 'USD')} USD';
-    }
-    final digits = fractionDigits(code);
-    final scale = _pow10(digits);
-    final minor = ((cents / 100) * rate * scale).round();
-    return formatMoney(minor, code);
+    return formatUsdCents(cents);
   }
 
   int? _usdCentsFor(int coins) {
@@ -895,14 +859,6 @@ class StudioGiftMoney {
     if (balance <= 0) return null;
     return ((coins * walletCents) / balance).round();
   }
-}
-
-int _pow10(int digits) {
-  var scale = 1;
-  for (var i = 0; i < digits; i++) {
-    scale *= 10;
-  }
-  return scale;
 }
 
 class StudioMonetization {
@@ -940,13 +896,6 @@ class StudioMonetization {
         .whereType<Map<String, dynamic>>()
         .map(StudioAccount.fromJson)
         .toList(growable: false);
-    final adUsd =
-        clearance is Map
-            ? clearance['available_usd'] as String? ??
-                clearance['cleared_ad_usd'] as String?
-            : null;
-    final adLabel =
-        clearance is Map ? clearance['display_available'] as String? : null;
     final clearedMicros =
         clearance is Map
             ? (clearance['cleared_ad_usd_micros'] as num?)?.toInt()
@@ -959,18 +908,19 @@ class StudioMonetization {
       }
     }
     final resolvedMicros = clearedMicros ?? availableAccount?.balance;
-    final fallbackUsd =
-        resolvedMicros != null ? formatUsdMicros(resolvedMicros) : null;
-    final resolvedLabel =
-        (resolvedMicros != null &&
-                resolvedMicros > 0 &&
-                _looksZeroMoney(adLabel) &&
-                _looksZeroMoney(adUsd))
-            ? (availableAccount?.balanceLabel ?? fallbackUsd)
-            : (adLabel ??
-                adUsd ??
-                availableAccount?.balanceLabel ??
-                fallbackUsd);
+    final usdLabel =
+        resolvedMicros != null
+            ? formatUsdMicros(resolvedMicros)
+            : (clearance is Map
+                ? clearance['available_usd'] as String? ??
+                    clearance['cleared_ad_usd'] as String?
+                : null);
+    final normalizedUsd =
+        usdLabel == null
+            ? null
+            : (usdLabel.contains('USD') || usdLabel.contains('\$')
+                ? (usdLabel.contains('USD') ? usdLabel : '$usdLabel USD')
+                : '\$$usdLabel USD');
     return StudioMonetization(
       giftsReceived: gifts.toInt(),
       payoutsCount: payouts.toInt(),
@@ -990,8 +940,8 @@ class StudioMonetization {
       gifts: StudioGiftMoney.fromJson(
         diamonds is Map<String, dynamic> ? diamonds : null,
       ),
-      adAvailableUsd: (!_looksZeroMoney(adUsd) ? adUsd : null) ?? fallbackUsd,
-      adAvailableLabel: resolvedLabel,
+      adAvailableUsd: normalizedUsd,
+      adAvailableLabel: normalizedUsd,
       adAvailableMicros: resolvedMicros,
     );
   }
