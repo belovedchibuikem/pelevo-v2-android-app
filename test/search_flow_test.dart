@@ -110,6 +110,12 @@ void main() {
       }
       return jsonResponse(searchPageFixture(query: query));
     }
+    if (request.path == '/directory/search') {
+      return jsonResponse({
+        'query': '${request.queryParameters['q'] ?? ''}',
+        'candidates': const <Map<String, dynamic>>[],
+      });
+    }
     if (RegExp(r'^/shows/[^/]+/follow$').hasMatch(request.path)) {
       return jsonResponse({'following': true});
     }

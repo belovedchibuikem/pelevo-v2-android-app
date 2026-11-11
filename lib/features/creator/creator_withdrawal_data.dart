@@ -181,6 +181,77 @@ class CreatorWithdrawalWorkspace {
   }
 }
 
+class CreatorWithdrawalHistoryItem {
+  const CreatorWithdrawalHistoryItem({
+    required this.id,
+    required this.source,
+    required this.amountLabel,
+    required this.state,
+    this.usdLabel,
+    this.createdAt,
+  });
+
+  factory CreatorWithdrawalHistoryItem.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final source = json['source'];
+    final amount = json['amount_label'];
+    final state = json['state'];
+    if (id == null ||
+        '$id'.isEmpty ||
+        source is! String ||
+        source.isEmpty ||
+        amount is! String ||
+        amount.isEmpty ||
+        state is! String ||
+        state.isEmpty) {
+      throw _invalidWithdrawal;
+    }
+    return CreatorWithdrawalHistoryItem(
+      id: '$id',
+      source: source,
+      amountLabel: amount,
+      usdLabel: json['usd_label'] as String?,
+      state: state,
+      createdAt: json['created_at'] as String?,
+    );
+  }
+
+  final String id;
+  final String source;
+  final String amountLabel;
+  final String? usdLabel;
+  final String state;
+  final String? createdAt;
+
+  String get title => source == 'ads' ? 'Ads withdrawal' : 'Gift withdrawal';
+
+  String get createdLabel {
+    if (createdAt == null || createdAt!.isEmpty) return '';
+    final parsed = DateTime.tryParse(createdAt!);
+    if (parsed == null) return createdAt!;
+    final local = parsed.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day · $hour:$minute';
+  }
+
+  String get stateLabel {
+    final value = state.trim().toLowerCase();
+    return switch (value) {
+      'queued' => 'Queued',
+      'approved' => 'Approved',
+      'processing' => 'Processing',
+      'paid' => 'Paid',
+      'failed' => 'Failed',
+      'rejected' => 'Rejected',
+      'reversed' => 'Reversed',
+      _ => state,
+    };
+  }
+}
+
 class CreatorWithdrawalRepository {
   CreatorWithdrawalRepository(this._dio);
   final Dio _dio;
@@ -289,6 +360,18 @@ class CreatorWithdrawalRepository {
     }
   }
 
+  Future<List<CreatorWithdrawalHistoryItem>> history() async {
+    try {
+      return _list(
+        (await _dio.get<Map<String, dynamic>>('/creators/withdrawals')).data,
+      ).map(CreatorWithdrawalHistoryItem.fromJson).toList(growable: false);
+    } on ApiFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw apiFailureFromDio(error);
+    }
+  }
+
   List<Map<String, dynamic>> _list(Map<String, dynamic>? body) {
     if (body == null || body['ok'] != true) {
       throw _invalidWithdrawal;
@@ -319,4 +402,10 @@ final flutterwaveBanksProvider = FutureProvider.autoDispose
       return ref
           .watch(creatorWithdrawalRepositoryProvider)
           .flutterwaveBanks(country);
+    }, retry: (count, error) => null);
+
+final creatorWithdrawalHistoryProvider =
+    FutureProvider.autoDispose<List<CreatorWithdrawalHistoryItem>>((ref) async {
+      ref.watch(authSessionProvider);
+      return ref.watch(creatorWithdrawalRepositoryProvider).history();
     }, retry: (count, error) => null);

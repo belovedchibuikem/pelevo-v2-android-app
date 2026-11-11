@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pelevo/core/network/api_contract.dart';
@@ -5,6 +7,9 @@ import 'package:pelevo/core/services/app_services.dart';
 import 'package:pelevo/features/authentication/auth_session.dart';
 import 'package:pelevo/features/player/play_location.dart';
 import 'package:pelevo/features/profile/profile_data.dart';
+import 'package:pelevo/features/search/directory/directory_library.dart';
+import 'package:pelevo/features/search/directory/directory_models.dart';
+import 'package:pelevo/features/search/directory/directory_repository.dart';
 
 const _invalidCatalog = ApiFailure(
   code: 'INVALID_RESPONSE',
@@ -1275,9 +1280,97 @@ final catalogRepositoryProvider = Provider(
   (ref) => CatalogRepository(ref.watch(dioProvider)),
 );
 
+CatalogShow _showFromStored(
+  StoredDirectoryShow show, {
+  required bool syncing,
+}) => CatalogShow(
+  id: show.id,
+  title: show.title,
+  episodesCount: show.episodes.length,
+  followerCount: 0,
+  ratingCount: 0,
+  following: show.following,
+  notificationsEnabled: false,
+  claimedByViewer: false,
+  categories: const [],
+  author: show.author,
+  artworkUrl: show.artworkUrl,
+  description: show.description,
+  feedState: show.feedState,
+  feedError: show.feedError,
+  episodesSyncing: syncing,
+);
+
+CatalogEpisode _episodeFromStored(
+  StoredDirectoryShow show,
+  StoredDirectoryEpisode episode,
+) => CatalogEpisode(
+  id: episode.id,
+  showId: show.id,
+  title: episode.title,
+  description: episode.description,
+  artworkUrl: episode.artworkUrl ?? show.artworkUrl,
+  durationSeconds: episode.durationSeconds,
+  publishedAt: episode.publishedAt,
+  showTitle: show.title,
+  showAuthor: show.author,
+  audioUrl: episode.audioUrl,
+);
+
+void _scheduleDirectoryRefresh(Ref ref, String id) {
+  final repo = ref.read(directoryRepositoryProvider);
+  final stored = repo.storedShow(id);
+  if (stored == null || !stored.isStaleAt(DateTime.now())) return;
+  if (repo.refreshScheduled(id)) return;
+  final token = CancelToken();
+  ref.onDispose(token.cancel);
+  unawaited(() async {
+    final changed = await repo.refreshStored(id, cancelToken: token);
+    if (!changed || !ref.mounted) return;
+    if (ref.read(selectedShowIdProvider) != id) return;
+    ref.invalidate(catalogShowProvider);
+    ref.invalidate(catalogEpisodesProvider);
+  }());
+}
+
+CatalogShow _directoryCatalogShow(Ref ref, String id) {
+  final repo = ref.read(directoryRepositoryProvider);
+  final stored = repo.storedShow(id);
+  if (stored == null) {
+    throw const ApiFailure(
+      code: 'NOT_FOUND',
+      message: 'This podcast is no longer on this device.',
+    );
+  }
+  _scheduleDirectoryRefresh(ref, id);
+  return _showFromStored(stored, syncing: stored.isStaleAt(DateTime.now()));
+}
+
+List<CatalogEpisode> _directoryEpisodes(Ref ref, String id, String query) {
+  final repo = ref.read(directoryRepositoryProvider);
+  final stored = repo.storedShow(id);
+  if (stored == null) throw _invalidCatalog;
+  _scheduleDirectoryRefresh(ref, id);
+  final needle = query.trim().toLowerCase();
+  return [
+    for (final episode in stored.episodes)
+      if (needle.isEmpty || episode.title.toLowerCase().contains(needle))
+        _episodeFromStored(stored, episode),
+  ];
+}
+
+CatalogEpisode _directoryEpisodeById(Ref ref, String id) {
+  final repo = ref.read(directoryRepositoryProvider);
+  final episode = repo.storedEpisode(id);
+  final show = repo.showForEpisode(id);
+  if (episode == null || show == null) throw _invalidCatalog;
+  return _episodeFromStored(show, episode);
+}
+
 final catalogShowProvider = FutureProvider.autoDispose<CatalogShow>((ref) async {
   final id = ref.watch(selectedShowIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isShow(id)) return _directoryCatalogShow(ref, id);
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).show(id, token);
@@ -1311,6 +1404,17 @@ class CatalogEpisodesNotifier extends AsyncNotifier<CatalogEpisodesState> {
     final id = ref.watch(selectedShowIdProvider);
     final query = ref.watch(catalogEpisodeQueryProvider).trim();
     if (id == null || id.isEmpty) throw _invalidCatalog;
+    if (DirectoryIds.isShow(id)) {
+      return CatalogEpisodesState(
+        items: _directoryEpisodes(ref, id, query),
+        hasMore: false,
+        episodesSyncing:
+            ref.read(directoryRepositoryProvider).storedShow(id)?.isStaleAt(
+              DateTime.now(),
+            ) ??
+            false,
+      );
+    }
     _token?.cancel();
     _seenCursors.clear();
     final token = _token = CancelToken();
@@ -1329,6 +1433,26 @@ class CatalogEpisodesNotifier extends AsyncNotifier<CatalogEpisodesState> {
   Future<void> refreshFirstPage() async {
     final id = ref.read(selectedShowIdProvider);
     if (id == null || id.isEmpty) return;
+    if (DirectoryIds.isShow(id)) {
+      await ref
+          .read(directoryRepositoryProvider)
+          .refreshStored(id, force: true);
+      if (!ref.mounted) return;
+      final stored = ref.read(directoryRepositoryProvider).storedShow(id);
+      if (stored == null) return;
+      final needle = _query.toLowerCase();
+      state = AsyncData(
+        CatalogEpisodesState(
+          items: [
+            for (final episode in stored.episodes)
+              if (needle.isEmpty || episode.title.toLowerCase().contains(needle))
+                _episodeFromStored(stored, episode),
+          ],
+          hasMore: false,
+        ),
+      );
+      return;
+    }
     final previous = state.asData?.value;
     final query = _query;
     _token?.cancel();
@@ -1445,6 +1569,7 @@ final catalogReviewsProvider = FutureProvider.autoDispose<List<CatalogReview>>((
 ) async {
   final id = ref.watch(selectedShowIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isShow(id)) return const [];
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).reviews(id, token);
@@ -1455,6 +1580,7 @@ final catalogRelatedProvider = FutureProvider.autoDispose<List<CatalogRelatedSho
 ) async {
   final id = ref.watch(selectedShowIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isShow(id)) return const [];
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).related(id, token);
@@ -1465,6 +1591,7 @@ final catalogEpisodeProvider = FutureProvider.autoDispose<CatalogEpisode>((
 ) async {
   final id = ref.watch(selectedEpisodeIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isEpisode(id)) return _directoryEpisodeById(ref, id);
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).episode(id, token);
@@ -1475,6 +1602,7 @@ final catalogChaptersProvider = FutureProvider.autoDispose<List<CatalogChapter>>
 ) async {
   final id = ref.watch(selectedEpisodeIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isEpisode(id)) return const [];
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).chapters(id, token);
@@ -1483,6 +1611,7 @@ final catalogChaptersProvider = FutureProvider.autoDispose<List<CatalogChapter>>
 final catalogTranscriptProvider = FutureProvider.autoDispose<String>((ref) async {
   final id = ref.watch(selectedEpisodeIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isEpisode(id)) return '';
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).transcript(id, token);
@@ -1491,6 +1620,7 @@ final catalogTranscriptProvider = FutureProvider.autoDispose<String>((ref) async
 final catalogNotesProvider = FutureProvider.autoDispose<CatalogNote>((ref) async {
   final id = ref.watch(selectedEpisodeIdProvider);
   if (id == null || id.isEmpty) throw _invalidCatalog;
+  if (DirectoryIds.isEpisode(id)) return const CatalogNote(null, null, 0);
   final token = CancelToken();
   ref.onDispose(() => token.cancel());
   return ref.watch(catalogRepositoryProvider).notes(id, token);
@@ -1558,6 +1688,7 @@ final catalogQueueProvider =
 final catalogEpisodeByIdProvider = FutureProvider.autoDispose
     .family<CatalogEpisode, String>((ref, id) async {
       if (id.isEmpty) throw _invalidCatalog;
+      if (DirectoryIds.isEpisode(id)) return _directoryEpisodeById(ref, id);
       final token = CancelToken();
       ref.onDispose(() => token.cancel());
       return ref.watch(catalogRepositoryProvider).episode(id, token);

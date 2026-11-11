@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:pelevo/features/ads/feed_native_ads.dart';
 import 'package:pelevo/features/reels/reel_data.dart';
 
 abstract final class ReelAds {
@@ -23,8 +24,10 @@ abstract final class ReelAds {
         }.contains(defaultTargetPlatform)) {
       return false;
     }
-    // Build without AdMob: no production unit ids and release mode → skip SDK init.
+    // Build without AdMob: no production unit ids and release mode → skip SDK init
+    // (unless ADMOB_USE_SAMPLE_UNITS forces Google sample units for internal testing).
     if (kReleaseMode &&
+        !FeedNativeAds.useSampleUnits &&
         adUnitId() == null &&
         const String.fromEnvironment('ADMOB_HOME_ANDROID_AD_UNIT_ID').isEmpty &&
         const String.fromEnvironment('ADMOB_SEARCH_ANDROID_AD_UNIT_ID').isEmpty &&
@@ -88,15 +91,17 @@ abstract final class ReelAds {
     const iosProduction = String.fromEnvironment('ADMOB_REELS_IOS_AD_UNIT_ID');
     if (defaultTargetPlatform == TargetPlatform.android) {
       if (serverKey != null && serverKey != 'reels-native-android') return null;
-      if (kReleaseMode) {
-        return androidProduction.isEmpty ? null : androidProduction;
+      if (FeedNativeAds.useSampleUnits) {
+        return 'ca-app-pub-3940256099942544/2247696110';
       }
-      return 'ca-app-pub-3940256099942544/2247696110';
+      return androidProduction.isEmpty ? null : androidProduction;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       if (serverKey != null && serverKey != 'reels-native-ios') return null;
-      if (kReleaseMode) return iosProduction.isEmpty ? null : iosProduction;
-      return 'ca-app-pub-3940256099942544/3986624511';
+      if (FeedNativeAds.useSampleUnits) {
+        return 'ca-app-pub-3940256099942544/3986624511';
+      }
+      return iosProduction.isEmpty ? null : iosProduction;
     }
     return null;
   }

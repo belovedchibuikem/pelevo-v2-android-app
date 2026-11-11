@@ -569,6 +569,12 @@ class CatalogHarness extends StatelessWidget {
               'shows': [claimShowFixture()],
             });
           }
+          if (request.path == '/directory/search') {
+            return jsonResponse({
+              'query': '${request.queryParameters['q'] ?? ''}',
+              'candidates': const <Map<String, dynamic>>[],
+            });
+          }
           if (RegExp(r'^/shows/[^/]+/follow$').hasMatch(request.path)) {
             return jsonResponse({'following': request.method != 'DELETE'});
           }

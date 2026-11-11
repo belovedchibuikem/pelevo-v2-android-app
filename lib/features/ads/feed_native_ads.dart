@@ -81,14 +81,22 @@ abstract final class FeedNativeAds {
     );
   }
 
+  /// Play internal / closed testing: pass `--dart-define=ADMOB_USE_SAMPLE_UNITS=true`
+  /// so release builds load Google sample units instead of silently skipping ads
+  /// when production unit dart-defines were omitted.
+  static bool get useSampleUnits =>
+      !kReleaseMode ||
+      const String.fromEnvironment('ADMOB_USE_SAMPLE_UNITS') == 'true' ||
+      const String.fromEnvironment('ADMOB_USE_SAMPLE_UNITS') == '1';
+
   static String? _platformUnit(String android, String ios) {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      if (kReleaseMode) return android.isEmpty ? null : android;
-      return _androidTestUnit;
+      if (useSampleUnits) return _androidTestUnit;
+      return android.isEmpty ? null : android;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      if (kReleaseMode) return ios.isEmpty ? null : ios;
-      return _iosTestUnit;
+      if (useSampleUnits) return _iosTestUnit;
+      return ios.isEmpty ? null : ios;
     }
     return null;
   }

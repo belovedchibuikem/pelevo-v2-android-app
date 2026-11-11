@@ -102,7 +102,6 @@ class _CreatorMonetizationScreenState
               onClaim: () => context.go('/screen/claim-podcast'),
             ),
         data: (value) {
-          final show = selectedStudioShow(ref);
           final supporterPage = supporters.asData?.value;
           final period = earnings.asData?.value;
           final adBalances = value.accounts
@@ -111,7 +110,7 @@ class _CreatorMonetizationScreenState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _PodcastHeader(show: show),
+              const _PodcastHeader(),
               const SizedBox(height: 10),
               const _CreatorTabs(),
               const SizedBox(height: 16),
@@ -628,6 +627,7 @@ class _CreatorPayoutSettingsScreenState
   @override
   Widget build(BuildContext context) {
     final payout = ref.watch(studioPayoutWorkspaceProvider);
+    final history = ref.watch(creatorWithdrawalHistoryProvider);
     final back =
         GoRouterState.of(context).uri.queryParameters['return'] ??
         '/screen/creator-monetization';
@@ -644,13 +644,17 @@ class _CreatorPayoutSettingsScreenState
         error:
             (error, _) => _StudioLoadError(
               error: error,
-              onRetry: () => ref.invalidate(studioPayoutWorkspaceProvider),
+              onRetry: () {
+                ref.invalidate(studioPayoutWorkspaceProvider);
+                ref.invalidate(creatorWithdrawalHistoryProvider);
+              },
               onClaim: () => context.go('/screen/claim-podcast'),
             ),
         data: (value) {
           final gifts = value.monetization.gifts;
           final selectedId = value.selectedMethod?.id;
           final methods = value.methods;
+          final withdrawals = history.asData?.value ?? const <CreatorWithdrawalHistoryItem>[];
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -818,13 +822,84 @@ class _CreatorPayoutSettingsScreenState
               ),
               const SizedBox(height: 12),
               _SettingsSection(
-                title: 'Payout History',
-                subtitle: 'View your past payouts and their status',
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('View Payout History'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/screen/creator-transactions'),
+                title: 'Withdrawal History',
+                subtitle: 'Requests after you withdraw gifts or ads',
+                child: Column(
+                  children: [
+                    if (history.isLoading && history.asData == null)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (history.hasError)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Could not load withdrawal history'),
+                        trailing: TextButton(
+                          onPressed:
+                              () => ref.invalidate(
+                                creatorWithdrawalHistoryProvider,
+                              ),
+                          child: const Text('Retry'),
+                        ),
+                      )
+                    else if (withdrawals.isEmpty)
+                      const ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('No withdrawals yet'),
+                        subtitle: Text(
+                          'Successful requests will show here with their review status.',
+                        ),
+                      )
+                    else
+                      for (final item in withdrawals.take(8))
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF24430E),
+                            child: Icon(
+                              item.source == 'ads'
+                                  ? Icons.play_circle_outline_rounded
+                                  : Icons.card_giftcard_rounded,
+                              color: PelevoColors.green,
+                            ),
+                          ),
+                          title: Text(item.title),
+                          subtitle: Text(
+                            [
+                              item.amountLabel,
+                              if (item.usdLabel != null) item.usdLabel!,
+                              if (item.createdLabel.isNotEmpty) item.createdLabel,
+                            ].join(' · '),
+                          ),
+                          trailing: Text(
+                            item.stateLabel,
+                            style: TextStyle(
+                              color:
+                                  item.state == 'paid'
+                                      ? PelevoColors.green
+                                      : item.state == 'failed' ||
+                                          item.state == 'rejected'
+                                      ? PelevoColors.red
+                                      : context.pelevo.textMuted,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    if (withdrawals.isNotEmpty) ...[
+                      const Divider(),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('See all studio transactions'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap:
+                            () => context.push(
+                              '/screen/creator-transactions',
+                            ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -1379,13 +1454,24 @@ class _MoneyPage extends StatelessWidget {
   );
 }
 
-class _PodcastHeader extends StatelessWidget {
-  const _PodcastHeader({this.show});
-
-  final StudioShow? show;
+class _PodcastHeader extends ConsumerWidget {
+  const _PodcastHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workspace = ref.watch(studioWorkspaceProvider);
+    final selectedId = ref.watch(selectedStudioShowIdProvider);
+    ref.listen(studioWorkspaceProvider, (previous, next) {
+      final value = next.asData?.value;
+      final primary = value?.primaryShow;
+      if (primary == null) return;
+      final current = ref.read(selectedStudioShowIdProvider);
+      if (current == null || current.isEmpty) {
+        ref.read(selectedStudioShowIdProvider.notifier).select(primary.id);
+      }
+    });
+    final show = workspace.asData?.value.showFor(selectedId);
+    final loading = workspace.isLoading && workspace.asData == null;
     final artwork = show?.artworkUrl;
     final fallback = Container(
       width: 54,
@@ -1400,6 +1486,12 @@ class _PodcastHeader extends StatelessWidget {
       if (episodes != null) '$episodes Episodes',
       if (updated != null && updated.isNotEmpty) updated,
     ].join(' · ');
+    final title =
+        loading
+            ? 'Loading show…'
+            : (show?.title.trim().isNotEmpty == true
+                ? show!.title
+                : 'No claimed show yet');
     return InkWell(
       onTap: () => context.push('/screen/creator-studios'),
       borderRadius: PelevoRadii.card,
@@ -1417,13 +1509,7 @@ class _PodcastHeader extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) => fallback,
                       )
-                      : Image.asset(
-                        'assets/creator/relationship_cover.png',
-                        width: 54,
-                        height: 54,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => fallback,
-                      ),
+                      : fallback,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1434,16 +1520,18 @@ class _PodcastHeader extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          show?.title ?? 'No claimed show yet',
+                          title,
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.verified,
-                        size: 15,
-                        color: PelevoColors.green,
-                      ),
+                      if (show != null) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.verified,
+                          size: 15,
+                          color: PelevoColors.green,
+                        ),
+                      ],
                     ],
                   ),
                   if (subtitle.isNotEmpty)
@@ -1823,10 +1911,12 @@ class _CreatorWithdrawScreenState extends ConsumerState<CreatorWithdrawScreen> {
         amountUsdCents: _source == 'ads' ? source.availableUsdCents : null,
       );
       ref.invalidate(creatorWithdrawalWorkspaceProvider);
+      ref.invalidate(creatorWithdrawalHistoryProvider);
       ref.invalidate(studioMonetizationProvider);
+      ref.invalidate(studioPayoutWorkspaceProvider);
       if (!mounted) return;
       context.showPelevoMessage(
-        'Withdrawal requested. Pelevo finance will pay this manually after review.',
+        'Withdrawal requested. It now appears in your withdrawal history.',
       );
       context.go('/screen/creator-payout-settings');
     } on Object catch (error) {

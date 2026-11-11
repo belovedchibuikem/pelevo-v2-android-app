@@ -10,6 +10,7 @@ import 'package:pelevo/core/widgets/pelevo_widgets.dart';
 import 'package:pelevo/features/ads/feed_native_ads.dart';
 import 'package:pelevo/features/home/home_data.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
+import 'package:pelevo/features/search/directory_results_section.dart';
 import 'package:pelevo/features/search/search_data.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
@@ -756,10 +757,15 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               });
             },
             data: (value) {
+              final queryLabel =
+                  value.query.isEmpty ? labelQuery : value.query;
               if (value.isEmpty) {
-                return _empty(
-                  context,
-                  value.query.isEmpty ? labelQuery : value.query,
+                if (ui.chip == 2) return _empty(context, queryLabel);
+                return DirectoryResultsSection(
+                  query: queryLabel,
+                  catalogShows: value.shows,
+                  heading: 'Podcast directories',
+                  emptyCatalog: _empty(context, queryLabel),
                 );
               }
               final podcasts =
@@ -852,6 +858,13 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                           'search-results-native-ad',
                         )
                         : playlistTiles),
+                  if (ui.chip != 2) ...[
+                    const SizedBox(height: PelevoSpacing.lg),
+                    DirectoryResultsSection(
+                      query: queryLabel,
+                      catalogShows: value.shows,
+                    ),
+                  ],
                 ],
               );
             },

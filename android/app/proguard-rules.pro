@@ -27,11 +27,13 @@
 # points and the Ads ContentProvider crashes before Dart main() runs (Play
 # “crashes after opening”). google_mobile_ads 7.x ships no consumer rules.
 -keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
 -keep class com.google.android.gms.internal.ads.** { *; }
 -keep class com.google.android.gms.common.** { *; }
 -keep class com.google.android.ump.** { *; }
 -keep class io.flutter.plugins.googlemobileads.** { *; }
 -dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.ads.**
 -dontwarn com.google.android.gms.internal.ads.**
 -dontwarn com.google.android.ump.**
 

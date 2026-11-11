@@ -11,6 +11,8 @@ import 'package:pelevo/features/library/playlist_picker.dart';
 import 'package:pelevo/features/player/pelevo_playback.dart';
 import 'package:pelevo/features/podcast/catalog_chrome.dart';
 import 'package:pelevo/features/podcast/catalog_data.dart';
+import 'package:pelevo/features/search/directory/directory_models.dart';
+import 'package:pelevo/features/search/directory/directory_repository.dart';
 import 'package:pelevo/features/share/pelevo_share_chooser.dart';
 import 'package:pelevo/features/showcase/models/screen_spec.dart';
 
@@ -185,6 +187,22 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
   }
 
   Future<void> _refreshEpisodes(CatalogShow show) async {
+    if (DirectoryIds.isShow(show.id)) {
+      setState(() => _busy = true);
+      try {
+        await ref
+            .read(catalogEpisodesProvider.notifier)
+            .refreshFirstPage();
+        if (!mounted) return;
+        ref.invalidate(catalogShowProvider);
+      } catch (error) {
+        if (!mounted) return;
+        context.showPelevoMessage(catalogFailure(error).message);
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
     setState(() => _busy = true);
     try {
       await ref.read(catalogRepositoryProvider).refreshShow(show.id);
@@ -1511,6 +1529,26 @@ class _PodcastScreenState extends ConsumerState<_PodcastScreen> {
   }
 
   Future<void> _toggleFollow(CatalogShow show) async {
+    if (DirectoryIds.isShow(show.id)) {
+      setState(() => _busy = true);
+      try {
+        final next = !show.following;
+        await ref
+            .read(directoryRepositoryProvider)
+            .setFollowing(show.id, following: next);
+        ref.invalidate(catalogShowProvider);
+        if (!mounted) return;
+        context.showPelevoMessage(
+          next ? '${show.title} followed' : '${show.title} unfollowed',
+        );
+      } catch (error) {
+        if (!mounted) return;
+        context.showPelevoMessage(catalogFailure(error).message);
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
     setState(() => _busy = true);
     try {
       final next = !show.following;

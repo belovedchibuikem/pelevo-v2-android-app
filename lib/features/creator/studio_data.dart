@@ -1072,6 +1072,13 @@ class StudioTransaction {
     if (eventType == 'reel.revenue') {
       return 'Reel performance';
     }
+    if (eventType.startsWith('diamond.cashout')) {
+      return 'Gift withdrawal';
+    }
+    if (eventType.startsWith('ads.cashout') ||
+        eventType.startsWith('creator_ad_cashout')) {
+      return 'Ads withdrawal';
+    }
     if (eventType.startsWith('creator_payout')) {
       final label = payoutLabel?.trim();
       if (label != null && label.isNotEmpty) {
