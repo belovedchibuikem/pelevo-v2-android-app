@@ -25,12 +25,14 @@ Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
 
 | Variable | Value |
 |---|---|
-| `ADMOB_IOS_APP_ID` | Production iOS *app* id `ca-app-pub-…~…` |
-| `ADMOB_REELS_IOS_AD_UNIT_ID` | Production native unit |
-| `ADMOB_HOME_IOS_AD_UNIT_ID` | Production native unit |
-| `ADMOB_SEARCH_IOS_AD_UNIT_ID` | Production native unit |
+| `ADMOB_IOS_APP_ID` | Production **iOS app** id. Format `ca-app-pub-1931447463344456~XXXXXXXXXX` (tilde `~`, not a unit `/`). From AdMob → Apps → Pelevo iOS. |
+| `ADMOB_REELS_IOS_AD_UNIT_ID` | iOS native unit for Reels (do not reuse Android `/5867993592`) |
+| `ADMOB_HOME_IOS_AD_UNIT_ID` | iOS native unit for Home |
+| `ADMOB_SEARCH_IOS_AD_UNIT_ID` | iOS native unit for Search |
 | `PELEVO_API_BASE_URL` | `https://pelevo.com/api/v1` |
 | `PELEVO_SENTRY_DSN` | Live Sentry DSN (optional but recommended) |
+
+Android Play units (not for the iOS Codemagic group): Reels `ca-app-pub-1931447463344456/5867993592`; Home and Search `ca-app-pub-1931447463344456/7036201039`. Create matching **iOS** ad units under the iOS AdMob app whose bundle is `com.podemeraldsltd.pelevo`.
 
 Do **not** add `PELEVO_ALLOW_DEMO_IAP`, `PELEVO_ALLOW_HMAC_INTEGRITY`, or `ADMOB_USE_SAMPLE_UNITS`.
 

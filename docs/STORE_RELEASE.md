@@ -49,10 +49,11 @@ $env:ADMOB_ANDROID_APP_ID="ca-app-pub-XXXX~YYYY"
 
 ```powershell
 flutter build appbundle --release `
-  --dart-define=PELEVO_API_BASE_URL=https://pelevo.com/api/v1 `
-  --dart-define=PELEVO_SENTRY_DSN=https://...@sentry.io/... `
-  --dart-define=ADMOB_REELS_ANDROID_AD_UNIT_ID=ca-app-pub-XXXX/YYYY
+  --dart-define-from-file=dart_defines.android.json `
+  --dart-define=PELEVO_SENTRY_DSN=https://...@sentry.io/...
 ```
+
+`dart_defines.android.json` is gitignored. Copy from `dart_defines.android.json.example` (Reels `…/5867993592`, Home and Search `…/7036201039`).
 
 Output: `build/app/outputs/bundle/release/app-release.aab`
 
