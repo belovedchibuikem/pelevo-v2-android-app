@@ -26,6 +26,7 @@ Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
 | `APP_STORE_CONNECT_PRIVATE_KEY` | Full text of the `.p8` from App Store Connect → Users and Access → Integrations → App Store Connect API. Role **Admin** so Codemagic can create certs/profiles. |
 | `APP_STORE_CONNECT_KEY_IDENTIFIER` | Key ID of that API key |
 | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID shown above the keys table |
+| `CERTIFICATE_PRIVATE_KEY` | 2048-bit RSA PEM used to create/reuse the iOS Distribution cert. Generate once, keep forever (see below). Do **not** use the App Store Connect `.p8` here. |
 | `ADMOB_IOS_APP_ID` | Production **iOS app** id. Format `ca-app-pub-1931447463344456~XXXXXXXXXX` (tilde `~`, not a unit `/`). From AdMob → Apps → Pelevo iOS. |
 | `ADMOB_REELS_IOS_AD_UNIT_ID` | iOS native unit for Reels (do not reuse Android `/5867993592`) |
 | `ADMOB_HOME_IOS_AD_UNIT_ID` | iOS native unit for Home |
@@ -34,6 +35,14 @@ Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
 | `PELEVO_SENTRY_DSN` | Live Sentry DSN (optional but recommended) |
 
 Android Play units (not for the iOS Codemagic group): Reels `ca-app-pub-1931447463344456/5867993592`; Home and Search `ca-app-pub-1931447463344456/7036201039`. Create matching **iOS** ad units under the iOS AdMob app whose bundle is `com.podemeraldsltd.pelevo`.
+
+Generate `CERTIFICATE_PRIVATE_KEY` once (PowerShell or Git Bash):
+
+```powershell
+openssl genrsa -out ios_distribution_private_key 2048
+```
+
+Open `ios_distribution_private_key` (not `.pub`). Paste the whole file, including `-----BEGIN RSA PRIVATE KEY-----` / `-----END RSA PRIVATE KEY-----`, into the Codemagic variable. Keep that file offline; reuse the same key on every iOS build. If Apple then says you already have too many Distribution certificates, revoke an unused **iOS Distribution** cert in the Apple Developer portal (ones labelled “Created via API” are from Codemagic).
 
 Do **not** add `PELEVO_ALLOW_DEMO_IAP`, `PELEVO_ALLOW_HMAC_INTEGRITY`, or `ADMOB_USE_SAMPLE_UNITS`.
 

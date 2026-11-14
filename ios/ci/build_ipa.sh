@@ -6,6 +6,7 @@ cd "${CM_BUILD_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 : "${APP_STORE_CONNECT_PRIVATE_KEY:?Set APP_STORE_CONNECT_PRIVATE_KEY in Codemagic group pelevo_ios (contents of the .p8).}"
 : "${APP_STORE_CONNECT_KEY_IDENTIFIER:?Set APP_STORE_CONNECT_KEY_IDENTIFIER in Codemagic group pelevo_ios.}"
 : "${APP_STORE_CONNECT_ISSUER_ID:?Set APP_STORE_CONNECT_ISSUER_ID in Codemagic group pelevo_ios.}"
+: "${CERTIFICATE_PRIVATE_KEY:?Set CERTIFICATE_PRIVATE_KEY in Codemagic group pelevo_ios (2048-bit RSA PEM).}"
 : "${ADMOB_IOS_APP_ID:?Set ADMOB_IOS_APP_ID in Codemagic group pelevo_ios.}"
 if [[ ! "$ADMOB_IOS_APP_ID" =~ ^ca-app-pub-[0-9]+~[0-9]+$ ]]; then
   echo "ADMOB_IOS_APP_ID must look like ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY" >&2
@@ -30,7 +31,8 @@ fi
 keychain initialize
 app-store-connect fetch-signing-files "${BUNDLE_ID:-com.podemeraldsltd.pelevo}" \
   --type IOS_APP_STORE \
-  --create
+  --create \
+  --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
 keychain add-certificates
 xcode-project use-profiles --archive-method=app-store
 
