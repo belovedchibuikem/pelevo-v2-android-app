@@ -15,6 +15,8 @@ fi
 printf 'ADMOB_IOS_APP_ID=%s\n' "$ADMOB_IOS_APP_ID" > ios/Flutter/AdMob.xcconfig
 
 flutter --version
+# google_mobile_ads has no SwiftPM pod; keep CocoaPods for all iOS plugins on this builder.
+flutter config --no-enable-swift-package-manager
 flutter precache --ios
 flutter pub get
 
