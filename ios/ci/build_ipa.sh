@@ -17,6 +17,16 @@ flutter pub get
 
 (cd ios && pod install --repo-update)
 
+if [[ -z "${CM_BUILD_DIR:-}" ]]; then
+  echo "This script is for Codemagic. On a Mac use ios/build_appstore.sh." >&2
+  exit 1
+fi
+
+keychain initialize
+app-store-connect fetch-signing-files "${BUNDLE_ID:-com.Podemeraldltd.pelevo}" \
+  --type IOS_APP_STORE \
+  --create
+keychain add-certificates
 xcode-project use-profiles --archive-method=app-store
 
 bundle_id="${BUNDLE_ID:-com.Podemeraldltd.pelevo}"
@@ -41,7 +51,7 @@ echo "Using CFBundleVersion $build_number (marketing 5.2.0)"
 
 export_plist="${HOME}/export_options.plist"
 if [[ ! -f "$export_plist" ]]; then
-  echo "Codemagic did not write $export_plist. Check ios_signing and the Pelevo App Store Connect integration." >&2
+  echo "Missing $export_plist after fetch-signing-files. Confirm the Pelevo App Store Connect integration and that App ID com.Podemeraldltd.pelevo exists." >&2
   exit 1
 fi
 

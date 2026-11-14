@@ -2,7 +2,7 @@
 # App Store = same IPA path, then submit 5.2.0 for review (listing must already be filled).
 #
 # Required in Codemagic before the first build:
-# 1) Integration named exactly Pelevo (App Store Connect API key, App Manager).
+# 1) Integration named exactly Pelevo (App Store Connect API key, Admin — needed to create certs/profiles).
 # 2) Environment group pelevo_ios with ADMOB_IOS_APP_ID and ad unit ids.
 # 3) App ID com.Podemeraldltd.pelevo with Push, Sign in with Apple, Associated Domains, IAP.
 
@@ -16,9 +16,6 @@ workflows:
     environment:
       groups:
         - pelevo_ios
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.Podemeraldltd.pelevo
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -50,9 +47,6 @@ workflows:
     environment:
       groups:
         - pelevo_ios
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.Podemeraldltd.pelevo
       flutter: stable
       xcode: latest
       cocoapods: default
