@@ -1,0 +1,93 @@
+# Pelevo iOS. Preview = upload to App Store Connect / TestFlight (internal).
+# App Store = same IPA path, then submit 5.2.0 for review (listing must already be filled).
+#
+# Required in Codemagic before the first build:
+# 1) Integration named exactly Pelevo (App Store Connect API key, App Manager).
+# 2) Environment group pelevo_ios with ADMOB_IOS_APP_ID and ad unit ids.
+# 3) App ID com.Podemeraldltd.pelevo with Push, Sign in with Apple, Associated Domains, IAP.
+
+workflows:
+  ios-preview:
+    name: iOS Preview (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    triggering:
+      events:
+        - manual
+      cancel_previous_builds: true
+    integrations:
+      app_store_connect: Pelevo
+    environment:
+      groups:
+        - pelevo_ios
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.Podemeraldltd.pelevo
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: com.Podemeraldltd.pelevo
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - name: Build signed IPA
+        script: bash ios/ci/build_ipa.sh
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/app/outputs/symbols
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false
+
+  ios-app-store:
+    name: iOS App Store
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    triggering:
+      events:
+        - manual
+    integrations:
+      app_store_connect: Pelevo
+    environment:
+      groups:
+        - pelevo_ios
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.Podemeraldltd.pelevo
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: com.Podemeraldltd.pelevo
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - name: Build signed IPA
+        script: bash ios/ci/build_ipa.sh
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/app/outputs/symbols
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: true
+        release_type: MANUAL
+        submission_information:
+          export_compliance_uses_encryption: false
+          add_id_info_uses_idfa: true
+          add_id_info_serves_ads: true
+          add_id_info_tracks_install: true
+          add_id_info_tracks_action: true
+          add_id_info_limits_tracking: true
+          content_rights_has_rights: true
+          content_rights_contains_third_party_content: true

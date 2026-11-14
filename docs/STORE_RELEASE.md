@@ -94,7 +94,16 @@ This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.Podemeraldltd.p
    - Consumable coins: `coins_300`, `coins_500`, `coins_750`, `coins_1000`, `coins_1500`, `coins_2000`
 8. Server `.env`: `APPLE_BUNDLE_ID=com.Podemeraldltd.pelevo` plus App Store Server API key (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`).
 
-### 3.2 Archive and upload (Mac)
+### 3.2 Codemagic (preview, then App Store)
+
+Preferred path when you do not have a Mac every day: [CODEMAGIC_IOS.md](CODEMAGIC_IOS.md).
+
+1. Connect the App Store Connect API key in Codemagic as integration **Pelevo**.
+2. Fill environment group **`pelevo_ios`**.
+3. Run workflow **iOS Preview (TestFlight)** and install from TestFlight.
+4. When that build is good, run **iOS App Store** (manual) or attach the same TestFlight build to 5.2.0 in App Store Connect.
+
+### 3.3 Archive and upload (local Mac)
 
 ```bash
 chmod +x ios/build_appstore.sh
@@ -121,7 +130,7 @@ Export compliance: `ITSAppUsesNonExemptEncryption` is `false` (HTTPS only). Answ
 
 Privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy` is in the app bundle. Match App Privacy answers (ads tracking, location, purchases, crash, IDs).
 
-### 3.3 App Store Connect listing (this version)
+### 3.4 App Store Connect listing (this version)
 
 | Field | Value |
 |---|---|

@@ -29,6 +29,8 @@ flutter build ipa --release \
   --export-options-plist=ios/ExportOptions.plist \
   --dart-define-from-file=ios/dart_defines.release.json
 
+echo "IPA written for Transporter / Organizer. Codemagic uses ios/ci/build_ipa.sh instead."
+
 echo
 echo "IPA: build/ios/ipa/pelevo.ipa"
 echo "Upload with: xcrun altool --upload-app or Xcode Organizer, or Transporter."
