@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.Podemeraldltd.pelevo"],
+        "components": [
+          { "/": "/shows/*" },
+          { "/": "/episodes/*" },
+          { "/": "/playlists/*" },
+          { "/": "/collections/*" },
+          { "/": "/reels/*" },
+          { "/": "/creators/*" },
+          { "/": "/creator/*" },
+          { "/": "/s/*" },
+          { "/": "/live/*" },
+          { "/": "/legal/*" }
+        ]
+      }
+    ]
+  }
+}

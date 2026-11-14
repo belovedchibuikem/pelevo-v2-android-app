@@ -20,6 +20,8 @@ Flutter/Flutter.framework
 Flutter/Flutter.podspec
 Flutter/Generated.xcconfig
 Flutter/AdMob.xcconfig
+dart_defines.release.json
+ExportOptions.local.plist
 Flutter/ephemeral/
 Flutter/app.flx
 Flutter/app.zip

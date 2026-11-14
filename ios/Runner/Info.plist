@@ -26,6 +26,25 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>GADApplicationIdentifier</key>
 		<string>$(ADMOB_IOS_APP_ID)</string>
+		<key>GADDelayAppMeasurementInit</key>
+		<true/>
+		<key>FlutterDeepLinkingEnabled</key>
+		<true/>
+		<key>LSApplicationCategoryType</key>
+		<string>public.app-category.entertainment</string>
+		<key>UIRequiredDeviceCapabilities</key>
+		<array>
+			<string>arm64</string>
+		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>https</string>
+			<string>http</string>
+			<string>mailto</string>
+			<string>googlechrome</string>
+			<string>googlechromes</string>
+			<string>googlegmail</string>
+		</array>
 		<key>NSUserTrackingUsageDescription</key>
 		<string>Pelevo uses this identifier to deliver and measure ads that fund creator payouts.</string>
 		<key>SKAdNetworkItems</key>
@@ -122,6 +141,10 @@
 		<string>Pelevo can save published Reels and share cards to your photo library when you choose.</string>
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>Pelevo uses the local network to find Chromecast, AirPlay, and Cast speakers on your Wi‑Fi.</string>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>Pelevo uses Bluetooth to find nearby Cast speakers and TVs.</string>
+		<key>NSBluetoothPeripheralUsageDescription</key>
+		<string>Pelevo uses Bluetooth to find nearby Cast speakers and TVs.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Pelevo uses your location while you play episodes and Reels so creators can see which regions their listeners are in.</string>
 		<key>NSBonjourServices</key>

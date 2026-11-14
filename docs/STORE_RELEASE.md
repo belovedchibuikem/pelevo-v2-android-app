@@ -70,27 +70,81 @@ Play Console declarations to expect:
 
 ---
 
-## 3. iOS release build
+## 3. iOS release build (App Store)
 
-1. In Xcode → Runner target → **Signing & Capabilities**, enable:
+This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.Podemeraldltd.pelevo`. Display name: Pelevo. Minimum iOS: **13.0**. Archives are **macOS + Xcode 16+** only.
+
+### 3.1 One-time Apple setup
+
+1. Apple Developer → Identifiers → `com.Podemeraldltd.pelevo` with:
    - Push Notifications
    - Sign in with Apple
-   - Associated Domains (`applinks:pelevo.com`, `applinks:www.pelevo.com`)
-2. Copy `ios/Flutter/AdMob.xcconfig.example` → `ios/Flutter/AdMob.xcconfig` with the production iOS app id.
-3. Archive:
+   - Associated Domains
+   - In-App Purchase
+2. App Store Connect → new iOS app, bundle ID as above, SKU `pelevo-ios`.
+3. Xcode → Runner → **Signing & Capabilities** → your team (Automatic). Debug uses `Runner/Debug.entitlements` (`aps-environment` = development). Archive/Release uses `Runner/Release.entitlements` (`aps-environment` = **production**).
+4. Host Universal Links (HTTP 200, no redirect, `application/json`):
+   - `https://pelevo.com/.well-known/apple-app-site-association`
+   - Prefer the same file on `www` without a 301 (see [app-links.md](configuration/app-links.md))
+   - Replace `TEAMID` in [apple-app-site-association.json](configuration/apple-app-site-association.json) with your 10-character Team ID
+5. Copy `ios/Flutter/AdMob.xcconfig.example` → `ios/Flutter/AdMob.xcconfig` (gitignored) with the **production** iOS AdMob **app** id (`ca-app-pub-…~…`). Release builds fail if this is empty so sample ads never ship.
+6. Copy `ios/dart_defines.release.json.example` → `ios/dart_defines.release.json` (gitignored) with production Sentry DSN and iOS native ad **unit** ids. Do **not** set `PELEVO_ALLOW_DEMO_IAP`, `PELEVO_ALLOW_HMAC_INTEGRITY`, or `ADMOB_USE_SAMPLE_UNITS`.
+7. App Store Connect IAP (must match the app):
+   - Auto-renewable: `pelevo_plus_monthly`, `pelevo_plus_yearly` (yearly intro: 1 month free)
+   - Consumable coins: `coins_300`, `coins_500`, `coins_750`, `coins_1000`, `coins_1500`, `coins_2000`
+8. Server `.env`: `APPLE_BUNDLE_ID=com.Podemeraldltd.pelevo` plus App Store Server API key (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`).
 
-```powershell
-flutter build ipa --release `
-  --dart-define=PELEVO_API_BASE_URL=https://pelevo.com/api/v1 `
-  --dart-define=PELEVO_SENTRY_DSN=https://...@sentry.io/... `
-  --dart-define=ADMOB_REELS_IOS_AD_UNIT_ID=ca-app-pub-XXXX/YYYY
+### 3.2 Archive and upload (Mac)
+
+```bash
+chmod +x ios/build_appstore.sh
+./ios/build_appstore.sh
 ```
 
-Or open `ios/Runner.xcworkspace`, set a Release team, then **Product → Archive**.
+Or:
 
-Export compliance: `ITSAppUsesNonExemptEncryption` is `false` (standard HTTPS only). Confirm in App Store Connect if asked.
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+flutter build ipa --release \
+  --obfuscate \
+  --split-debug-info=build/app/outputs/symbols \
+  --export-options-plist=ios/ExportOptions.plist \
+  --dart-define-from-file=ios/dart_defines.release.json
+```
 
-Privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy` ships in the app bundle. Align App Privacy answers with it (ads tracking, location, purchases, crash, IDs).
+IPA: `build/ios/ipa/pelevo.ipa`. Upload with Transporter, Xcode Organizer, or `xcrun altool`. Keep `build/app/outputs/symbols` for crash symbolication.
+
+You can also open **`ios/Runner.xcworkspace`** (not `.xcodeproj`), select **Any iOS Device**, **Product → Archive**.
+
+Export compliance: `ITSAppUsesNonExemptEncryption` is `false` (HTTPS only). Answer “No” in App Store Connect if asked.
+
+Privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy` is in the app bundle. Match App Privacy answers (ads tracking, location, purchases, crash, IDs).
+
+### 3.3 App Store Connect listing (this version)
+
+| Field | Value |
+|---|---|
+| Name | Pelevo |
+| Subtitle | Listen, earn, and create |
+| Category | Entertainment (primary). Optional secondary: Music |
+| Age | 13+ (unrestricted web, UGC Reels/comments, ads). Earn/cashout is 18+ in-app |
+| Privacy policy | https://pelevo.com/privacy |
+| Terms / EULA | https://pelevo.com/terms (or Apple standard EULA + this URL in Review Notes) |
+| Support URL | https://pelevo.com |
+| Marketing URL | https://pelevo.com |
+| Copyright | © Pod Emerald Ltd |
+| Encryption | Exempt (`ITSAppUsesNonExemptEncryption` = false) |
+
+**Description (paste, then trim to 4000 characters):**
+
+Pelevo is a podcast and short-video app. Listen to shows, follow creators, record Reels, and support them with gifts. Optional Pelevo Plus removes ads and unlocks member episodes. Coin packs and Plus are sold through Apple In-App Purchase. Listen-to-earn and cashout are available only where allowed, require age confirmation, and are not a guarantee of income.
+
+**Review Notes:** Sign in with Apple on a new account. Plus and coin SKUs are auto-renewable / consumable as listed. Ads use Google AdMob after ATT/UMP. Location is when-in-use for listener region and Cast discovery; the app still plays if denied. Account deletion: Settings → Privacy & data → Delete my account. Demo account: provide a reviewer login if your API requires one.
+
+**Screenshots:** 6.7" iPhone required. Because the binary is universal (`TARGETED_DEVICE_FAMILY` 1,2), also add 13" iPad. Show listening, Reels, and Plus without “get rich” earn claims.
+
+**App Privacy (nutrition labels):** align with `PrivacyInfo.xcprivacy` — email/name/user ID (account), device ID + advertising data (tracking via ATT), coarse/precise location, purchase history, photos/video/audio (Reels), crash/performance (Sentry).
 
 ---
 
@@ -114,7 +168,7 @@ uploading. Debug builds hide R8/AdMob ContentProvider crashes. Confirm
 `ca-app-pub-3940256099942544~3347511713`). Upload the release mapping file from
 `build/app/outputs/mapping/release/` to Play Console for crash deobfuscation.
 
-- [ ] Fresh install signed release build on physical Android + iPhone
+- [ ] Fresh install signed release build on physical Android + iPhone (TestFlight for iOS)
 - [ ] Sign in with Google (Android) / Apple (iOS)
 - [ ] Open Privacy Policy + Terms from About and Privacy & data
 - [ ] Request data export; schedule account deletion (on a throwaway account)
