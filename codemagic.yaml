@@ -2,8 +2,8 @@
 # App Store = same IPA path, then submit 5.2.0 for review (listing must already be filled).
 #
 # Required in Codemagic before the first build:
-# 1) Integration named exactly Pelevo (App Store Connect API key, Admin — needed to create certs/profiles).
-# 2) Environment group pelevo_ios with ADMOB_IOS_APP_ID and ad unit ids.
+# 1) Environment group pelevo_ios with App Store Connect API key vars (see docs/CODEMAGIC_IOS.md).
+# 2) Same group: ADMOB_IOS_APP_ID and iOS ad unit ids.
 # 3) App ID com.podemeraldsltd.pelevo (Apple ID 6752672316) with Push, Sign in with Apple, Associated Domains, IAP.
 
 workflows:
@@ -11,8 +11,6 @@ workflows:
     name: iOS Preview (TestFlight)
     instance_type: mac_mini_m2
     max_build_duration: 120
-    integrations:
-      app_store_connect: Pelevo
     environment:
       groups:
         - pelevo_ios
@@ -35,7 +33,9 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: false
         submit_to_app_store: false
 
@@ -43,8 +43,6 @@ workflows:
     name: iOS App Store
     instance_type: mac_mini_m2
     max_build_duration: 120
-    integrations:
-      app_store_connect: Pelevo
     environment:
       groups:
         - pelevo_ios
@@ -67,7 +65,9 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: false
         submit_to_app_store: true
         release_type: MANUAL

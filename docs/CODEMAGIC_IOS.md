@@ -19,12 +19,13 @@ Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
 ## 2. Codemagic (once)
 
 1. [codemagic.io](https://codemagic.io) → add this Git repo → **Workflow Editor is YAML** (`codemagic.yaml` in the project root).
-2. **Teams → Integrations → App Store Connect** → upload the `.p8`, Key ID, Issuer ID.  
-   Name the integration exactly **`Pelevo`** (matches `integrations.app_store_connect` in YAML).
-3. App → **Environment variables** → group name **`pelevo_ios`** (secure):
+2. App → **Environment variables** → group name **`pelevo_ios`** (all **Secret**). Signing uses these instead of a named “Pelevo” integration (that name is not required):
 
 | Variable | Value |
 |---|---|
+| `APP_STORE_CONNECT_PRIVATE_KEY` | Full text of the `.p8` from App Store Connect → Users and Access → Integrations → App Store Connect API. Role **Admin** so Codemagic can create certs/profiles. |
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | Key ID of that API key |
+| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID shown above the keys table |
 | `ADMOB_IOS_APP_ID` | Production **iOS app** id. Format `ca-app-pub-1931447463344456~XXXXXXXXXX` (tilde `~`, not a unit `/`). From AdMob → Apps → Pelevo iOS. |
 | `ADMOB_REELS_IOS_AD_UNIT_ID` | iOS native unit for Reels (do not reuse Android `/5867993592`) |
 | `ADMOB_HOME_IOS_AD_UNIT_ID` | iOS native unit for Home |
@@ -36,7 +37,7 @@ Android Play units (not for the iOS Codemagic group): Reels `ca-app-pub-19314474
 
 Do **not** add `PELEVO_ALLOW_DEMO_IAP`, `PELEVO_ALLOW_HMAC_INTEGRITY`, or `ADMOB_USE_SAMPLE_UNITS`.
 
-4. Start a **mac_mini_m2** build (included in YAML). First CocoaPods fetch can take 20–40 minutes.
+3. Start a **mac_mini_m2** build (included in YAML). First CocoaPods fetch can take 20–40 minutes.
 
 ## 3. Preview first
 
@@ -66,7 +67,7 @@ You can skip the second workflow and, in App Store Connect, add the TestFlight b
 
 ## 5. What the YAML does
 
-- Automatic signing via the **Pelevo** integration (`distribution_type: app_store`).
+- Automatic signing via App Store Connect API key vars in group **pelevo_ios** (`APP_STORE_CONNECT_PRIVATE_KEY`, `KEY_IDENTIFIER`, `ISSUER_ID`).
 - Writes `ios/Flutter/AdMob.xcconfig` on the builder so Release does not use the sample AdMob app id.
 - `flutter build ipa` with production `--dart-define`s and obfuscation.
 - Signing follows Codemagic’s Flutter sample: `pod install` → `xcode-project use-profiles` → `flutter build ipa --export-options-plist=$HOME/export_options.plist`.

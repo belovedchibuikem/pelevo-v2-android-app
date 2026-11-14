@@ -99,7 +99,7 @@ This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.podemeraldsltd.
 
 Preferred path when you do not have a Mac every day: [CODEMAGIC_IOS.md](CODEMAGIC_IOS.md).
 
-1. Connect the App Store Connect API key in Codemagic as integration **Pelevo**.
+1. Put the App Store Connect `.p8` contents plus Key ID and Issuer ID in Codemagic group **pelevo_ios** as `APP_STORE_CONNECT_PRIVATE_KEY`, `APP_STORE_CONNECT_KEY_IDENTIFIER`, and `APP_STORE_CONNECT_ISSUER_ID`.
 2. Fill environment group **`pelevo_ios`**.
 3. Run workflow **iOS Preview (TestFlight)** and install from TestFlight.
 4. When that build is good, run **iOS App Store** (manual) or attach the same TestFlight build to 5.2.0 in App Store Connect.

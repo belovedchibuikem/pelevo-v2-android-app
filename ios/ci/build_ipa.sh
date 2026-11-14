@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "${CM_BUILD_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
+: "${APP_STORE_CONNECT_PRIVATE_KEY:?Set APP_STORE_CONNECT_PRIVATE_KEY in Codemagic group pelevo_ios (contents of the .p8).}"
+: "${APP_STORE_CONNECT_KEY_IDENTIFIER:?Set APP_STORE_CONNECT_KEY_IDENTIFIER in Codemagic group pelevo_ios.}"
+: "${APP_STORE_CONNECT_ISSUER_ID:?Set APP_STORE_CONNECT_ISSUER_ID in Codemagic group pelevo_ios.}"
 : "${ADMOB_IOS_APP_ID:?Set ADMOB_IOS_APP_ID in Codemagic group pelevo_ios.}"
 if [[ ! "$ADMOB_IOS_APP_ID" =~ ^ca-app-pub-[0-9]+~[0-9]+$ ]]; then
   echo "ADMOB_IOS_APP_ID must look like ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY" >&2
@@ -51,7 +54,7 @@ echo "Using CFBundleVersion $build_number (marketing 5.2.0)"
 
 export_plist="${HOME}/export_options.plist"
 if [[ ! -f "$export_plist" ]]; then
-  echo "Missing $export_plist after fetch-signing-files. Confirm the Pelevo App Store Connect integration and that App ID com.podemeraldsltd.pelevo exists." >&2
+  echo "Missing $export_plist after fetch-signing-files. Confirm APP_STORE_CONNECT_* vars in pelevo_ios and that App ID com.podemeraldsltd.pelevo exists." >&2
   exit 1
 fi
 
