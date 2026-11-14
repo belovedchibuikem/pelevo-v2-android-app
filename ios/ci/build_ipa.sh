@@ -23,13 +23,13 @@ if [[ -z "${CM_BUILD_DIR:-}" ]]; then
 fi
 
 keychain initialize
-app-store-connect fetch-signing-files "${BUNDLE_ID:-com.Podemeraldltd.pelevo}" \
+app-store-connect fetch-signing-files "${BUNDLE_ID:-com.podemeraldsltd.pelevo}" \
   --type IOS_APP_STORE \
   --create
 keychain add-certificates
 xcode-project use-profiles --archive-method=app-store
 
-bundle_id="${BUNDLE_ID:-com.Podemeraldltd.pelevo}"
+bundle_id="${BUNDLE_ID:-com.podemeraldsltd.pelevo}"
 app_id="${APP_STORE_APPLE_ID:-$bundle_id}"
 build_number="${BUILD_NUMBER:-36}"
 if command -v app-store-connect >/dev/null 2>&1; then
@@ -51,7 +51,7 @@ echo "Using CFBundleVersion $build_number (marketing 5.2.0)"
 
 export_plist="${HOME}/export_options.plist"
 if [[ ! -f "$export_plist" ]]; then
-  echo "Missing $export_plist after fetch-signing-files. Confirm the Pelevo App Store Connect integration and that App ID com.Podemeraldltd.pelevo exists." >&2
+  echo "Missing $export_plist after fetch-signing-files. Confirm the Pelevo App Store Connect integration and that App ID com.podemeraldsltd.pelevo exists." >&2
   exit 1
 fi
 

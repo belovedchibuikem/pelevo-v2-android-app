@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAMID.com.Podemeraldltd.pelevo"],
+        "appIDs": ["TEAMID.com.podemeraldsltd.pelevo"],
         "components": [
           { "/": "/shows/*" },
           { "/": "/episodes/*" },

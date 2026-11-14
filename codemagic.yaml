@@ -4,7 +4,7 @@
 # Required in Codemagic before the first build:
 # 1) Integration named exactly Pelevo (App Store Connect API key, Admin — needed to create certs/profiles).
 # 2) Environment group pelevo_ios with ADMOB_IOS_APP_ID and ad unit ids.
-# 3) App ID com.Podemeraldltd.pelevo with Push, Sign in with Apple, Associated Domains, IAP.
+# 3) App ID com.podemeraldsltd.pelevo (Apple ID 6752672316) with Push, Sign in with Apple, Associated Domains, IAP.
 
 workflows:
   ios-preview:
@@ -20,7 +20,8 @@ workflows:
       xcode: latest
       cocoapods: default
       vars:
-        BUNDLE_ID: com.Podemeraldltd.pelevo
+        BUNDLE_ID: com.podemeraldsltd.pelevo
+        APP_STORE_APPLE_ID: "6752672316"
     cache:
       cache_paths:
         - $HOME/.pub-cache
@@ -51,7 +52,8 @@ workflows:
       xcode: latest
       cocoapods: default
       vars:
-        BUNDLE_ID: com.Podemeraldltd.pelevo
+        BUNDLE_ID: com.podemeraldsltd.pelevo
+        APP_STORE_APPLE_ID: "6752672316"
     cache:
       cache_paths:
         - $HOME/.pub-cache

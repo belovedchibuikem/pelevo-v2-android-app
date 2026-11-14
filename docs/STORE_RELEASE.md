@@ -14,7 +14,7 @@ In-app: **Settings & Account → Privacy & data**, and **About → Terms / Priva
 | Step | Google Play | Apple App Store |
 |---|---|---|
 | Developer account | Play Console | Apple Developer Program |
-| App ID | `com.Podemeraldltd.pelevo` | `com.Podemeraldltd.pelevo` |
+| App ID | `com.Podemeraldltd.pelevo` | `com.podemeraldsltd.pelevo` |
 | Signing | Upload keystore + Play App Signing | Xcode automatic signing / distribution cert |
 | Capabilities | App Links (`pelevo.com` + `assetlinks.json`) — see [app-links.md](configuration/app-links.md) | Push Notifications, Sign in with Apple, Associated Domains |
 | Privacy forms | Data safety questionnaire | App Privacy nutrition labels |
@@ -72,11 +72,11 @@ Play Console declarations to expect:
 
 ## 3. iOS release build (App Store)
 
-This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.Podemeraldltd.pelevo`. Display name: Pelevo. Minimum iOS: **13.0**. Archives are **macOS + Xcode 16+** only.
+This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.podemeraldsltd.pelevo` (App Store Apple ID `6752672316`). Display name: Pelevo. Minimum iOS: **13.0**. Archives are **macOS + Xcode 16+** only.
 
 ### 3.1 One-time Apple setup
 
-1. Apple Developer → Identifiers → `com.Podemeraldltd.pelevo` with:
+1. Apple Developer → Identifiers → `com.podemeraldsltd.pelevo` with:
    - Push Notifications
    - Sign in with Apple
    - Associated Domains
@@ -92,7 +92,7 @@ This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.Podemeraldltd.p
 7. App Store Connect IAP (must match the app):
    - Auto-renewable: `pelevo_plus_monthly`, `pelevo_plus_yearly` (yearly intro: 1 month free)
    - Consumable coins: `coins_300`, `coins_500`, `coins_750`, `coins_1000`, `coins_1500`, `coins_2000`
-8. Server `.env`: `APPLE_BUNDLE_ID=com.Podemeraldltd.pelevo` plus App Store Server API key (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`).
+8. Server `.env`: `APPLE_BUNDLE_ID=com.podemeraldsltd.pelevo` plus App Store Server API key (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`).
 
 ### 3.2 Codemagic (preview, then App Store)
 

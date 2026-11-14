@@ -9,7 +9,7 @@ Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
 
 ## 1. Apple (once)
 
-1. [Apple Developer](https://developer.apple.com/account) → Identifiers → `com.Podemeraldltd.pelevo` with Push, Sign in with Apple, Associated Domains, In-App Purchase.
+1. [Apple Developer](https://developer.apple.com/account) → Identifiers → `com.podemeraldsltd.pelevo` with Push, Sign in with Apple, Associated Domains, In-App Purchase. App Store Connect Apple ID: `6752672316`.
 2. App Store Connect → Users and Access → Integrations → **App Store Connect API** → generate a key with **App Manager**.
    - Download the `.p8` (once).
    - Note Key ID and Issuer ID.

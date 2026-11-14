@@ -160,7 +160,7 @@
 				<key>CFBundleTypeRole</key>
 				<string>Editor</string>
 				<key>CFBundleURLName</key>
-				<string>com.Podemeraldltd.pelevo</string>
+				<string>com.podemeraldsltd.pelevo</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
 					<string>pelevo</string>
