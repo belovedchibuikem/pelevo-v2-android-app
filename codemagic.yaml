@@ -1,5 +1,5 @@
 # Pelevo iOS.
-# Preview = compile only (unsigned .app zip if no Apple keys; signed IPA if keys exist). No store submit.
+# Preview = Ad Hoc IPA for device / Quick Launch (not App Store submit). Unsigned zip if no Apple keys.
 # App Store = signed IPA, then submit 5.2.0 for review (needs Apple keys + listing filled).
 
 workflows:
@@ -16,6 +16,9 @@ workflows:
       vars:
         BUNDLE_ID: com.podemeraldsltd.pelevo
         APP_STORE_APPLE_ID: "6752672316"
+        # Device install / Codemagic Quick Launch — not App Store submit.
+        IOS_SIGNING_TYPE: IOS_APP_ADHOC
+        IOS_ARCHIVE_METHOD: ad-hoc
     cache:
       cache_paths:
         - $HOME/.pub-cache
@@ -43,6 +46,8 @@ workflows:
       vars:
         BUNDLE_ID: com.podemeraldsltd.pelevo
         APP_STORE_APPLE_ID: "6752672316"
+        IOS_SIGNING_TYPE: IOS_APP_STORE
+        IOS_ARCHIVE_METHOD: app-store
     cache:
       cache_paths:
         - $HOME/.pub-cache

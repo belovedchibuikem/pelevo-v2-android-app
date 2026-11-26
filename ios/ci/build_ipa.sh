@@ -113,15 +113,23 @@ if [[ "$can_sign" != true ]]; then
   exit 0
 fi
 
-keychain initialize
-app-store-connect fetch-signing-files "$bundle_id" \
-  --type IOS_APP_STORE \
-  --create \
-  --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
-keychain add-certificates
-xcode-project use-profiles --archive-method=app-store
+signing_type="${IOS_SIGNING_TYPE:-IOS_APP_ADHOC}"
+archive_method="${IOS_ARCHIVE_METHOD:-ad-hoc}"
+echo "Signing for $signing_type ($archive_method). This is not an App Store submit."
 
-if command -v app-store-connect >/dev/null 2>&1; then
+keychain initialize
+if ! app-store-connect fetch-signing-files "$bundle_id" \
+  --type "$signing_type" \
+  --create \
+  --certificate-key=@env:CERTIFICATE_PRIVATE_KEY; then
+  echo "Apple blocked signing (often 403: unsigned Developer Program license)." >&2
+  echo "Ad Hoc / Quick Launch still needs the Account Holder to accept the agreement at https://developer.apple.com/account — it is not an App Store upload." >&2
+  exit 1
+fi
+keychain add-certificates
+xcode-project use-profiles --archive-method="$archive_method"
+
+if [[ "$signing_type" == "IOS_APP_STORE" ]] && command -v app-store-connect >/dev/null 2>&1; then
   tf="$(app-store-connect get-latest-testflight-build-number "$app_id" 2>/dev/null || true)"
   store="$(app-store-connect get-latest-app-store-build-number "$app_id" 2>/dev/null || true)"
   latest=0
