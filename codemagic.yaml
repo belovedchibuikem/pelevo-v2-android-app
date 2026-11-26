@@ -1,14 +1,10 @@
-# Pelevo iOS. Preview = upload to App Store Connect / TestFlight (internal).
-# App Store = same IPA path, then submit 5.2.0 for review (listing must already be filled).
-#
-# Required in Codemagic before the first build:
-# 1) Environment group pelevo_ios with App Store Connect API key vars (see docs/CODEMAGIC_IOS.md).
-# 2) Same group: ADMOB_IOS_APP_ID and iOS ad unit ids.
-# 3) App ID com.podemeraldsltd.pelevo (Apple ID 6752672316) with Push, Sign in with Apple, Associated Domains, IAP.
+# Pelevo iOS.
+# Preview = compile only (unsigned .app zip if no Apple keys; signed IPA if keys exist). No store submit.
+# App Store = signed IPA, then submit 5.2.0 for review (needs Apple keys + listing filled).
 
 workflows:
   ios-preview:
-    name: iOS Preview (TestFlight)
+    name: iOS Preview (compile)
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -25,19 +21,14 @@ workflows:
         - $HOME/.pub-cache
         - $HOME/Library/Caches/CocoaPods
     scripts:
-      - name: Build signed IPA
+      - name: Build iOS
         script: bash ios/ci/build_ipa.sh
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/ios/ipa/*.zip
+      - build/ios/iphoneos/*.app
       - build/app/outputs/symbols
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: false
-        submit_to_app_store: false
 
   ios-app-store:
     name: iOS App Store

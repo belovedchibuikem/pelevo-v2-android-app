@@ -2,7 +2,7 @@
 
 Two workflows in `codemagic.yaml`:
 
-1. **iOS Preview (TestFlight)** — signed IPA **uploaded** to App Store Connect. After Apple processes it (often 5–15 minutes), it appears on TestFlight for **internal** testers (App Store Connect users). This does not start Beta App Review or App Review.
+1. **iOS Preview (compile)** — compiles on Codemagic. **Does not submit to the App Store.** If Apple API keys are missing, you get an **unsigned** `Pelevo-unsigned.app.zip` in Artifacts (compile check only; it will not install on an iPhone). If `APP_STORE_CONNECT_*` and `CERTIFICATE_PRIVATE_KEY` are set, you get a signed **IPA** in Artifacts (still no App Review). TestFlight upload is optional later; this workflow no longer publishes to Apple.
 2. **iOS App Store** — same compile path, then submits **5.2.0** for App Review. Run this only after preview is good **and** App Store Connect already has screenshots, privacy, and age rating. If those are empty, Apple rejects the *submit* step even though the IPA compiled. `release_type: MANUAL` means you tap **Release** after Apple approves.
 
 Do not commit AdMob ids, Sentry DSNs, or API keys. They live in Codemagic.
@@ -52,7 +52,7 @@ Do **not** add `PELEVO_ALLOW_DEMO_IAP`, `PELEVO_ALLOW_HMAC_INTEGRITY`, or `ADMOB
 
 Do not run **iOS App Store** until this workflow is green and you have installed the build.
 
-1. Codemagic → this app → **Start new build** → workflow **iOS Preview (TestFlight)**.
+1. Codemagic → this app → **Start new build** → workflow **iOS Preview (compile)** (branch `chore/plugin-upgrades`).
 2. The build is **120 minutes** max (first CocoaPods fetch is slow). Wait until **publishing** is green, not only the compile step.
 3. Codemagic bumps `CFBundleVersion` past the latest TestFlight/App Store number (from 36 upward). Marketing version stays **5.2.0**.
 4. iPhone → TestFlight (same Apple ID as App Store Connect) → Pelevo. Check:
