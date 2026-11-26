@@ -73,7 +73,7 @@ Play Console declarations to expect:
 
 ## 3. iOS release build (App Store)
 
-This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.podemeraldsltd.pelevo` (App Store Apple ID `6752672316`). Display name: Pelevo. Minimum iOS: **15.0**. Archives are **macOS + Xcode 16+** only.
+This version is **5.2.0 (36)** (`pubspec.yaml`). Bundle ID: `com.podemeraldsltd.pelevo` (App Store Apple ID `6752672316`). Display name: Pelevo. Minimum iOS: **16.0**. Archives are **macOS + Xcode 16+** only.
 
 ### 3.1 One-time Apple setup
 
