@@ -12,8 +12,8 @@ final class HomeFeedNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
     _ nativeAd: GADNativeAd,
     customOptions: [AnyHashable: Any]? = nil
-  ) -> GADNativeAdView? {
-    let adView = GADNativeAdView()
+  ) -> NativeAdView? {
+    let adView = NativeAdView()
     adView.backgroundColor = feedCard
     adView.layer.cornerRadius = 12
     adView.clipsToBounds = true
@@ -77,12 +77,12 @@ final class HomeFeedNativeAdFactory: NSObject, FLTNativeAdFactory {
     mediaFrame.setContentCompressionResistancePriority(.required, for: .vertical)
     mediaFrame.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
 
-    let media = GADMediaView()
+    let media = MediaView()
     media.translatesAutoresizingMaskIntoConstraints = false
     media.contentMode = .scaleAspectFill
     mediaFrame.addSubview(media)
 
-    let adChoices = GADAdChoicesView()
+    let adChoices = AdChoicesView()
     adChoices.translatesAutoresizingMaskIntoConstraints = false
     mediaFrame.addSubview(adChoices)
     NSLayoutConstraint.activate([
@@ -130,8 +130,8 @@ final class SearchNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
     _ nativeAd: GADNativeAd,
     customOptions: [AnyHashable: Any]? = nil
-  ) -> GADNativeAdView? {
-    let adView = GADNativeAdView()
+  ) -> NativeAdView? {
+    let adView = NativeAdView()
     adView.backgroundColor = .clear
     adView.accessibilityLabel = "Sponsored advertisement"
 
@@ -152,7 +152,7 @@ final class SearchNativeAdFactory: NSObject, FLTNativeAdFactory {
     icon.backgroundColor = feedWell
     iconFrame.addSubview(icon)
 
-    let adChoices = GADAdChoicesView()
+    let adChoices = AdChoicesView()
     adChoices.translatesAutoresizingMaskIntoConstraints = false
     iconFrame.addSubview(adChoices)
     NSLayoutConstraint.activate([
@@ -199,13 +199,19 @@ final class SearchNativeAdFactory: NSObject, FLTNativeAdFactory {
     textColumn.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
     let callToAction = UIButton(type: .custom)
-    callToAction.setTitle(nativeAd.callToAction ?? "Open", for: .normal)
-    callToAction.setTitleColor(.black, for: .normal)
-    callToAction.titleLabel?.font = .systemFont(ofSize: 12, weight: .bold)
-    callToAction.titleLabel?.lineBreakMode = .byTruncatingTail
-    callToAction.backgroundColor = feedGreen
-    callToAction.layer.cornerRadius = 8
-    callToAction.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+    var buttonConfig = UIButton.Configuration.filled()
+    buttonConfig.title = nativeAd.callToAction ?? "Open"
+    buttonConfig.baseForegroundColor = .black
+    buttonConfig.baseBackgroundColor = feedGreen
+    buttonConfig.cornerStyle = .fixed
+    buttonConfig.background.cornerRadius = 8
+    buttonConfig.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+    buttonConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+      var outgoing = incoming
+      outgoing.font = .systemFont(ofSize: 12, weight: .bold)
+      return outgoing
+    }
+    callToAction.configuration = buttonConfig
     callToAction.translatesAutoresizingMaskIntoConstraints = false
     callToAction.setContentHuggingPriority(.required, for: .horizontal)
     callToAction.setContentCompressionResistancePriority(.required, for: .horizontal)

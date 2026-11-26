@@ -7,12 +7,12 @@ final class ReelsNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
     _ nativeAd: GADNativeAd,
     customOptions: [AnyHashable: Any]? = nil
-  ) -> GADNativeAdView? {
-    let adView = GADNativeAdView()
+  ) -> NativeAdView? {
+    let adView = NativeAdView()
     adView.backgroundColor = .black
     adView.accessibilityLabel = "Sponsored advertisement"
 
-    let mediaView = GADMediaView()
+    let mediaView = MediaView()
     mediaView.translatesAutoresizingMaskIntoConstraints = false
     mediaView.contentMode = .scaleAspectFill
     adView.addSubview(mediaView)
@@ -81,7 +81,7 @@ final class ReelsNativeAdFactory: NSObject, FLTNativeAdFactory {
 
     [sponsored, icon, headline, advertiser, body, callToAction].forEach(stack.addArrangedSubview)
 
-    let adChoices = GADAdChoicesView()
+    let adChoices = AdChoicesView()
     adChoices.translatesAutoresizingMaskIntoConstraints = false
     adView.addSubview(adChoices)
 
