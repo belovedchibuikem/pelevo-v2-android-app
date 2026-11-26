@@ -84,7 +84,8 @@ dependencies:
   sign_in_with_apple: ^8.2.0
   firebase_app_check: ^0.3.2+10
   # 7+ required for Gradle 9 (6.0.0 uses removed configurations.all).
-  google_mobile_ads: ^7.0.0
+  # 8+ ships SwiftPM so sentry_flutter 10 (SPM-only) can coexist with ads.
+  google_mobile_ads: ^8.0.0
   app_tracking_transparency: ^2.0.6+1
   sentry_flutter: ^10.3.0
   webview_flutter: ^4.14.0
@@ -140,10 +141,8 @@ flutter_native_splash:
 
 # The following section is specific to Flutter packages.
 flutter:
-  # google_mobile_ads is CocoaPods-only and depends on webview_flutter_wkwebview.
-  # Flutter 3.44+ SPM would skip that plugin's podspec and pod install fails.
   config:
-    enable-swift-package-manager: false
+    enable-swift-package-manager: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
