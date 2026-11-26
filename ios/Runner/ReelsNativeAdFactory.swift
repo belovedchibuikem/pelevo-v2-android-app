@@ -5,7 +5,7 @@ import google_mobile_ads
 
 final class ReelsNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
-    _ nativeAd: GADNativeAd,
+    _ nativeAd: NativeAd,
     customOptions: [AnyHashable: Any]? = nil
   ) -> NativeAdView? {
     let adView = NativeAdView()

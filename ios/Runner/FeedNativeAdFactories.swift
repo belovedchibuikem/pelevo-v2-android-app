@@ -10,7 +10,7 @@ private let feedWell = UIColor(white: 0.12, alpha: 1)
 
 final class HomeFeedNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
-    _ nativeAd: GADNativeAd,
+    _ nativeAd: NativeAd,
     customOptions: [AnyHashable: Any]? = nil
   ) -> NativeAdView? {
     let adView = NativeAdView()
@@ -128,7 +128,7 @@ final class HomeFeedNativeAdFactory: NSObject, FLTNativeAdFactory {
 
 final class SearchNativeAdFactory: NSObject, FLTNativeAdFactory {
   func createNativeAd(
-    _ nativeAd: GADNativeAd,
+    _ nativeAd: NativeAd,
     customOptions: [AnyHashable: Any]? = nil
   ) -> NativeAdView? {
     let adView = NativeAdView()
