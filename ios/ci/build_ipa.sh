@@ -54,12 +54,52 @@ dart_defines=(
   --dart-define="ADMOB_SEARCH_IOS_AD_UNIT_ID=${ADMOB_SEARCH_IOS_AD_UNIT_ID:-}"
 )
 
+# Flutter SPM integration rewrites the Xcode project to iOS 15. GoogleCast needs 16.
+pin_ios_16() {
+  python3 - <<'PY'
+from pathlib import Path
+import re
+root = Path("ios")
+pbx = re.compile(r"IPHONEOS_DEPLOYMENT_TARGET = 1[0-5]\.\d+;")
+for path in root.rglob("project.pbxproj"):
+    text = path.read_text(encoding="utf-8")
+    updated = pbx.sub("IPHONEOS_DEPLOYMENT_TARGET = 16.0;", text)
+    if updated != text:
+        path.write_text(updated, encoding="utf-8")
+        print(f"Pinned {path} to iOS 16.0")
+podfile = root / "Podfile"
+if podfile.exists():
+    t = podfile.read_text(encoding="utf-8")
+    u = re.sub(r"platform :ios, '1[0-5]\.\d+'", "platform :ios, '16.0'", t)
+    u = u.replace("IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'", "IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'")
+    if u != t:
+        podfile.write_text(u, encoding="utf-8")
+info = root / "Flutter" / "AppFrameworkInfo.plist"
+if info.exists():
+    t = info.read_text(encoding="utf-8")
+    u = t.replace("<string>15.0</string>", "<string>16.0</string>")
+    if u != t:
+        info.write_text(u, encoding="utf-8")
+PY
+}
+
 if [[ "$can_sign" != true ]]; then
   echo "App Store Connect keys not set. Compiling unsigned iOS release (no IPA, no TestFlight, no App Store)."
-  flutter build ios --release --no-codesign \
+  flutter build ios --config-only --release --no-codesign \
     --build-name=5.2.0 \
     --build-number="$build_number" \
     "${dart_defines[@]}"
+  pin_ios_16
+  mkdir -p build/ios/iphoneos
+  # Command-line IPHONEOS_DEPLOYMENT_TARGET beats Flutter SPM rewriting the pbxproj to 15.0.
+  xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
+    -configuration Release -sdk iphoneos \
+    -destination 'generic/platform=iOS' \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+    IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+    FLUTTER_BUILD_NAME=5.2.0 \
+    FLUTTER_BUILD_NUMBER="$build_number" \
+    CONFIGURATION_BUILD_DIR="$PWD/build/ios/iphoneos"
   mkdir -p build/ios/ipa
   app_path="build/ios/iphoneos/Runner.app"
   if [[ ! -d "$app_path" ]]; then
@@ -104,6 +144,11 @@ if [[ ! -f "$export_plist" ]]; then
   exit 1
 fi
 
+flutter build ios --config-only --release \
+  --build-name=5.2.0 \
+  --build-number="$build_number" \
+  "${dart_defines[@]}"
+pin_ios_16
 flutter build ipa --release \
   --build-name=5.2.0 \
   --build-number="$build_number" \
